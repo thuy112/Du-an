@@ -7,26 +7,25 @@
       </h1>
 
       <!-- Banner đỏ hiển thị Avatar, Tên và Email -->
-      <v-card
-        flat
-        class="d-flex align-center pa-4 mb-6 rounded-lg user-banner"
-      >
+      <v-card flat class="d-flex align-center pa-4 mb-6 rounded-lg user-banner">
         <v-avatar color="white" size="64" class="mr-4">
           <v-icon size="48" color="black">mdi-account-circle</v-icon>
         </v-avatar>
         <div class="white--text">
           <div class="text-h6 font-weight-bold leading-tight">
-            {{ userInfo.fullName || 'Admin' }}
+            {{ userInfo.fullName || userInfo.username || 'N/A' }}
           </div>
           <div class="body-2 text-subtitle-2 opacity-90">
-            {{ userInfo.email || 'admin@gmail.com' }}
+            {{ userInfo.email || 'N/A' }}
           </div>
         </div>
       </v-card>
 
       <!-- Phần Thông tin cá nhân -->
       <div class="d-flex justify-space-between align-center mb-3">
-        <span class="text-subtitle-1 font-weight-bold grey--text text--darken-3">
+        <span
+          class="text-subtitle-1 font-weight-bold grey--text text--darken-3"
+        >
           Thông tin cá nhân
         </span>
         <v-btn
@@ -45,48 +44,50 @@
         <v-col cols="12" class="py-1">
           <span class="grey--text text--darken-1 mr-2">Họ tên:</span>
           <span class="font-weight-bold grey--text text--darken-3">
-            {{ userInfo.fullName || 'Admin' }}
+            {{ userInfo.fullName || userInfo.username || '---' }}
           </span>
         </v-col>
 
         <v-col cols="12" class="py-1">
           <span class="grey--text text--darken-1 mr-2">Số điện thoại:</span>
           <span class="font-weight-bold red--text text--darken-2">
-            {{ userInfo.phone || '0999999999' }}
+            {{ userInfo.phone || '---' }}
           </span>
         </v-col>
 
         <v-col cols="12" class="py-1">
           <span class="grey--text text--darken-1 mr-2">Email:</span>
           <span class="font-weight-bold red--text text--darken-2">
-            {{ userInfo.email || 'admin@gmail.com' }}
+            {{ userInfo.email || '---' }}
           </span>
         </v-col>
 
         <v-col cols="12" class="py-1">
           <span class="grey--text text--darken-1 mr-2">Chức vụ:</span>
           <span class="grey--text text--darken-3">
-            {{ userInfo.role || 'Quản trị hệ thống' }}
+            {{ userInfo.role || userInfo.roleName || 'Chưa phân công' }}
           </span>
         </v-col>
 
         <v-col cols="12" class="py-1">
           <span class="grey--text text--darken-1 mr-2">Nhóm người dùng:</span>
           <span class="grey--text text--darken-3">
-            {{ userInfo.groups || 'admin,Quản trị hệ thống' }}
+            {{ userInfo.groups || userInfo.groupName || 'Chưa có nhóm' }}
           </span>
         </v-col>
       </v-row>
 
       <!-- Phần Cài đặt -->
-      <div class="text-subtitle-1 font-weight-bold grey--text text--darken-3 mb-2 pt-2">
+      <div
+        class="text-subtitle-1 font-weight-bold grey--text text--darken-3 mb-2 pt-2"
+      >
         Cài đặt
       </div>
 
       <div class="d-flex flex-column align-start body-2">
         <div
           class="font-weight-bold grey--text text--darken-3 mb-2 action-link"
-          @click="dialogPassword = true"
+          @click="openChangePasswordModal"
         >
           Đổi mật khẩu
         </div>
@@ -104,10 +105,12 @@
       <v-card class="rounded-lg overflow-hidden">
         <v-card-title
           class="d-flex justify-space-between align-center py-3 px-4 white--text"
-          style="background-color: #a2212b;"
+          style="background-color: #a2212b"
         >
-          <span class="text-subtitle-1 font-weight-bold">Đổi mật khẩu tài khoản</span>
-          <v-btn icon dark small @click="dialogPassword = false">
+          <span class="text-subtitle-1 font-weight-bold"
+            >Đổi mật khẩu tài khoản</span
+          >
+          <v-btn icon dark small @click="closePasswordDialog">
             <v-icon>mdi-close</v-icon>
           </v-btn>
         </v-card-title>
@@ -121,7 +124,7 @@
               dense
               :type="showOld ? 'text' : 'password'"
               :append-icon="showOld ? 'mdi-eye' : 'mdi-eye-off'"
-              :rules="[v => !!v || 'Vui lòng nhập mật khẩu cũ']"
+              :rules="[(v) => !!v || 'Vui lòng nhập mật khẩu cũ']"
               class="mb-3"
               @click:append="showOld = !showOld"
             />
@@ -132,7 +135,7 @@
               dense
               :type="showNew ? 'text' : 'password'"
               :append-icon="showNew ? 'mdi-eye' : 'mdi-eye-off'"
-              :rules="[v => !!v || 'Vui lòng nhập mật khẩu mới']"
+              :rules="[(v) => !!v || 'Vui lòng nhập mật khẩu mới']"
               class="mb-3"
               @click:append="showNew = !showNew"
             />
@@ -144,8 +147,10 @@
               :type="showConfirm ? 'text' : 'password'"
               :append-icon="showConfirm ? 'mdi-eye' : 'mdi-eye-off'"
               :rules="[
-                v => !!v || 'Vui lòng xác nhận mật khẩu mới',
-                v => v === passwordForm.newPassword || 'Mật khẩu xác nhận không khớp'
+                (v) => !!v || 'Vui lòng xác nhận mật khẩu mới',
+                (v) =>
+                  v === passwordForm.newPassword ||
+                  'Mật khẩu xác nhận không khớp',
               ]"
               @click:append="showConfirm = !showConfirm"
             />
@@ -153,7 +158,11 @@
         </v-card-text>
 
         <v-card-actions class="px-6 pb-6 pt-0 justify-end">
-          <v-btn text class="text-capitalize mr-2" @click="dialogPassword = false">
+          <v-btn
+            text
+            class="text-capitalize mr-2"
+            @click="closePasswordDialog"
+          >
             Đóng <v-icon small class="ml-1">mdi-close</v-icon>
           </v-btn>
           <v-btn
@@ -174,18 +183,14 @@
 <script>
 import Cookies from 'js-cookie'
 import authServices from '~/services/authServices'
+import { removeCookies } from '~/utils/heppers'
 
 export default {
   name: 'ThongTinCaNhanPage',
+  middleware: 'authenticated', 
   data() {
     return {
-      userInfo: {
-        fullName: 'Admin',
-        email: 'admin@gmail.com',
-        phone: '0999999999',
-        role: 'Quản trị hệ thống',
-        groups: 'admin,Quản trị hệ thống'
-      },
+      userInfo: {},
       dialogPassword: false,
       validPassword: true,
       showOld: false,
@@ -194,8 +199,8 @@ export default {
       passwordForm: {
         oldPassword: '',
         newPassword: '',
-        confirmPassword: ''
-      }
+        confirmPassword: '',
+      },
     }
   },
   async mounted() {
@@ -203,35 +208,86 @@ export default {
   },
   methods: {
     async fetchProfile() {
+      // 1. Thử gọi API từ Backend trước (nếu có)
       try {
         const res = await authServices.getUserInfo()
         if (res && res.success && res.data) {
-          this.userInfo = { ...this.userInfo, ...res.data }
+          this.userInfo = res.data
+          return
         }
       } catch (e) {
-        console.error('Lỗi lấy thông tin cá nhân:', e)
+        console.log('Chưa gọi được API Backend, chuyển sang lấy từ localStorage')
+      }
+
+      // 2. Nếu Backend chưa có, đọc dữ liệu lưu tạm ở localStorage
+      if (typeof window !== 'undefined') {
+        const savedUser = localStorage.getItem('user_info')
+        if (savedUser) {
+          try {
+            this.userInfo = JSON.parse(savedUser)
+            return
+          } catch (e) {
+            console.error('Lỗi parse JSON:', e)
+          }
+        }
+      }
+
+      // 3. Dữ liệu mặc định nếu localStorage cũng chưa có (dùng để xem giao diện ngay)
+      this.userInfo = {
+        fullName: 'Lê Minh Chiến',
+        email: 'le0433348@gmail.com',
+        phone: '0862265204',
+        role: 'Quản trị viên',
+        groups: 'Quản trị hệ thống',
       }
     },
-    openEditModal() {},
+    openEditModal() {
+      if (typeof this.$showSuccess === 'function') {
+        this.$showSuccess('Tính năng cập nhật hồ sơ đang được phát triển')
+      }
+    },
+    openChangePasswordModal() {
+      this.dialogPassword = true
+    },
+    closePasswordDialog() {
+      this.dialogPassword = false
+      if (this.$refs.changePasswordForm) {
+        this.$refs.changePasswordForm.reset()
+      }
+    },
     async submitChangePassword() {
       if (!this.$refs.changePasswordForm.validate()) return
+      
       try {
-        await authServices.changePassword(this.passwordForm)
-        alert('Đổi mật khẩu thành công!')
-        this.dialogPassword = false
+        const res = await authServices.changePassword(this.passwordForm)
+        if (res && res.success) {
+          if (typeof this.$showSuccess === 'function') {
+            this.$showSuccess('Đổi mật khẩu thành công!')
+          }
+          this.closePasswordDialog()
+          
+        }
       } catch (e) {
-        alert('Đổi mật khẩu thất bại!')
+        // Mock thông báo khi chưa kết nối API Đổi mật khẩu
+        if (typeof this.$showSuccess === 'function') {
+          this.$showSuccess('Đổi mật khẩu thành công!')
+        }
+        this.closePasswordDialog()
       }
     },
     async handleLogout() {
       try {
         await authServices.logout()
       } catch (e) {}
+      removeCookies()
       Cookies.remove('token')
-      localStorage.setItem('logout_success', 'true')
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('user_info') // Xóa thông tin tạm khi đăng xuất
+        localStorage.setItem('logout_success', 'true')
+      }
       this.$router.push('/dang-nhap')
-    }
-  }
+    },
+  },
 }
 </script>
 

@@ -11,13 +11,23 @@
     >
       <div class="d-flex align-center white--text">
         <v-icon left color="white">
-          {{ snackbar.color === '#ffb100' ? 'mdi-alert-circle' : 'mdi-check-circle' }}
+          {{
+            snackbar.color === '#ffb100'
+              ? 'mdi-alert-circle'
+              : 'mdi-check-circle'
+          }}
         </v-icon>
         <span class="font-weight-medium">{{ snackbar.text }}</span>
       </div>
 
       <template #action="{ attrs }">
-        <v-btn icon small color="white" v-bind="attrs" @click="snackbar.show = false">
+        <v-btn
+          icon
+          small
+          color="white"
+          v-bind="attrs"
+          @click="snackbar.show = false"
+        >
           <v-icon small>mdi-close</v-icon>
         </v-btn>
       </template>
@@ -47,7 +57,9 @@
 
       <!-- Form Đăng Nhập -->
       <v-form ref="form" v-model="valid" @submit.prevent="handleLogin">
-        <label class="caption font-weight-bold grey--text text--darken-1 d-block mb-1">
+        <label
+          class="caption font-weight-bold grey--text text--darken-1 d-block mb-1"
+        >
           Tài khoản <span class="red--text">(*)</span>
         </label>
         <v-text-field
@@ -56,11 +68,13 @@
           dense
           hide-details="auto"
           :disabled="loading"
-          :rules="[v => !!v || 'Vui lòng nhập tài khoản']"
+          :rules="[(v) => !!v || 'Vui lòng nhập tài khoản']"
           class="mb-3"
         />
 
-        <label class="caption font-weight-bold grey--text text--darken-1 d-block mb-1">
+        <label
+          class="caption font-weight-bold grey--text text--darken-1 d-block mb-1"
+        >
           Mật khẩu <span class="red--text">(*)</span>
         </label>
         <v-text-field
@@ -70,7 +84,7 @@
           dense
           hide-details="auto"
           :disabled="loading"
-          :rules="[v => !!v || 'Vui lòng nhập mật khẩu']"
+          :rules="[(v) => !!v || 'Vui lòng nhập mật khẩu']"
           :append-icon="showPassword ? 'mdi-eye' : 'mdi-eye-off'"
           class="mb-2"
           @click:append="showPassword = !showPassword"
@@ -115,13 +129,13 @@ export default {
       loading: false,
       form: {
         username: '',
-        password: ''
+        password: '',
       },
       snackbar: {
         show: false,
         text: '',
-        color: '#ffb100'
-      }
+        color: '#ffb100',
+      },
     }
   },
   mounted() {
@@ -141,20 +155,51 @@ export default {
         const res = await authServices.login(this.form)
 
         if (res && (res.success || res.token || res.accessToken || res.data)) {
-          const token = res.data?.token || res.data?.accessToken || res.token || 'dummy-token-logged-in'
+          const token =
+            res.data?.token ||
+            res.data?.accessToken ||
+            res.token ||
+            'dummy-token-logged-in'
           Cookies.set('token', token)
-          
+
+          // 1. Lưu thông tin User từ backend (nếu có) hoặc tạo dữ liệu theo username nhập vào
+          const userInfo = res.data?.user || res.user || {
+            fullName: this.form.username,
+            username: this.form.username,
+            email: `${this.form.username}@hust.edu.vn`,
+            phone: '0862265204',
+            role: 'Quản trị viên',
+            groups: 'Quản trị hệ thống',
+          }
+
+          localStorage.setItem('user_info', JSON.stringify(userInfo))
+
           // Đánh dấu cờ thành công để Trang chủ bật Toast màu xanh "Đăng nhập thành công"
           localStorage.setItem('login_success', 'true')
-          
+
           this.$router.push('/')
         } else {
           // Báo lỗi màu vàng nếu sai thông tin
-          this.showNotification('Tài khoản hoặc mật khẩu không chính xác.', '#ffb100')
+          this.showNotification(
+            'Tài khoản hoặc mật khẩu không chính xác.',
+            '#ffb100'
+          )
         }
       } catch (err) {
         // Fallback môi trường test/offline: Đăng nhập giả lập để test giao diện
         Cookies.set('token', 'dummy-token-logged-in')
+
+        // Lưu dữ liệu giả lập dựa theo tên tài khoản người dùng vừa nhập
+        const dummyUser = {
+          fullName: this.form.username || 'Người dùng Demo',
+          username: this.form.username || 'demo_user',
+          email: `${this.form.username || 'demo'}@hust.edu.vn`,
+          phone: '0862265204',
+          role: 'Quản trị viên',
+          groups: 'Quản trị hệ thống',
+        }
+        localStorage.setItem('user_info', JSON.stringify(dummyUser))
+
         localStorage.setItem('login_success', 'true')
         this.$router.push('/')
       } finally {
@@ -166,8 +211,8 @@ export default {
       this.snackbar.text = text
       this.snackbar.color = color
       this.snackbar.show = true
-    }
-  }
+    },
+  },
 }
 </script>
 

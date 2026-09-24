@@ -34,7 +34,9 @@
 
       <!-- Form nhập Email -->
       <v-form ref="form" v-model="valid" @submit.prevent="handleForgotPassword">
-        <label class="caption font-weight-bold grey--text text--darken-1 d-block mb-1">
+        <label
+          class="caption font-weight-bold grey--text text--darken-1 d-block mb-1"
+        >
           Email (*)
         </label>
         <v-text-field
@@ -43,13 +45,18 @@
           dense
           hide-details="auto"
           :rules="[
-            v => !!v || 'Vui lòng nhập email',
-            v => /.+@.+\..+/.test(v) || 'Email không hợp lệ'
+            (v) => !!v || 'Vui lòng nhập email',
+            (v) => /.+@.+\..+/.test(v) || 'Email không hợp lệ',
           ]"
           class="mb-6 custom-input"
         />
 
-        <v-alert v-if="message" :type="isSuccess ? 'success' : 'error'" dense class="mb-4">
+        <v-alert
+          v-if="message"
+          :type="isSuccess ? 'success' : 'error'"
+          dense
+          class="mb-4"
+        >
           {{ message }}
         </v-alert>
 
@@ -92,7 +99,7 @@ export default {
       email: '',
       loading: false,
       message: '',
-      isSuccess: false
+      isSuccess: false,
     }
   },
   methods: {
@@ -118,8 +125,8 @@ export default {
         this.isSuccess = true
         this.message = 'Mã xác thực đã được gửi về email của bạn!'
       }
-    }
-  }
+    },
+  },
 }
 </script>
 

@@ -1,5 +1,7 @@
 <template>
-  <div class="page-shell fill-height d-flex flex-column align-center justify-center text-center py-12">
+  <div
+    class="page-shell fill-height d-flex flex-column align-center justify-center text-center py-12"
+  >
     <!-- Toast Thông báo "Đăng nhập thành công" màu xanh ở góc trên bên phải -->
     <v-snackbar
       v-model="snackbar.show"
@@ -15,7 +17,13 @@
       </div>
 
       <template #action="{ attrs }">
-        <v-btn icon small color="white" v-bind="attrs" @click="snackbar.show = false">
+        <v-btn
+          icon
+          small
+          color="white"
+          v-bind="attrs"
+          @click="snackbar.show = false"
+        >
           <v-icon small>mdi-close</v-icon>
         </v-btn>
       </template>
@@ -23,7 +31,7 @@
 
     <!-- Hình ảnh Banner WELCOME -->
     <div class="welcome-banner mb-6">
-      <img src="img/banner.jpg" alt="Welcome Banner" height="200">
+      <img src="img/banner.jpg" alt="Welcome Banner" height="200" />
     </div>
 
     <!-- Dòng tiêu đề giới thiệu hệ thống -->
@@ -40,8 +48,8 @@ export default {
     return {
       snackbar: {
         show: false,
-        text: 'Đăng nhập thành công'
-      }
+        text: 'Đăng nhập thành công',
+      },
     }
   },
   mounted() {
@@ -50,7 +58,7 @@ export default {
       this.snackbar.show = true
       localStorage.removeItem('login_success') // Xóa cờ sau khi hiển thị
     }
-  }
+  },
 }
 </script>
 
@@ -86,11 +94,11 @@ export default {
 }
 
 .system-title {
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 26px !important;
   font-weight: 700;
   color: #a2212b !important;
   letter-spacing: 0.2px;
-  text-shadow: 0 2px 0 rgba(255,255,255,0.9);
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.9);
 }
 </style>
