@@ -160,7 +160,7 @@ export default {
             res.data?.accessToken ||
             res.token ||
             'dummy-token-logged-in'
-          Cookies.set('token', token)
+          Cookies.set('auth_token', token)
 
           // 1. Lưu thông tin User từ backend (nếu có) hoặc tạo dữ liệu theo username nhập vào
           const userInfo = res.data?.user || res.user || {
@@ -187,7 +187,7 @@ export default {
         }
       } catch (err) {
         // Fallback môi trường test/offline: Đăng nhập giả lập để test giao diện
-        Cookies.set('token', 'dummy-token-logged-in')
+        Cookies.set('auth_token', 'dummy-token-logged-in')
 
         // Lưu dữ liệu giả lập dựa theo tên tài khoản người dùng vừa nhập
         const dummyUser = {

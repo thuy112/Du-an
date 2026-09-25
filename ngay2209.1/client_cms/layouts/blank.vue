@@ -1,5 +1,5 @@
 <template>
-  <v-app>
+  <v-app class="blank-layout">
     <v-main>
       <Nuxt />
     </v-main>
@@ -11,3 +11,9 @@ export default {
   name: 'BlankLayout',
 }
 </script>
+
+<style scoped>
+.blank-layout {
+  background-color: #dce7f7 !important;
+}
+</style>

@@ -1,5 +1,5 @@
 <template>
-  <div class="teacher-page pa-4">
+  <div class="teacher-page pa-2 pa-sm-4">
     <!-- Thanh lọc Tìm kiếm -->
     <div class="d-flex align-center justify-space-between mb-4 flex-wrap gap-2 width-100">
       <div class="text-subtitle-1 font-weight-bold mr-2 text-no-wrap">
@@ -66,93 +66,95 @@
         ></v-select>
 
         <div class="d-flex gap-2">
-          <v-btn icon color="#a2212b" class="border-btn rounded-sm" @click="resetFilters">
+          <v-btn icon color="#a2212b" class="rounded-sm" @click="resetFilters">
             <v-icon color="#a2212b">mdi-refresh</v-icon>
           </v-btn>
 
           <v-btn color="#a2212b" dark elevation="0" class="min-w-0 px-3 rounded-sm" @click="search">
-            <v-icon small>mdi-magnify</v-icon>
+            <v-icon size="24">mdi-magnify</v-icon>
           </v-btn>
         </div>
       </div>
     </div>
 
-    <!-- Bảng Dữ liệu -->
+    <!-- Bảng Dữ liệu tích hợp kéo cuộn ngang Responsive -->
     <v-card flat class="border rounded-lg overflow-hidden mb-4">
-      <v-data-table
-        :headers="headers"
-        :items="paginatedTeachers"
-        hide-default-footer
-        disable-pagination
-        class="custom-table"
-      >
-        <template #[`item.stt`]="{ index }">
-          <span class="font-weight-medium">{{ (page - 1) * itemsPerPage + index + 1 }}</span>
-        </template>
+      <div class="table-responsive-wrapper">
+        <v-data-table
+          :headers="headers"
+          :items="paginatedTeachers"
+          hide-default-footer
+          disable-pagination
+          class="custom-table"
+        >
+          <template #[`item.stt`]="{ index }">
+            <span class="font-weight-medium">{{ (page - 1) * itemsPerPage + index + 1 }}</span>
+          </template>
 
-        <template #[`item.generalInfo`]="{ item }">
-          <div class="py-2">
-            <div class="font-weight-bold red--text text--darken-3 mb-1">
-              {{ item.fullName }}
+          <template #[`item.generalInfo`]="{ item }">
+            <div class="py-2">
+              <div class="font-weight-bold red--text text--darken-3 mb-1">
+                {{ item.fullName }}
+              </div>
+              <div v-if="item.phone" class="caption text--secondary">
+                Số điện thoại: <span class="red--text text--darken-2 font-weight-medium">{{ item.phone }}</span>
+              </div>
+              <div v-if="item.dob" class="caption text--secondary">
+                Ngày sinh: <span class="red--text text--darken-2 font-weight-medium">{{ item.dob }}</span>
+              </div>
+              <div v-if="item.email" class="caption text--secondary">
+                Email: <span class="red--text text--darken-2 font-weight-medium">{{ item.email }}</span>
+              </div>
+              <div v-if="item.gender" class="caption text--secondary">
+                Giới tính: <span class="black--text font-weight-medium">{{ item.gender }}</span>
+              </div>
             </div>
-            <div v-if="item.phone" class="caption text--secondary">
-              Số điện thoại: <span class="red--text text--darken-2 font-weight-medium">{{ item.phone }}</span>
-            </div>
-            <div v-if="item.dob" class="caption text--secondary">
-              Ngày sinh: <span class="red--text text--darken-2 font-weight-medium">{{ item.dob }}</span>
-            </div>
-            <div v-if="item.email" class="caption text--secondary">
-              Email: <span class="red--text text--darken-2 font-weight-medium">{{ item.email }}</span>
-            </div>
-            <div v-if="item.gender" class="caption text--secondary">
-              Giới tính: <span class="black--text font-weight-medium">{{ item.gender }}</span>
-            </div>
-          </div>
-        </template>
+          </template>
 
-        <template #[`item.teacherType`]="{ item }">
-          <v-chip
-            small
-            dark
-            :color="item.teacherType === 'Đương chức' ? '#ffb100' : '#4caf50'"
-            class="font-weight-bold text-caption px-3"
-          >
-            {{ item.teacherType }}
-          </v-chip>
-        </template>
+          <template #[`item.teacherType`]="{ item }">
+            <v-chip
+              small
+              dark
+              :color="item.teacherType === 'Đương chức' ? '#ffb100' : '#4caf50'"
+              class="font-weight-bold text-caption px-3"
+            >
+              {{ item.teacherType }}
+            </v-chip>
+          </template>
 
-        <!-- Trạng thái màu đỏ - Bấm vào mở Confirm Dialog -->
-        <template #[`item.status`]="{ item }">
-          <v-select
-            :value="item.status"
-            :items="['Hoạt động', 'Nghỉ hưu', 'Ngừng hoạt động']"
-            dense
-            flat
-            solo
-            hide-details
-            class="status-select-btn"
-            @change="openConfirmStatusDialog(item, $event)"
-          ></v-select>
-        </template>
+          <!-- Trạng thái màu đỏ - Bấm vào mở Confirm Dialog -->
+          <template #[`item.status`]="{ item }">
+            <v-select
+              :value="item.status"
+              :items="['Hoạt động', 'Nghỉ hưu', 'Ngừng hoạt động']"
+              dense
+              flat
+              solo
+              hide-details
+              class="status-select-btn"
+              @change="openConfirmStatusDialog(item, $event)"
+            ></v-select>
+          </template>
 
-        <template #[`item.actions`]="{ item }">
-          <div class="d-flex align-center justify-center gap-1">
-            <v-btn icon x-small color="cyan darken-1" @click="viewDetail(item)">
-              <v-icon small>mdi-eye-outline</v-icon>
-            </v-btn>
+          <template #[`item.actions`]="{ item }">
+            <div class="d-flex align-center justify-center gap-1">
+              <v-btn icon x-small color="cyan darken-1" @click="viewDetail(item)">
+                <v-icon size="24">mdi-eye-outline</v-icon>
+              </v-btn>
 
-            <v-btn icon x-small color="teal" @click="checkHistory(item)">
-              <v-icon small>mdi-table-edit</v-icon>
-            </v-btn>
-          </div>
-        </template>
-      </v-data-table>
+              <v-btn icon x-small color="teal" @click="checkHistory(item)">
+                <v-icon size="24">mdi-table-account</v-icon>
+              </v-btn>
+            </div>
+          </template>
+        </v-data-table>
+      </div>
     </v-card>
 
     <!-- Thanh Xuất Excel & Phân trang -->
     <div class="d-flex align-center justify-space-between flex-wrap gap-2">
       <v-btn color="success" dark elevation="0" class="text-capitalize rounded px-4 font-weight-bold">
-        <v-icon left small>mdi-file-excel</v-icon> XUẤT FILE EXCEL
+        <v-icon left small>mdi-export</v-icon> XUẤT FILE EXCEL
       </v-btn>
 
       <div class="d-flex align-center gap-2">
@@ -557,7 +559,7 @@ export default {
       this.pendingStatusChange = {
         teacher: item,
         oldStatus: item.status,
-        newStatus // Đã áp dụng Object Shorthand chuẩn ESLint
+        newStatus
       }
       this.confirmStatusDialog = true
     },
@@ -589,14 +591,25 @@ export default {
 .gap-2 { gap: 8px; }
 .border-btn { border: 1px solid #a2212b !important; }
 
-.filter-item {
-  flex-grow: 1;
-  flex-shrink: 1;
+.filter-item { flex: 1 1 100%; }
+@media (min-width: 600px) {
+  .filter-item { flex: 1 1 auto; }
+  .search-input { min-width: 150px; max-width: 220px; }
+  .select-sm { min-width: 100px; max-width: 130px; }
+  .select-md { min-width: 120px; max-width: 150px; }
+  .select-lg { min-width: 140px; max-width: 180px; }
 }
-.search-input { min-width: 150px; max-width: 220px; }
-.select-sm { min-width: 100px; max-width: 130px; }
-.select-md { min-width: 120px; max-width: 150px; }
-.select-lg { min-width: 140px; max-width: 180px; }
+
+/* Khối bọc cho phép cuộn ngang khi màn hình bị co nhỏ */
+.table-responsive-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.custom-table {
+  min-width: 950px !important;
+}
 
 .custom-table >>> th { background-color: #f8f9fa !important; font-weight: bold !important; color: #333 !important; }
 
@@ -606,5 +619,21 @@ export default {
 
 .custom-toast >>> .v-snack__wrapper {
   border-radius: 8px !important;
+}
+
+/* Custom thanh cuộn ngang màu đỏ Bách Khoa */
+.table-responsive-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+.table-responsive-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+.table-responsive-wrapper::-webkit-scrollbar-thumb {
+  background: #a2212b;
+  border-radius: 4px;
+}
+.table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #83161f;
 }
 </style>

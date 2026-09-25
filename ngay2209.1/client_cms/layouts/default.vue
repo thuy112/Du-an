@@ -1,75 +1,156 @@
 <template>
   <v-app>
-    <!-- Cột 1: Navigation Sidebar 88px cố định bên trái -->
-    <div class="sidebar-primary">
-      <!-- Logo Bách Khoa -->
-      <div class="pa-3 text-center logo-box">
-        <v-img
-          src="/img/logo-bachkhoa.jpg"
-          alt="BK Logo"
-          max-width="45"
-          contain
-          class="mx-auto"
-        />
-      </div>
+    <!-- ==================== 1. SIDEBAR CHO MÀN HÌNH LỚN (DESKTOP >= 960px) ==================== -->
+    <template v-if="isDesktop">
+      <!-- Cột 1: Navigation Sidebar 88px cố định bên trái -->
+      <div class="sidebar-primary">
+        <div class="pa-3 text-center logo-box">
+          <v-img
+            src="/img/logo-bachkhoa.jpg"
+            alt="BK Logo"
+            max-width="45"
+            contain
+            class="mx-auto"
+          />
+        </div>
 
-      <!-- Danh sách Icon Menu bên cột đỏ chính -->
-      <div class="sidebar-menu-list pa-0">
-        <div v-for="item in fullMenuList" :key="item.id || item.path">
-          <div
-            class="sidebar-item py-2 px-1 text-center"
-            :class="{
-              'item-active': isParentActive(item) || $route.path === item.path,
-            }"
-            @click="handleMainItemClick(item)"
-          >
-            <div class="sidebar-icon-box mb-1">
-              <v-icon small color="white">{{
-                item.icon || 'mdi-cog-outline'
-              }}</v-icon>
-            </div>
-            <div class="sidebar-title">
-              {{ item.title }}
+        <div class="sidebar-menu-list pa-0">
+          <div v-for="item in fullMenuList" :key="item.id || item.path">
+            <div
+              class="sidebar-item py-2 px-1 text-center"
+              :class="{
+                'item-active': isParentActive(item) || $route.path === item.path,
+              }"
+              @click="handleMainItemClick(item)"
+            >
+              <div class="sidebar-icon-box mb-1">
+                <v-icon size="24" color="white">{{
+                  item.icon || 'mdi-cog-outline'
+                }}</v-icon>
+              </div>
+              <div class="sidebar-title">
+                {{ item.title }}
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Cột 2: Submenu Drawer ĐÈ LÊN NỘI DUNG -->
-    <transition name="slide-fade">
-      <div v-if="activeSubMenu" class="sidebar-secondary">
-        <div class="red-flyout-box">
-          <div
-            v-for="child in activeSubMenu.children"
-            :key="child.path"
-            class="flyout-item"
-            :class="{ 'flyout-active': $route.path === child.path }"
-            @click="navigateTo(child.path)"
-          >
-            {{ child.title }}
+      <!-- Cột 2: Submenu Drawer ĐÈ LÊN NỘI DUNG khi bấm vào menu có con -->
+      <transition name="slide-fade">
+        <div v-if="activeSubMenu" class="sidebar-secondary">
+          <div class="red-flyout-box">
+            <div
+              v-for="child in activeSubMenu.children"
+              :key="child.path"
+              class="flyout-item"
+              :class="{ 'flyout-active': $route.path === child.path }"
+              @click="navigateTo(child.path)"
+            >
+              {{ child.title }}
+            </div>
           </div>
         </div>
-      </div>
-    </transition>
+      </transition>
 
-    <!-- Overlay mờ khi bấm ra ngoài để đóng submenu -->
-    <div
-      v-if="activeSubMenu"
-      class="sidebar-backdrop"
-      @click="activeSubMenu = null"
-    ></div>
+      <div
+        v-if="activeSubMenu"
+        class="sidebar-backdrop"
+        @click="activeSubMenu = null"
+      ></div>
+    </template>
 
-    <!-- Header Topbar (Giữ nguyên lề trái 110px) -->
+    <!-- ==================== 2. NAVIGATION DRAWER KHI THU NHỎ (MOBILE/TABLET < 960px) ==================== -->
+    <v-navigation-drawer
+      v-else
+      v-model="mobileDrawer"
+      app
+      temporary
+      fixed
+      width="260"
+      color="#a2212b"
+      dark
+      class="mobile-drawer"
+    >
+      <v-list class="pa-0 mt-2">
+        <template v-for="(item, i) in fullMenuList">
+          <!-- Menu có con (xổ xuống) -->
+          <v-list-group
+            v-if="item.children && item.children.length"
+            :key="`group-${i}`"
+            v-model="item.active"
+            no-action
+            color="white"
+          >
+            <template #activator>
+              <v-list-item-action class="mr-3">
+                <v-icon size="24">{{ item.icon || 'mdi-cog-outline' }}</v-icon>
+              </v-list-item-action>
+              <v-list-item-content>
+                <v-list-item-title class="body-2 font-weight-medium">
+                  {{ item.title }}
+                </v-list-item-title>
+              </v-list-item-content>
+            </template>
+
+            <v-list-item
+              v-for="(child, cIdx) in item.children"
+              :key="`child-${cIdx}`"
+              :class="{ 'sub-menu-active': $route.path === child.path }"
+              class="pl-12 sub-menu-item"
+              @click="navigateTo(child.path)"
+            >
+              <v-list-item-content>
+                <v-list-item-title class="caption">
+                  {{ child.title }}
+                </v-list-item-title>
+              </v-list-item-content>
+            </v-list-item>
+          </v-list-group>
+
+          <!-- Menu đơn không có con -->
+          <v-list-item
+            v-else
+            :key="`item-${i}`"
+            :class="{ 'menu-item-active': $route.path === item.path }"
+            @click="navigateTo(item.path)"
+          >
+            <v-list-item-action class="mr-3">
+              <v-icon size="24">{{ item.icon || 'mdi-cog-outline' }}</v-icon>
+            </v-list-item-action>
+            <v-list-item-content>
+              <v-list-item-title class="body-2 font-weight-medium">
+                {{ item.title }}
+              </v-list-item-title>
+            </v-list-item-content>
+          </v-list-item>
+        </template>
+      </v-list>
+    </v-navigation-drawer>
+
+    <!-- ==================== 3. HEADER TOPBAR ==================== -->
     <v-app-bar
       app
       elevation="0"
       color="#f8f9fa"
       height="60"
-      class="topbar-custom"
+      :class="isDesktop ? 'topbar-custom' : 'topbar-mobile'"
     >
-      <!-- Breadcrumb động xử lý hiển thị chữ Trang chủ đỏ + các trang con -->
-      <v-breadcrumbs :items="breadcrumbs" class="pa-0 pl-2 custom-breadcrumbs">
+      <v-btn
+        v-if="!isDesktop"
+        icon
+        color="black"
+        class="mr-2"
+        @click="mobileDrawer = !mobileDrawer"
+      >
+        <v-icon>mdi-menu</v-icon>
+      </v-btn>
+
+      <v-breadcrumbs
+        v-else
+        :items="breadcrumbs"
+        class="pa-0 pl-2 custom-breadcrumbs"
+      >
         <template #divider>
           <v-icon x-small color="grey lighten-1">mdi-chevron-right</v-icon>
         </template>
@@ -79,7 +160,7 @@
             :to="item.to"
             :exact="item.exact"
             :disabled="item.disabled"
-            :class="item.text === 'Trang chủ' ? 'text-home-red' : ''"
+            :class="item.text === 'Trang chủ' ? 'text-home-red' : 'text-breadcrumb-gray'"
           >
             {{ item.text }}
           </v-breadcrumbs-item>
@@ -93,11 +174,12 @@
         v-model="menuUser"
         offset-y
         left
-        :close-on-content-click="true"
+        :close-on-content-click="false"
         :open-on-hover="false"
       >
         <template #activator="{ on, attrs }">
           <div
+            v-if="isDesktop"
             class="d-flex align-center user-profile-btn py-1 px-2"
             v-bind="attrs"
             v-on="on"
@@ -108,28 +190,36 @@
               width="36"
               height="36"
               class="mr-2 avatar-user"
-              style="border-radius: 50%; overflow: hidden; object-fit: cover"
             ></v-img>
 
             <div class="text-left user-profile-text mr-1">
               <div class="user-name-text">
-                {{ user.name || 'Admin' }}
+                {{ user.name || user.fullName || 'Admin' }}
               </div>
               <div class="user-email-text">
                 {{ user.email || 'admin@gmail.com' }}
               </div>
             </div>
 
-            <v-icon x-small color="grey darken-1" class="ml-1 chevron-user"
-              >mdi-chevron-down</v-icon
-            >
+            <v-icon x-small color="grey darken-1" class="ml-1 chevron-user">
+              mdi-chevron-down
+            </v-icon>
           </div>
+
+          <v-avatar
+            v-else
+            size="36"
+            color="black"
+            class="cursor-pointer"
+            v-bind="attrs"
+            v-on="on"
+          >
+            <v-img src="/img/download.jpg" alt="User avatar"></v-img>
+          </v-avatar>
         </template>
 
         <v-card width="290" class="pa-4 rounded-lg elevation-4">
-          <div
-            class="text-subtitle-2 font-weight-bold grey--text text--darken-3 mb-3"
-          >
+          <div class="text-subtitle-2 font-weight-bold grey--text text--darken-3 mb-3">
             Thông tin người dùng
           </div>
 
@@ -143,25 +233,17 @@
             </v-avatar>
             <div>
               <div class="font-weight-bold body-2 grey--text text--darken-3">
-                {{ user.name || 'Admin' }}
+                {{ user.name || user.fullName || 'Admin' }}
               </div>
-              <div
-                class="caption grey--text text--darken-1 d-flex align-center mt-1"
-              >
-                <v-icon x-small class="mr-1"
-                  >mdi-badge-account-horizontal-outline</v-icon
-                >
+              <div class="caption grey--text text--darken-1 d-flex align-center mt-1">
+                <v-icon x-small class="mr-1">mdi-badge-account-horizontal-outline</v-icon>
                 {{ user.role || 'Quản trị hệ thống' }}
               </div>
-              <div
-                class="caption grey--text text--darken-1 d-flex align-center mt-1"
-              >
+              <div class="caption grey--text text--darken-1 d-flex align-center mt-1">
                 <v-icon x-small class="mr-1">mdi-phone-outline</v-icon>
                 {{ user.phone || '0999999999' }}
               </div>
-              <div
-                class="caption grey--text text--darken-1 d-flex align-center mt-1"
-              >
+              <div class="caption grey--text text--darken-1 d-flex align-center mt-1">
                 <v-icon x-small class="mr-1">mdi-email-outline</v-icon>
                 {{ user.email || 'admin@gmail.com' }}
               </div>
@@ -173,11 +255,9 @@
           <div
             class="d-flex align-center py-2 px-1 user-option-item rounded"
             style="cursor: pointer"
-            @click="openChangePasswordModal"
+            @click.stop="openChangePasswordModal"
           >
-            <v-icon small color="grey darken-2" class="mr-2"
-              >mdi-lock-outline</v-icon
-            >
+            <v-icon small color="grey darken-2" class="mr-2">mdi-lock-outline</v-icon>
             <span class="body-2 grey--text text--darken-3">Đổi mật khẩu</span>
           </div>
 
@@ -194,11 +274,11 @@
       </v-menu>
     </v-app-bar>
 
-    <!-- Main Body Content (Luôn giữ khoảng cách cố định 110px từ bên trái) -->
-    <v-main class="main-content">
+    <!-- ==================== 4. MAIN CONTENT ==================== -->
+    <v-main :class="isDesktop ? 'main-content' : 'main-content-mobile'">
       <v-container
         fluid
-        class="fill-height justify-center align-center main-container pa-0"
+        class="main-container pa-0"
       >
         <Nuxt />
       </v-container>
@@ -211,6 +291,7 @@
 <script>
 import Cookies from 'js-cookie'
 import authServices from '~/services/authServices'
+import { removeCookies } from '~/utils/heppers'
 
 export default {
   name: 'DefaultLayout',
@@ -219,6 +300,7 @@ export default {
       menuUser: false,
       dialogPassword: false,
       activeSubMenu: null,
+      mobileDrawer: false,
 
       user: {
         name: 'Admin',
@@ -231,48 +313,53 @@ export default {
     }
   },
   computed: {
+    isDesktop() {
+      return this.$vuetify.breakpoint.mdAndUp
+    },
+
     fullMenuList() {
       const defaultMenus = [
         {
           id: 'quan-ly-giang-vien',
           title: 'Quản lý giảng viên',
           path: '/quan-ly-giang-vien',
-          icon: 'mdi-account-school-outline',
+          icon: 'mdi-account-tie-hat',
         },
         {
           id: 'quan-ly-sinh-vien',
           title: 'Quản lý sinh viên',
           path: '/quan-ly-sinh-vien',
-          icon: 'mdi-school-outline',
+          icon: 'mdi-account-school',
         },
         {
           id: 'danh-muc-he-thong',
           title: 'Danh mục hệ thống',
           path: '/danh-muc-he-thong',
-          icon: 'mdi-format-list-bulleted-type',
+          icon: 'mdi-database',
         },
         {
           id: 'quan-ly-thi-lai',
           title: 'Quản lý thi lại',
           path: '/quan-ly-thi-lai',
-          icon: 'mdi-file-document-edit-outline',
+          icon: 'mdi-youtube-studio',
         },
         {
           id: 'quan-ly-hoc-lai',
           title: 'Quản lý học lại',
           path: '/quan-ly-hoc-lai',
-          icon: 'mdi-book-open-page-variant-outline',
+          icon: 'mdi-youtube-studio',
         },
         {
           id: 'quan-ly-bao-ve-lai',
           title: 'Quản lý bảo vệ lại',
           path: '/quan-ly-bao-ve-lai',
-          icon: 'mdi-shield-check-outline',
+          icon: 'mdi-youtube-studio',
         },
         {
           id: 'quan-tri-he-thong',
           title: 'Quản trị hệ thống',
-          icon: 'mdi-compass-outline',
+          icon: 'mdi-compass',
+          active: false,
           children: [
             { title: 'Người dùng', path: '/quan-tri-he-thong/nguoi-dung' },
             {
@@ -292,8 +379,18 @@ export default {
         {
           id: 'cau-hinh-email',
           title: 'Cấu hình email',
-          path: '/cau-hinh-email',
-          icon: 'mdi-email-outline',
+          icon: 'mdi-email-edit',
+          active: false,
+          children: [
+            {
+              title: 'Cấu hình email',
+              path: '/cau-hinh/cau-hinh-email',
+            },
+            {
+              title: 'Cấu hình nhận email',
+              path: '/cau-hinh/cau-hinh-nhan-email',
+            },
+          ],
         },
       ]
 
@@ -313,15 +410,50 @@ export default {
       return this.menuList
     },
 
-    // Logic sinh Breadcrumb tự động từ Vuex Store
     breadcrumbs() {
-      const title = this.$store ? this.$store.state.pageTitle : ''
+      const currentPath = this.$route.path
+
+      if (currentPath === '/') {
+        return [{ text: 'Trang chủ', disabled: true }]
+      }
+
       const items = [{ text: 'Trang chủ', to: '/', exact: true }]
 
-      if (this.$route.path === '/thong-tin-ca-nhan') {
+      if (currentPath === '/thong-tin-ca-nhan') {
         items.push({ text: 'Thông tin người dùng', disabled: true })
-      } else if (title && title !== 'Trang chủ') {
-        items.push({ text: title, disabled: true })
+        return items
+      }
+
+      let parentMenu = null
+      let childMenu = null
+
+      for (const menu of this.fullMenuList) {
+        if (menu.children && menu.children.length) {
+          const foundChild = menu.children.find((c) => c.path === currentPath)
+          if (foundChild) {
+            parentMenu = menu
+            childMenu = foundChild
+            break
+          }
+        } else if (menu.path === currentPath) {
+          parentMenu = menu
+          break
+        }
+      }
+
+      if (parentMenu) {
+        if (childMenu) {
+          items.push({ text: parentMenu.title, disabled: false })
+          items.push({ text: childMenu.title, disabled: true })
+        } else {
+          items.push({ text: parentMenu.title, disabled: true })
+        }
+        return items
+      }
+
+      const storeTitle = this.$store ? this.$store.state.pageTitle : ''
+      if (storeTitle && storeTitle !== 'Trang chủ') {
+        items.push({ text: storeTitle, disabled: true })
       }
 
       return items
@@ -330,9 +462,18 @@ export default {
   watch: {
     $route() {
       this.activeSubMenu = null
+      this.mobileDrawer = false
     },
   },
   async mounted() {
+    // Ưu tiên đọc thông tin user lưu từ localStorage khi đăng nhập
+    const localUser = localStorage.getItem('user_info')
+    if (localUser) {
+      try {
+        this.user = { ...this.user, ...JSON.parse(localUser) }
+      } catch (e) {}
+    }
+
     await this.fetchUserInfo()
     await this.fetchPageRole()
   },
@@ -354,6 +495,8 @@ export default {
       }
     },
     navigateTo(path) {
+      this.activeSubMenu = null
+      this.mobileDrawer = false
       if (path && this.$route.path !== path) {
         this.$router.push(path)
       }
@@ -396,7 +539,7 @@ export default {
     },
 
     openChangePasswordModal() {
-      this.menuUser = false
+      this.menuUser = true
       this.dialogPassword = true
     },
 
@@ -405,7 +548,15 @@ export default {
         await authServices.logout()
       } catch (e) {}
 
+      // Xóa đồng thời cả 2 tên key cookie để tránh bị lỗi middleware
       Cookies.remove('token')
+      Cookies.remove('auth_token')
+      if (typeof removeCookies === 'function') {
+        removeCookies('auth_token')
+        removeCookies('token')
+      }
+
+      localStorage.removeItem('user_info')
       localStorage.setItem('logout_success', 'true')
       this.$router.push('/dang-nhap')
     },
@@ -524,16 +675,43 @@ export default {
   background-color: rgba(0, 0, 0, 0.1);
 }
 
-/* Header & Content cố định lề trái 110px */
+/* Style Sidebar Thu Nhỏ (Mobile/Tablet) */
+.mobile-drawer >>> .v-navigation-drawer__content {
+  overflow-y: auto;
+}
+.sub-menu-item {
+  min-height: 38px !important;
+  background-color: rgba(0, 0, 0, 0.15) !important;
+}
+.sub-menu-item:hover, .menu-item-active {
+  background-color: #83161f !important;
+}
+.sub-menu-active {
+  background-color: #83161f !important;
+  font-weight: 600;
+}
+
+/* Header & Content */
 .topbar-custom {
   background: #f8f9fa !important;
   border-bottom: 1px solid #eaeaea;
   padding-left: 110px !important;
 }
 
+.topbar-mobile {
+  background: #f8f9fa !important;
+  border-bottom: 1px solid #eaeaea;
+  padding-left: 12px !important;
+}
+
 .main-content {
   background: #ffffff;
   padding-left: 110px !important;
+}
+
+.main-content-mobile {
+  background: #ffffff;
+  padding-left: 0px !important;
 }
 
 .main-container {
@@ -577,11 +755,21 @@ export default {
   color: #111111;
 }
 
+.cursor-pointer {
+  cursor: pointer;
+}
+
 /* Màu chữ Trang chủ đỏ nổi bật */
 .custom-breadcrumbs >>> .text-home-red .v-breadcrumbs__item {
   color: #a2212b !important;
   font-weight: 600;
   font-size: 0.95rem !important;
+}
+
+.custom-breadcrumbs >>> .text-breadcrumb-gray .v-breadcrumbs__item {
+  color: #888888 !important;
+  font-weight: 400;
+  font-size: 0.88rem !important;
 }
 
 /* Các breadcrumb con xám nhẹ */
@@ -590,4 +778,4 @@ export default {
   font-weight: 400;
   font-size: 0.88rem !important;
 }
-</style>
+</style> 

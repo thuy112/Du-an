@@ -1,5 +1,5 @@
 <template>
-  <div class="student-page pa-4">
+  <div class="student-page pa-2 pa-sm-4">
     <!-- Thanh lọc Tìm kiếm -->
     <div class="d-flex align-center justify-space-between mb-4 flex-wrap gap-2 width-100">
       <div class="text-subtitle-1 font-weight-bold mr-2 text-no-wrap">
@@ -41,88 +41,91 @@
 
         <!-- Nút Mở Dialog Bộ Lọc Nâng Cao -->
         <v-btn
-          outlined
+          icon
           color="#a2212b"
-          class="border-btn rounded-sm min-w-0 px-2"
+          class="min-w-0"
           @click="openFilterDialog"
         >
-          <v-icon color="#a2212b">mdi-tune</v-icon>
+          <v-icon color="#a2212b">mdi-filter-variant-plus</v-icon>
         </v-btn>
 
         <!-- Nút Làm Mới (Reset) -->
-        <v-btn icon color="#a2212b" class="border-btn rounded-sm" @click="resetFilters">
+        <v-btn icon color="#a2212b" class="rounded-sm" @click="resetFilters">
           <v-icon color="#a2212b">mdi-refresh</v-icon>
         </v-btn>
 
         <!-- Nút TÌM KIẾM chính -->
         <v-btn color="#a2212b" dark elevation="0" class="min-w-0 px-3 rounded-sm" @click="search">
-          <v-icon small>mdi-magnify</v-icon>
+          <v-icon size="24">mdi-magnify</v-icon>
         </v-btn>
       </div>
     </div>
 
-    <!-- Bảng Dữ liệu -->
+    <!-- Bảng Dữ liệu Tích hợp Kéo cuộn Ngang Responsive -->
     <v-card flat class="border rounded-lg overflow-hidden mb-4">
-      <v-data-table
-        :headers="headers"
-        :items="paginatedStudents"
-        hide-default-footer
-        disable-pagination
-        class="custom-table"
-      >
-        <template #[`item.stt`]="{ index }">
-          <span class="font-weight-medium">{{ (page - 1) * itemsPerPage + index + 1 }}</span>
-        </template>
+      <div class="table-responsive-wrapper">
+        <v-data-table
+          :headers="headers"
+          :items="paginatedStudents"
+          hide-default-footer
+          disable-pagination
+          class="custom-table"
+        >
+          <template #[`item.stt`]="{ index }">
+            <span class="font-weight-medium">{{ (page - 1) * itemsPerPage + index + 1 }}</span>
+          </template>
 
-        <template #[`item.generalInfo`]="{ item }">
-          <div class="py-2">
-            <div class="font-weight-bold red--text text--darken-3 mb-1">
-              {{ item.fullName }}
+          <template #[`item.generalInfo`]="{ item }">
+            <div class="py-2">
+              <div class="font-weight-bold red--text text--darken-3 mb-1">
+                {{ item.fullName }}
+              </div>
+              <div class="caption text--secondary mb-1">
+                Mã số sinh viên: <span class="red--text text--darken-3 font-weight-bold">{{ item.studentCode }}</span>
+              </div>
+              <div class="caption text--secondary mb-1">
+                Email: <span class="red--text text--darken-3 font-weight-medium">{{ item.email }}</span>
+              </div>
+              <div class="caption text--secondary">
+                Giới tính: <span class="black--text font-weight-medium">{{ item.gender }}</span>
+              </div>
             </div>
-            <div class="caption text--secondary mb-1">
-              Mã số sinh viên: <span class="red--text text--darken-3 font-weight-bold">{{ item.studentCode }}</span>
-            </div>
-            <div class="caption text--secondary mb-1">
-              Email: <span class="red--text text--darken-3 font-weight-medium">{{ item.email }}</span>
-            </div>
-            <div class="caption text--secondary">
-              Giới tính: <span class="black--text font-weight-medium">{{ item.gender }}</span>
-            </div>
-          </div>
-        </template>
+          </template>
 
-        <!-- Đổi trạng thái sinh viên -->
-        <template #[`item.status`]="{ item }">
-          <v-select
-            :value="item.status"
-            :items="['Đang học tập', 'Đã nghỉ học', 'Bảo lưu', 'Tốt nghiệp']"
-            dense
-            flat
-            solo
-            hide-details
-            class="status-select-btn"
-            @change="openConfirmStatusDialog(item, $event)"
-          ></v-select>
-        </template>
+          <!-- Đổi trạng thái sinh viên -->
+          <template #[`item.status`]="{ item }">
+            <v-select
+              :value="item.status"
+              :items="['Đang học tập', 'Đã nghỉ học', 'Bảo lưu', 'Tốt nghiệp']"
+              dense
+              flat
+              solo
+              hide-details
+              class="status-select-btn"
+              @change="openConfirmStatusDialog(item, $event)"
+            ></v-select>
+          </template>
 
-        <!-- Cột chức năng -->
-        <template #[`item.actions`]="{ item }">
-          <div class="d-flex align-center justify-center gap-1">
-            <v-btn icon x-small color="cyan darken-1" @click="viewDetail(item)">
-              <v-icon small>mdi-eye-outline</v-icon>
-            </v-btn>
-            <v-btn icon x-small color="teal" @click="openHistoryDialog(item)">
-              <v-icon small>mdi-table-edit</v-icon>
-            </v-btn>
-          </div>
-        </template>
-      </v-data-table>
+          <!-- Cột chức năng -->
+          <template #[`item.actions`]="{ item }">
+            <div class="d-flex align-center justify-center gap-1">
+              <v-btn icon x-small color="cyan darken-1" @click="viewDetail(item)">
+                <v-icon size="24">mdi-eye-outline</v-icon>
+              </v-btn>
+
+              <v-btn icon x-small color="teal" @click="checkHistory(item)">
+                <v-icon size="24">mdi-table-account</v-icon>
+              </v-btn>
+            </div>
+          </template>
+        </v-data-table>
+      </div>
     </v-card>
 
-    <!-- Thanh Xuất Excel & Phân trang -->
-    <div class="d-flex align-center justify-space-between flex-wrap gap-2">
-      <v-btn color="success" dark elevation="0" class="text-capitalize rounded px-4 font-weight-bold">
-        <v-icon left small>mdi-file-excel</v-icon> XUẤT FILE EXCEL
+    <!-- Thanh Phân trang -->
+    <div class="d-flex align-center justify-end flex-wrap gap-2">
+      <v-btn color="success" dark elevation="0" class="text-capitalize rounded px-4 mr-auto">
+        <v-icon left small>mdi-export</v-icon> XUẤT FILE EXCEL
       </v-btn>
 
       <div class="d-flex align-center gap-2">
@@ -475,18 +478,20 @@
             </v-btn>
           </div>
 
-          <!-- Bảng lịch sử -->
+          <!-- Bảng lịch sử cuộn ngang -->
           <v-card flat class="border rounded-lg overflow-hidden mb-4">
-            <v-data-table
-              :headers="historyHeaders"
-              :items="historyLogs"
-              hide-default-footer
-              class="custom-table"
-            >
-              <template #no-data>
-                <div class="py-6 grey--text">Không có dữ liệu.</div>
-              </template>
-            </v-data-table>
+            <div class="table-responsive-wrapper">
+              <v-data-table
+                :headers="historyHeaders"
+                :items="historyLogs"
+                hide-default-footer
+                class="custom-table"
+              >
+                <template #no-data>
+                  <div class="py-6 grey--text">Không có dữ liệu.</div>
+                </template>
+              </v-data-table>
+            </div>
           </v-card>
 
           <!-- Phân trang Popup -->
@@ -570,14 +575,12 @@ export default {
       pageInput: 1,
       itemsPerPage: 50,
       
-      // Đang nhập liệu trên UI (Chưa áp dụng vào bảng)
       filters: { 
         search: '', 
         class: null, 
         status: null,
       },
 
-      // Dùng cho Dialog lọc nâng cao (Tạm thời)
       tempDialogFilters: {
         trainingType: null,
         location: null,
@@ -586,7 +589,6 @@ export default {
         gender: null
       },
 
-      // ĐÃ ÁP DỤNG THỰC SỰ (Chỉ cập nhật khi bấm Tìm kiếm)
       appliedFilters: {
         search: '', 
         class: null, 
@@ -616,7 +618,6 @@ export default {
         color: '#4caf50'
       },
 
-      // Lịch sử Popup Filters
       historyFilters: { subject: null, process: null },
       historyPage: 1,
       historyItemsPerPage: 50,
@@ -652,7 +653,6 @@ export default {
     }
   },
   computed: {
-    // Chỉ lọc danh sách dựa vào appliedFilters
     filteredStudents() {
       return this.students.filter(s => {
         const matchSearch = !this.appliedFilters.search || 
@@ -687,7 +687,6 @@ export default {
     }
   },
   methods: {
-    // CHỈ KHI BẤM TÌM KIẾM HOẶC ENTER TRÊN Ô NHẬP MỚI GỌI HÀM NÀY
     search() {
       this.appliedFilters = {
         ...this.appliedFilters,
@@ -699,7 +698,6 @@ export default {
     },
 
     openFilterDialog() {
-      // Sao chép các bộ lọc đang chọn vào dialog
       this.tempDialogFilters = {
         trainingType: this.appliedFilters.trainingType,
         location: this.appliedFilters.location,
@@ -814,6 +812,17 @@ export default {
 .search-input { min-width: 150px; max-width: 200px; }
 .select-md { min-width: 140px; max-width: 180px; }
 
+/* Khối bọc cho phép kéo cuộn ngang khi thu nhỏ màn hình */
+.table-responsive-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.custom-table {
+  min-width: 1000px !important;
+}
+
 .custom-table >>> th { background-color: #f8f9fa !important; font-weight: bold !important; color: #333 !important; }
 
 .status-select-btn >>> .v-input__slot { background-color: #a2212b !important; border-radius: 20px !important; min-height: 28px !important; padding: 0 10px !important; }
@@ -857,5 +866,21 @@ export default {
 .style-scroll::-webkit-scrollbar-thumb {
   background-color: #ccc;
   border-radius: 4px;
+}
+
+/* Thanh cuộn ngang màu đỏ Bách Khoa cho bảng */
+.table-responsive-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+.table-responsive-wrapper::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+.table-responsive-wrapper::-webkit-scrollbar-thumb {
+  background: #a2212b;
+  border-radius: 4px;
+}
+.table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #83161f;
 }
 </style>
