@@ -1,11 +1,8 @@
-// plugins/axios.js
-import Cookies from 'js-cookie'
-import { removeCookies } from '~/utils/heppers'
+import { CHANNEL } from '~/consts/consts'
+import { getToken, removeCookies } from '~/utils/heppers'
 
+// Hàm tự sinh UUID v4 không phụ thuộc package ngoài
 function generateUUID() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID()
-  }
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = (Math.random() * 16) | 0
     const v = c === 'x' ? r : (r & 0x3) | 0x8
@@ -13,83 +10,59 @@ function generateUUID() {
   })
 }
 
-export default function ({ $axios, store, redirect, $showError }) {
-  // ---------------- REQUEST INTERCEPTOR ----------------
+export default function ({ $axios, store, redirect, app }) {
+  // Request Interceptor
   $axios.onRequest((config) => {
-    const token = Cookies.get('token')
+    store.commit('SET_LOADING', true)
+
+    const token = getToken()
     if (token) {
-      config.headers.common.Authorization = `Bearer ${token}`
+      config.headers.Authorization = `Bearer ${token}`
     }
 
-    const channel = 'CMS'
-    const transid = generateUUID()
-
-    if (config.method === 'get' || config.method === 'delete') {
-      config.params = {
-        channel,
-        transid,
-        ...config.params,
-      }
-    } else if (config.method === 'post' || config.method === 'put') {
-      if (!(config.data instanceof FormData)) {
+    // Chèn channel và transid (trừ FormData)
+    if (!(config.data instanceof FormData)) {
+      if (['get', 'delete'].includes(config.method.toLowerCase())) {
+        config.params = {
+          channel: CHANNEL,
+          transid: generateUUID(),
+          ...config.params,
+        }
+      } else if (['post', 'put'].includes(config.method.toLowerCase())) {
         config.data = {
-          channel,
-          transid,
+          channel: CHANNEL,
+          transid: generateUUID(),
           ...config.data,
         }
       }
     }
 
-    store.commit('SET_LOADING', true)
-
     return config
   })
 
-  // ---------------- RESPONSE INTERCEPTOR ----------------
+  // Response Interceptor
   $axios.onResponse((response) => {
     store.commit('SET_LOADING', false)
-
-    const responseData = response.data
-    if (responseData && responseData.status === 1) {
-      handleUnauthenticated(store, redirect, $showError)
-      return { success: false, data: null }
+    if (response.data && response.data.data !== undefined) {
+      return { success: true, data: response.data.data }
     }
-
-    return {
-      success: true,
-      data: responseData ? responseData.data : null,
-    }
+    return { success: true, data: response.data }
   })
 
-  // ---------------- ERROR INTERCEPTOR ----------------
+  // Error Interceptor
   $axios.onError((error) => {
     store.commit('SET_LOADING', false)
+    const status = error.response ? error.response.status : null
 
-    const statusCode = error.response ? error.response.status : null
-    const errorData = error.response ? error.response.data : null
-
-    if (statusCode === 401) {
-      handleUnauthenticated(store, redirect, $showError)
-      return Promise.resolve({ success: false, data: null })
-    }
-
-    if (errorData && errorData.error && errorData.error.message) {
-      $showError(errorData.error.message)
+    if (status === 401) {
+      removeCookies()
+      if (app.$showError) app.$showError('Phiên đăng nhập đã hết hạn')
+      redirect('/dang-nhap')
     } else {
-      $showError('Có lỗi xảy ra, vui lòng thử lại sau!')
+      const msg = error.response?.data?.error?.message || 'Có lỗi xảy ra, vui lòng thử lại'
+      if (app.$showError) app.$showError(msg)
     }
 
-    return Promise.resolve({
-      success: false,
-      data: errorData,
-    })
+    return { success: false, error }
   })
-}
-
-function handleUnauthenticated(store, redirect, $showError) {
-  removeCookies()
-  if (typeof $showError === 'function') {
-    $showError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!')
-  }
-  redirect('/dang-nhap')
 }

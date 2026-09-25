@@ -881,6 +881,10 @@ export default {
 </script>
 
 <style scoped>
+.role-management >>> .flex-grow-1 {
+  flex-grow: 21 !important;
+}
+
 .role-management {
   min-height: calc(100vh - 100px);
   width: 100%;
