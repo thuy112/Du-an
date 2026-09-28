@@ -17,7 +17,7 @@ export default function ({ $axios, store, redirect, app }) {
 
     const token = getToken()
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+      $axios.setToken(token, 'Bearer')
     }
 
     // Chèn channel và transid (trừ FormData)

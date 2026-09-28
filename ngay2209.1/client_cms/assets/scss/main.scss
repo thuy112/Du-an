@@ -1,0 +1,17 @@
+
+// 1. Nhúng các file cùng thư mục scss
+@import 'colors';
+@import 'variables';
+@import 'base';
+@import 'override';
+
+// 2. Nhúng các thư mục con khác (nếu có)
+@import '../app/variables';
+@import '../app/app';
+@import '../app/utils';
+@import '../app/transition';
+@import '../app/custom';
+
+@import '../page/auth';
+@import '../page/login';
+@import '../page/forgot-password';

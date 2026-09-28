@@ -1,0 +1,19 @@
+// assets/scss/_override.scss
+.v-btn {
+  text-transform: none !important;
+  border-radius: $border-radius-base !important;
+  font-weight: 500;
+}
+
+.v-card {
+  border-radius: $border-radius-base !important;
+  box-shadow: $box-shadow-card !important;
+}
+
+.v-data-table {
+  th {
+    background-color: #f8f9fa !important;
+    color: $text-primary !important;
+    font-weight: 600 !important;
+  }
+}

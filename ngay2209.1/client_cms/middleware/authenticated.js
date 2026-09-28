@@ -1,10 +1,11 @@
+// middleware/auth.js
 import Cookies from 'js-cookie'
 
 export default function ({ route, redirect }) {
-  // Lấy token từ Cookie hoặc localStorage
+  // Sửa 'token' thành 'auth_token'
   const token =
-    Cookies.get('token') ||
-    (process.client ? localStorage.getItem('token') : null)
+    Cookies.get('auth_token') ||
+    (process.client ? localStorage.getItem('auth_token') : null)
 
   // Danh sách các route không yêu cầu đăng nhập
   const publicRoutes = ['/dang-nhap', '/quen-mat-khau']

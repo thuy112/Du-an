@@ -602,13 +602,13 @@ export default {
       activeFilters: { fullName: '', email: '', status: null },
 
       headers: [
-        { text: 'STT', value: 'stt', sortable: false, width: '70px' },
-        { text: 'Họ tên', value: 'fullName', sortable: false },
-        { text: 'Email', value: 'email', sortable: false },
-        { text: 'Số điện thoại', value: 'phone', sortable: false },
-        { text: 'Chức vụ', value: 'position', sortable: false },
-        { text: 'Nhóm người dùng ↑', value: 'roleName', sortable: false },
-        { text: 'Trạng thái', value: 'status', sortable: false, width: '160px' },
+        { text: 'STT', value: 'stt', sortable: false, width: '50px' },
+        { text: 'Họ tên', value: 'fullName', sortable: false,width: '100px' },
+        { text: 'Email', value: 'email', sortable: false,width: '100px' },
+        { text: 'Số điện thoại', value: 'phone', sortable: false,width: '100px' },
+        { text: 'Chức vụ', value: 'position', sortable: false,width: '100px' },
+        { text: 'Nhóm người dùng ↑', value: 'roleName', sortable: false,width: '130px' },
+        { text: 'Trạng thái', value: 'status', sortable: false, width: '135px' },
         { text: 'Chức năng', value: 'actions', sortable: false, align: 'center', width: '90px' },
       ],
 
@@ -867,6 +867,7 @@ export default {
   border-bottom: 2px solid #e0e0e0 !important;
   height: 48px !important;
 }
+
 
 .full-table { background: transparent !important; box-shadow: none !important; }
 .full-table >>> table { border-collapse: collapse !important; width: 100% !important; }

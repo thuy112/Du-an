@@ -43,7 +43,7 @@
 
         <v-select
           v-model="filters.status"
-          :items="['Hoạt động', 'Nghỉ hưu', 'Ngừng hoạt động']"
+          :items="['Hoạt động', 'Nghỉ hưu']"
           placeholder="Trạng thái"
           outlined
           dense
@@ -126,7 +126,7 @@
           <template #[`item.status`]="{ item }">
             <v-select
               :value="item.status"
-              :items="['Hoạt động', 'Nghỉ hưu', 'Ngừng hoạt động']"
+              :items="['Hoạt động', 'Nghỉ hưu']"
               dense
               flat
               solo
@@ -464,7 +464,7 @@ export default {
         { text: 'Khoa/ Trường', value: 'department', sortable: false },
         { text: 'Mã số thuế', value: 'taxCode', sortable: false },
         { text: 'Loại giảng viên', value: 'teacherType', sortable: false },
-        { text: 'Trạng thái', value: 'status', sortable: false, width: '130px' },
+        { text: 'Trạng thái', value: 'status', sortable: false, width: '143px' },
         { text: 'Chức năng', value: 'actions', sortable: false, align: 'center', width: '90px' },
       ],
       teachers: [

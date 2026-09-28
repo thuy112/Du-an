@@ -127,94 +127,96 @@
         </span>
       </template>
 
-      <!-- Cột Đối tượng gửi mail -->
+      <!-- Cột Đối tượng gửi mail (Sửa slot key khớp với headers) -->
       <template #[`item.target`]="{ item }">
         <v-chip
-          v-if="item.target"
-          :color="getTargetColor(item.target)"
+          v-if="item.target || item.sendType"
+          :color="getSendTypeColor(item.target || item.sendType)"
           x-small
           dark
           class="px-2 caption font-weight-medium"
         >
-          {{ item.target }}
+          {{ getSendTypeLabel(item.target || item.sendType) }}
         </v-chip>
       </template>
 
       <!-- Cột Loại cấu hình gửi mail -->
       <template #[`item.configType`]="{ item }">
         <v-chip
-          v-if="item.configType"
-          color="#2196F3"
+          v-if="item.configType || item.type"
+          :color="getConfigTypeColor(item.configType || item.type)"
           x-small
           dark
           class="px-2 caption font-weight-medium"
         >
-          {{ item.configType }}
+          {{ getConfigTypeLabel(item.configType || item.type) }}
         </v-chip>
       </template>
 
-      <!-- Cột Loại hành động -->
+      <!-- Cột Loại hành động (Sửa slot key khớp với headers) -->
       <template #[`item.actionType`]="{ item }">
         <v-chip
-          v-if="item.actionType"
-          :color="getActionColor(item.actionType)"
+          v-if="item.actionType || item.actionSendType"
+          :color="getActionTypeColor(item.actionType || item.actionSendType)"
           x-small
           dark
           class="px-2 caption font-weight-medium"
         >
-          {{ item.actionType }}
+          {{ getActionTypeLabel(item.actionType || item.actionSendType) }}
         </v-chip>
       </template>
 
-      <!-- Cột Nội dung (Tính năng Xem thêm / Ẩn bớt) -->
+      <!-- Cột Nội dung (Tính năng Xem thêm / Ẩn bớt - Đã rút ngắn max-width) -->
       <template #[`item.content`]="{ item }">
         <div class="py-2 content-column">
           <!-- Khi chưa mở rộng: Hiện cắt ngắn 1 dòng -->
           <template v-if="!expandedItems.includes(item.id)">
-            <div class="text-caption grey--text text--darken-3 text-truncate" style="max-width: 420px">
+            <div class="text-caption grey--text text--darken-3 text-truncate" style="max-width: 220px">
               {{ item.content }}
             </div>
-            <a
-              v-if="item.content && item.content.length > 80"
-              href="javascript:void(0)"
-              class="caption text-decoration-underline red--text text--darken-2 d-inline-block mt-1"
-              @click="toggleExpand(item.id)"
-            >
-              Xem thêm
-            </a>
-          </template>
+          <a
+            v-if="item.content && item.content.length > 50"
+            href="javascript:void(0)"
+            class="caption text-decoration-underline red--text text--darken-2 d-inline-block mt-1"
+            @click="toggleExpand(item.id)"
+          >
+            Xem thêm
+          </a>
+      </template>
 
-          <!-- Khi đã mở rộng: Hiển thị đầy đủ dòng và các đoạn văn bản -->
-          <template v-else>
-            <div class="text-caption grey--text text--darken-3 full-content" style="max-width: 420px; white-space: pre-line;">
-              {{ item.content }}
-            </div>
-            <a
-              href="javascript:void(0)"
-              class="caption text-decoration-underline red--text text--darken-2 d-inline-block mt-1"
-              @click="toggleExpand(item.id)"
-            >
-              Ẩn bớt
-            </a>
-          </template>
+      <!-- Khi đã mở rộng: Hiển thị đầy đủ dòng và các đoạn văn bản -->
+      <template v-else>
+        <div class="text-caption grey--text text--darken-3 full-content" style="max-width: 220px; white-space: pre-line;">
+          {{ item.content }}
         </div>
+        <a
+          href="javascript:void(0)"
+          class="caption text-decoration-underline red--text text--darken-2 d-inline-block mt-1"
+          @click="toggleExpand(item.id)"
+        >
+          Ẩn bớt
+        </a>
       </template>
+    </div>
+  </template>
 
-      <!-- Cột Trạng thái -->
-      <template #[`item.status`]="{ item }">
-        <v-select
-          v-model="item.status"
-          :items="statusOptions"
-          dense
-          solo
-          flat
-          hide-details
-          class="status-select-btn"
-          :background-color="item.status === 1 ? '#a2212b' : '#78909C'"
-          dark
-          @change="handleStatusSelect(item, $event)"
-        ></v-select>
-      </template>
+  <!-- Cột Trạng thái (Đã tăng chiều rộng lên 140px) -->
+  <template #[`item.status`]="{ item }">
+    <div style="min-width: 140px;">
+      <v-select
+        v-model="item.status"
+        :items="statusOptions"
+        dense
+        solo
+        flat
+        hide-details
+        class="status-select-btn custom-status-select"
+        :background-color="item.status === 1 || item.status === 'ACTIVE' ? '#a2212b' : '#78909C'"
+        dark
+        @change="handleStatusSelect(item, $event)"
+      ></v-select>
+    </div>
+  </template>
 
       <!-- Cột Chức năng -->
       <template #[`item.actions`]="{ item }">
@@ -331,60 +333,72 @@
             <span class="font-weight-medium red--text text--darken-3">{{ detailModal.item.name }}</span>
           </div>
 
-          <v-row dense class="mb-2 align-center">
-            <v-col cols="12" sm="6" class="d-flex align-center">
-              <span class="grey--text text--darken-1 mr-2 text-body-2">Đối tượng gửi mail:</span>
-              <v-chip
-                v-if="detailModal.item.target"
-                :color="getTargetColor(detailModal.item.target)"
-                x-small
-                dark
-                class="px-3 caption font-weight-medium"
-              >
-                {{ detailModal.item.target }}
-              </v-chip>
-            </v-col>
+      <v-row dense class="mb-2 align-center">
+        <!-- Đối tượng gửi mail -->
+        <v-col cols="12" sm="6" class="d-flex align-center">
+          <span class="grey--text text--darken-1 mr-2 text-body-2">Đối tượng gửi mail:</span>
+            <v-chip
+              v-if="detailModal.item.target || detailModal.item.sendType"
+              :color="getSendTypeColor(detailModal.item.target || detailModal.item.sendType)"
+              x-small
+              dark
+              class="px-3 caption font-weight-medium"
+            >
+              {{ getSendTypeLabel(detailModal.item.target || detailModal.item.sendType) }}
+            </v-chip>
+        </v-col>
 
-            <v-col cols="12" sm="6" class="d-flex align-center">
-              <span class="grey--text text--darken-1 mr-2 text-body-2">Mục tiêu:</span>
-              <v-chip
-                v-if="detailModal.item.configType"
-                color="#2196F3"
-                x-small
-                dark
-                class="px-3 caption font-weight-medium"
-              >
-                {{ detailModal.item.configType }}
-              </v-chip>
-            </v-col>
-          </v-row>
+        <!-- Loại gửi / Mục tiêu (Thay color="#03A9F4" thành hàm getConfigTypeColor) -->
+        <v-col cols="12" sm="6" class="d-flex align-center">
+          <span class="grey--text text--darken-1 mr-2 text-body-2">Mục tiêu:</span>
+            <v-chip
+              v-if="detailModal.item.configType || detailModal.item.type"
+              :color="getConfigTypeColor(detailModal.item.configType || detailModal.item.type)"
+              x-small
+              dark
+              class="px-3 caption font-weight-medium"
+            >
+              {{ getConfigTypeLabel(detailModal.item.configType || detailModal.item.type) }}
+            </v-chip>
+        </v-col>
+      </v-row>
 
-          <v-row dense class="mb-3 align-center">
-            <v-col cols="12" sm="6" class="d-flex align-center">
-              <span class="grey--text text--darken-1 mr-2 text-body-2">Hành động:</span>
-              <v-chip
-                v-if="detailModal.item.actionType"
-                :color="getActionColor(detailModal.item.actionType)"
-                x-small
-                dark
-                class="px-3 caption font-weight-medium"
-              >
-                {{ detailModal.item.actionType }}
-              </v-chip>
-            </v-col>
+  <v-row dense class="mb-3 align-center">
+    <!-- Hành động -->
+    <v-col cols="12" sm="6" class="d-flex align-center">
+      <span class="grey--text text--darken-1 mr-2 text-body-2">Hành động:</span>
 
-            <v-col cols="12" sm="6" class="d-flex align-center">
-              <span class="grey--text text--darken-1 mr-2 text-body-2">Trạng thái:</span>
-              <v-chip
-                :color="detailModal.item.status === 1 ? '#a2212b' : '#78909C'"
-                x-small
-                dark
-                class="px-3 caption font-weight-medium"
-              >
-                {{ detailModal.item.status === 1 ? 'Kích hoạt' : 'Chưa kích hoạt' }}
-              </v-chip>
-            </v-col>
-          </v-row>
+      <!-- Hiển thị chấm tròn xanh nếu là REMIND_REGISTER hoặc không có chữ nhãn -->
+      <span
+        v-if="(detailModal.item.actionType || detailModal.item.actionSendType) === 'REMIND_REGISTER' || !getActionTypeLabel(detailModal.item.actionType || detailModal.item.actionSendType)"
+        class="status-dot-blue"
+      ></span>
+
+      <!-- Hiển thị dạng Chip màu đối với các hành động khác -->
+      <v-chip
+        v-else
+        :color="getActionTypeColor(detailModal.item.actionType || detailModal.item.actionSendType)"
+        x-small
+        dark
+        class="px-3 caption font-weight-medium"
+      >
+        {{ getActionTypeLabel(detailModal.item.actionType || detailModal.item.actionSendType) }}
+      </v-chip>
+    </v-col>
+
+    <!-- Trạng thái -->
+    <v-col cols="12" sm="6" class="d-flex align-center">
+      <span class="grey--text text--darken-1 mr-2 text-body-2">Trạng thái:</span>
+      <v-chip
+        :color="detailModal.item.status === 'ACTIVE' || detailModal.item.status === 1 ? '#a2212b' : '#78909C'"
+        x-small
+        dark
+        class="px-3 caption font-weight-medium"
+      >
+        {{ (detailModal.item.status === 'ACTIVE' || detailModal.item.status === 1) ? 'Kích hoạt' : 'Chưa kích hoạt' }}
+      </v-chip>
+    </v-col>
+  </v-row>
 
           <div class="mt-4">
             <div class="grey--text text--darken-1 text-body-2 mb-2">Nội dung:</div>
@@ -415,7 +429,7 @@
         <v-card-text class="py-5 px-5 black--text text-body-2">
           Bạn có chắc chắn muốn xóa cấu hình gửi mail
           <strong class="red--text text--darken-2 font-weight-bold">
-            {{ deleteModal.item.actionType || deleteModal.item.name }}
+            {{ deleteModal.item.actionType || deleteModal.item.actionSendType || deleteModal.item.name }}
           </strong>
           không?
         </v-card-text>
@@ -465,6 +479,8 @@
                 <v-select
                   v-model="createModal.form.target"
                   :items="targetOptions"
+                  item-text="text"
+                  item-value="value"
                   label="Đối tượng gửi mail (*)"
                   placeholder="Đối tượng gửi mail (*)"
                   outlined
@@ -475,11 +491,13 @@
                 ></v-select>
               </v-col>
 
-              <!-- Loại gửi -->
+              <!-- Loại gửi / Loại cấu hình -->
               <v-col cols="12" sm="6">
                 <v-select
                   v-model="createModal.form.configType"
                   :items="typeConfigOptions"
+                  item-text="text"
+                  item-value="value"
                   label="Loại gửi (*)"
                   placeholder="Loại gửi (*)"
                   outlined
@@ -495,6 +513,8 @@
                 <v-select
                   v-model="createModal.form.actionType"
                   :items="actionTypeOptions"
+                  item-text="text"
+                  item-value="value"
                   label="Loại hành động (*)"
                   placeholder="Loại hành động (*)"
                   outlined
@@ -502,7 +522,6 @@
                   clearable
                   hide-details="auto"
                   class="custom-field mb-2"
-                  :rules="[v => !!v || 'Vui lòng chọn loại hành động']"
                 ></v-select>
               </v-col>
 
@@ -511,6 +530,8 @@
                 <v-select
                   v-model="createModal.form.status"
                   :items="statusOptions"
+                  item-text="text"
+                  item-value="value"
                   label="Trạng thái"
                   outlined
                   dense
@@ -522,44 +543,13 @@
 
             <!-- Trình soạn thảo Rich Text Editor -->
             <div class="editor-wrapper mt-2">
-              <div class="editor-toolbar d-flex align-center flex-wrap px-2 py-1">
-                <v-select :items="['Normal', 'Heading 1', 'Heading 2']" value="Normal" dense solo flat hide-details style="max-width: 90px" class="caption-select mr-1"></v-select>
-                <div class="divider-vertical"></div>
-                <button type="button" class="editor-btn"><b>B</b></button>
-                <button type="button" class="editor-btn"><i>I</i></button>
-                <button type="button" class="editor-btn"><u>U</u></button>
-                <button type="button" class="editor-btn"><s>S</s></button>
-                <div class="divider-vertical"></div>
-                <button type="button" class="editor-btn"><v-icon x-small>mdi-format-align-left</v-icon></button>
-                <button type="button" class="editor-btn"><v-icon x-small>mdi-format-align-center</v-icon></button>
-                <button type="button" class="editor-btn"><v-icon x-small>mdi-format-align-right</v-icon></button>
-                <button type="button" class="editor-btn"><v-icon x-small>mdi-format-align-justify</v-icon></button>
-                <div class="divider-vertical"></div>
-                <button type="button" class="editor-btn"><v-icon x-small>mdi-format-quote-close</v-icon></button>
-                <button type="button" class="editor-btn"><v-icon x-small>mdi-code-tags</v-icon></button>
-                <div class="divider-vertical"></div>
-                <button type="button" class="editor-btn"><v-icon x-small>mdi-format-list-bulleted</v-icon></button>
-                <button type="button" class="editor-btn"><v-icon x-small>mdi-format-list-numbered</v-icon></button>
-                <div class="divider-vertical"></div>
-                <button type="button" class="editor-btn"><v-icon x-small>mdi-format-indent-decrease</v-icon></button>
-                <button type="button" class="editor-btn"><v-icon x-small>mdi-format-indent-increase</v-icon></button>
-                <div class="divider-vertical"></div>
-                <button type="button" class="editor-btn"><v-icon x-small>mdi-format-color-text</v-icon></button>
-                <button type="button" class="editor-btn"><v-icon x-small>mdi-format-color-fill</v-icon></button>
-                <div class="divider-vertical"></div>
-                <button type="button" class="editor-btn"><v-icon x-small>mdi-link</v-icon></button>
-                <button type="button" class="editor-btn"><v-icon x-small>mdi-image</v-icon></button>
-                <button type="button" class="editor-btn"><v-icon x-small>mdi-table</v-icon></button>
-                <button type="button" class="editor-btn"><v-icon x-small>mdi-format-clear</v-icon></button>
-              </div>
-              <v-textarea
-                v-model="createModal.form.content"
-                rows="7"
-                flat
-                solo
-                hide-details
-                class="editor-textarea"
-              ></v-textarea>
+              <client-only placeholder="Đang tải bộ soạn thảo...">
+                <vue-editor
+                  v-model="createModal.form.content"
+                  :editor-toolbar="customToolbar"
+                  placeholder="Nhập nội dung email..."
+                />
+              </client-only>
             </div>
           </v-form>
         </v-card-text>
@@ -583,211 +573,249 @@ import mailConfigService from '~/services/mailConfigService'
 export default {
   name: 'CauHinhEmailPage',
   middleware: 'authenticated',
-  data() {
-    return {
-      loading: false,
-      page: 1,
-      pageSize: 50,
-      pageInput: 1,
-      
-      // Mảng lưu ID của các dòng được mở rộng Xem thêm
-      expandedItems: [],
-
-      confirmDialog: {
-        show: false,
-        item: null,
-        targetValue: null,
-        oldValue: null,
-        fromStatusText: '',
-        toStatusText: '',
-      },
-
-      detailModal: {
-        show: false,
-        item: {
-          name: '',
-          target: '',
-          configType: '',
-          actionType: '',
-          status: 1,
-          content: '',
-        },
-      },
-
-      deleteModal: {
-        show: false,
-        item: {},
-      },
-
-      // Các ô nhập bộ lọc
-      filters: {
-        keyword: '',
-        status: null,
-        type: null,
-      },
-
-      // Điều kiện lọc thực tế
-      activeFilters: {
-        keyword: '',
-        status: null,
-        type: null,
-      },
-
-      statusOptions: [
-        { text: 'Kích hoạt', value: 1 },
-        { text: 'Chưa kích hoạt', value: 0 },
-      ],
-
-      // Danh mục
-      typeConfigOptions: [
-        'Học lại',
-        'Thi lại',
-        'Bảo vệ lại',
-        'Danh mục hệ thống'
-      ],
-      targetOptions: [
-        'Sinh viên',
-        'Cán bộ quản lý',
-        'Giảng viên'
-      ],
-      actionTypeOptions: [
-        'Lịch thi',
-        'Xác nhận đăng ký',
-        'Thanh toán thành công',
-        'Từ chối',
-        'Nhắc đóng học phí',
-        'Kết quả thi',
-        'Gửi mã OTP'
-      ],
-
-      typeOptions: [
-        { text: 'Học lại', value: 'Học lại' },
-        { text: 'Thi lại', value: 'Thi lại' },
-        { text: 'Bảo vệ lại', value: 'Bảo vệ lại' },
-        { text: 'Danh mục hệ thống', value: 'Danh mục hệ thống' }
-      ],
-
-      headers: [
-        { text: 'STT', value: 'stt', width: '45px', align: 'center', sortable: false },
-        { text: 'Tên', value: 'name', width: '180px', sortable: false },
-        { text: 'Đối tượng gửi mail', value: 'target', width: '130px', align: 'center', sortable: false },
-        { text: 'Loại cấu hình gửi mail', value: 'configType', width: '140px', align: 'center', sortable: false },
-        { text: 'Loại hành động', value: 'actionType', width: '150px', align: 'center', sortable: false },
-        { text: 'Nội dung', value: 'content', sortable: false, cellClass: 'content-cell' },
-        { text: 'Trạng thái', value: 'status', width: '110px', align: 'center', sortable: false },
-        { text: 'Chức năng', value: 'actions', width: '90px', align: 'center', sortable: false },
-      ],
-
-      items: [
-        {
-          id: 1,
-          name: 'Thông báo sinh viên đăng ký học lại trước thời hạn',
-          target: 'Sinh viên',
-          configType: 'Học lại',
-          actionType: null,
-          content: `Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo:\n\nCăn cứ vào kết quả học tập, Sinh viên [TEN_SV] (MSSV: [MA_SV]) cần thực hiện đăng ký học lại môn học: [TEN_MON_HOC].\n• Đợt học lại: [DOT_HOC_LAI]\n• Thời hạn đăng ký cuối cùng: Trước ngày [HAN_CHOT]\nLưu ý: Sinh viên cần hoàn thành đăng ký đúng hạn để đảm bảo tiến độ học tập. Nếu cần hỗ trợ thêm thông tin, bạn vui lòng liên hệ trực tiếp với Cán bộ quản lý lớp để được hướng dẫn.\n\nTrân trọng!`,
-          status: 1,
-        },
-        {
-          id: 2,
-          name: 'Thông báo thanh toán tiền giảng dạy lớp học lại',
-          target: 'Giảng viên',
-          configType: 'Học lại',
-          actionType: 'Thanh toán thành công',
-          content: 'Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo:...',
-          status: 1,
-        },
-        {
-          id: 3,
-          name: 'Thông báo đăng ký bảo vệ lại thành công',
-          target: 'Sinh viên',
-          configType: 'Bảo vệ lại',
-          actionType: 'Xác nhận đăng ký',
-          content: 'Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo:...',
-          status: 1,
-        },
-        {
-          id: 4,
-          name: 'Thông báo gửi mã OTP dành cho sinh viên',
-          target: 'Sinh viên',
-          configType: 'Bảo vệ lại',
-          actionType: 'Gửi mã OTP',
-          content: 'Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo:...',
-          status: 1,
-        },
-        {
-          id: 5,
-          name: 'Thông báo sinh viên thanh toán thành công',
-          target: 'Sinh viên',
-          configType: 'Học lại',
-          actionType: 'Thanh toán thành công',
-          content: 'Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo:...',
-          status: 1,
-        },
-        {
-          id: 6,
-          name: 'Nhắc đóng học phí học',
-          target: 'Sinh viên',
-          configType: 'Học lại',
-          actionType: 'Nhắc đóng học phí',
-          content: 'Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo tới [MA_SV] - [TEN_SV]...',
-          status: 1,
-        },
-      ],
-
-      // Dialog Thêm mới/Sửa
-      createModal: {
-        show: false,
-        isEdit: false,
-        valid: true,
-        form: {
-          id: null,
-          name: '',
-          target: 'Sinh viên',
-          configType: 'Học lại',
-          actionType: null,
-          status: 1,
-          content: '',
-        },
-      },
-    }
+  components: {
+    VueEditor: () =>
+      process.client
+        ? import('vue2-editor').then((m) => m.VueEditor)
+        : Promise.resolve(null),
   },
+  data() {
+  return {
+    loading: false,
+    page: 1,
+    pageSize: 50,
+    pageInput: 1,
+    totalRecords: 0,
+
+    customToolbar: [
+      [{ header: [false, 1, 2, 3, 4, 5, 6] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [
+        { align: '' },
+        { align: 'center' },
+        { align: 'right' },
+        { align: 'justify' },
+      ],
+      ['blockquote', 'code-block'],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      [{ indent: '-1' }, { indent: '+1' }],
+      [{ color: [] }, { background: [] }],
+      ['link', 'image'],
+      ['clean'],
+    ],
+    
+    // Mảng lưu ID của các dòng được mở rộng Xem thêm
+    expandedItems: [],
+
+    confirmDialog: {
+      show: false,
+      item: null,
+      targetValue: null,
+      oldValue: null,
+      fromStatusText: '',
+      toStatusText: '',
+    },
+
+    detailModal: {
+      show: false,
+      item: {
+        name: '',
+        target: '',
+        configType: '',
+        actionType: '',
+        status: 1,
+        content: '',
+      },
+    },
+
+    deleteModal: {
+      show: false,
+      item: {},
+    },
+
+    // Các ô nhập bộ lọc
+    filters: {
+      keyword: '',
+      status: null,
+      type: null,
+    },
+
+    // Điều kiện lọc thực tế
+    activeFilters: {
+      keyword: '',
+      status: null,
+      type: null,
+    },
+
+    // Danh mục Option lọc/thêm/sửa (Hỗ trợ cả chuỗi Tiếng Việt lẫn Code)
+    statusOptions: [
+      { text: 'Kích hoạt', value: 1 },
+      { text: 'Chưa kích hoạt', value: 0 },
+    ],
+
+    typeConfigOptions: [
+      { text: 'Học lại', value: 'Học lại' },
+      { text: 'Thi lại', value: 'Thi lại' },
+      { text: 'Bảo vệ lại', value: 'Bảo vệ lại' },
+      { text: 'Danh mục hệ thống', value: 'Danh mục hệ thống' },
+    ],
+
+    targetOptions: [
+      { text: 'Sinh viên', value: 'Sinh viên' },
+      { text: 'Cán bộ quản lý', value: 'Cán bộ quản lý' },
+      { text: 'Giảng viên', value: 'Giảng viên' },
+    ],
+
+    actionTypeOptions: [
+      { text: 'Lịch thi', value: 'Lịch thi' },
+      { text: 'Xác nhận đăng ký', value: 'Xác nhận đăng ký' },
+      { text: 'Thanh toán thành công', value: 'Thanh toán thành công' },
+      { text: 'Từ chối', value: 'Từ chối' },
+      { text: 'Nhắc đóng học phí', value: 'Nhắc đóng học phí' },
+      { text: 'Kết quả thi', value: 'Kết quả thi' },
+      { text: 'Gửi mã OTP', value: 'Gửi mã OTP' },
+      { text: 'Nhắc đăng ký', value: 'Nhắc đăng ký' },
+    ],
+
+    typeOptions: [
+      { text: 'Học lại', value: 'Học lại' },
+      { text: 'Thi lại', value: 'Thi lại' },
+      { text: 'Bảo vệ lại', value: 'Bảo vệ lại' },
+      { text: 'Danh mục hệ thống', value: 'Danh mục hệ thống' },
+    ],
+
+    headers: [
+      { text: 'STT', value: 'stt', width: '50px', align: 'center', sortable: false },
+      { text: 'Tên', value: 'name', width: '160px' },
+      { text: 'Đối tượng gửi mail', value: 'target', width: '130px' },
+      { text: 'Loại cấu hình gửi mail', value: 'configType', width: '140px' },
+      { text: 'Loại hành động', value: 'actionType', width: '150px' },
+      { text: 'Nội dung', value: 'content', width: '280px', cellClass: 'content-cell' }, // Nới rộng Nội dung
+      { text: 'Trạng thái', value: 'status', width: '160px', align: 'left' }, // Căn trái Header Trạng thái
+      { text: 'Chức năng', value: 'actions', width: '90px', align: 'center', sortable: false },
+    ],
+
+    items: [
+      {
+        id: 1,
+        name: 'Thông báo sinh viên đăng ký học lại trước thời hạn',
+        target: 'Sinh viên',
+        configType: 'Học lại',
+        actionType: '',
+        content: `Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo:\n\nCăn cứ vào kết quả học tập, Sinh viên [TEN_SV] (MSSV: [MA_SV]) cần thực hiện đăng ký học lại môn học: [TEN_MON_HOC].\n• Đợt học lại: [DOT_HOC_LAI]\n• Thời hạn đăng ký cuối cùng: Trước ngày [HAN_CHOT]\nLưu ý: Sinh viên cần hoàn thành đăng ký đúng hạn để đảm bảo tiến độ học tập. Nếu cần hỗ trợ thêm thông tin, bạn vui lòng liên hệ trực tiếp với Cán bộ quản lý lớp để được hướng dẫn.\n\nTrân trọng!`,
+        status: 1,
+      },
+      {
+        id: 2,
+        name: 'Thông báo thanh toán tiền giảng dạy lớp học lại',
+        target: 'Giảng viên',
+        configType: 'Học lại',
+        actionType: 'Thanh toán thành công',
+        content: 'Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo:...',
+        status: 1,
+      },
+      {
+        id: 3,
+        name: 'Thông báo đăng ký bảo vệ lại thành công',
+        target: 'Sinh viên',
+        configType: 'Bảo vệ lại',
+        actionType: 'Xác nhận đăng ký',
+        content: 'Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo:...',
+        status: 1,
+      },
+      {
+        id: 4,
+        name: 'Thông báo gửi mã OTP dành cho sinh viên',
+        target: 'Sinh viên',
+        configType: 'Bảo vệ lại',
+        actionType: 'Gửi mã OTP',
+        content: 'Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo:...',
+        status: 1,
+      },
+      {
+        id: 5,
+        name: 'Thông báo sinh viên thanh toán thành công',
+        target: 'Sinh viên',
+        configType: 'Học lại',
+        actionType: 'Thanh toán thành công',
+        content: 'Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo:...',
+        status: 1,
+      },
+      {
+        id: 6,
+        name: 'Nhắc đóng học phí học',
+        target: 'Sinh viên',
+        configType: 'Học lại',
+        actionType: 'Nhắc đóng học phí',
+        content: 'Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo tới [MA_SV] - [TEN_SV]...',
+        status: 1,
+      },
+    ],
+
+    // Dialog Thêm mới/Sửa
+    createModal: {
+      show: false,
+      isEdit: false,
+      valid: true,
+      form: {
+        id: null,
+        name: '',
+        target: 'Sinh viên',
+        configType: 'Học lại',
+        actionType: null,
+        status: 1,
+        content: '',
+      },
+    },
+  }
+},
 
   computed: {
-    filteredItems() {
-      return this.items.filter(item => {
-        if (this.activeFilters.status !== null && this.activeFilters.status !== undefined) {
-          if (item.status !== this.activeFilters.status) return false
-        }
+  filteredItems() {
+    return this.items.filter(item => {
+      // 1. Lọc theo trạng thái
+      if (this.activeFilters.status !== null && this.activeFilters.status !== undefined) {
+        if (item.status !== this.activeFilters.status) return false
+      }
 
-        if (this.activeFilters.type) {
-          if (item.configType !== this.activeFilters.type) return false
-        }
+      // 2. Lọc theo loại cấu hình (hỗ trợ cả type và configType)
+      if (this.activeFilters.type) {
+        const itemType = item.configType || item.type
+        if (itemType !== this.activeFilters.type) return false
+      }
 
-        if (this.activeFilters.keyword) {
-          const kw = this.activeFilters.keyword.toLowerCase().trim()
-          const nameMatch = item.name ? item.name.toLowerCase().includes(kw) : false
-          const targetMatch = item.target ? item.target.toLowerCase().includes(kw) : false
-          const configTypeMatch = item.configType ? item.configType.toLowerCase().includes(kw) : false
-          const actionTypeMatch = item.actionType ? item.actionType.toLowerCase().includes(kw) : false
-          const contentMatch = item.content ? item.content.toLowerCase().includes(kw) : false
+      // 3. Tìm kiếm từ khóa
+      if (this.activeFilters.keyword) {
+        const kw = this.activeFilters.keyword.toLowerCase().trim()
+        
+        const nameVal = (item.name || '').toLowerCase()
+        const targetVal = (item.target || item.sendType || '').toLowerCase()
+        const configTypeVal = (item.configType || item.type || '').toLowerCase()
+        const actionTypeVal = (item.actionType || item.actionSendType || '').toLowerCase()
+        const contentVal = (item.content || '').toLowerCase()
 
-          return nameMatch || targetMatch || configTypeMatch || actionTypeMatch || contentMatch
-        }
+        return (
+          nameVal.includes(kw) ||
+          targetVal.includes(kw) ||
+          configTypeVal.includes(kw) ||
+          actionTypeVal.includes(kw) ||
+          contentVal.includes(kw)
+        )
+      }
 
-        return true
-      })
-    },
-
-    paginatedItems() {
-      const start = (this.page - 1) * this.pageSize
-      return this.filteredItems.slice(start, start + this.pageSize)
-    },
-
-    totalPages() {
-      return Math.ceil(this.filteredItems.length / this.pageSize) || 1
-    },
+      return true
+    })
   },
+
+  paginatedItems() {
+    const start = (this.page - 1) * this.pageSize
+    return this.filteredItems.slice(start, start + this.pageSize)
+  },
+
+  totalPages() {
+    return Math.ceil(this.filteredItems.length / this.pageSize) || 1
+  },
+},
 
   mounted() {
     this.$store.commit('SET_PAGE_TITLE', 'Cấu hình email')
@@ -795,169 +823,281 @@ export default {
   },
 
   methods: {
-    // Đảo trạng thái Mở rộng / Thu gọn dòng nội dung
-    toggleExpand(id) {
-      const idx = this.expandedItems.indexOf(id)
-      if (idx > -1) {
-        this.expandedItems.splice(idx, 1)
-      } else {
-        this.expandedItems.push(id)
-      }
-    },
-
-    async fetchData() {
-      this.loading = true
-      try {
-        const params = {
-          page: this.page,
-          pageSize: this.pageSize,
-          ...this.activeFilters,
-        }
-        const res = await mailConfigService.getList(params)
-        if (res && res.success && res.data && res.data.list) {
-          this.items = res.data.list
-        }
-      } catch (e) {
-      } finally {
-        this.loading = false
-      }
-    },
-
-    handleSearch() {
-      this.activeFilters = { ...this.filters }
-      this.page = 1
-      this.pageInput = 1
-      this.fetchData()
-    },
-
-    resetFilters() {
-      this.filters = {
-        keyword: '',
-        status: null,
-        type: null,
-      }
-      this.handleSearch()
-    },
-
-    getTargetColor(target) {
-      if (target === 'Sinh viên') return '#2196F3'
-      if (target === 'Giảng viên') return '#009688'
-      if (target === 'Cán bộ quản lý') return '#673AB7'
-      return 'grey'
-    },
-
-    getActionColor(action) {
-      if (action === 'Thanh toán thành công') return '#4CAF50'
-      if (action === 'Xác nhận đăng ký') return '#8BC34A'
-      if (action === 'Gửi mã OTP') return '#00BCD4'
-      if (action === 'Nhắc đóng học phí') return '#FF9800'
-      return '#009688'
-    },
-
-    handleStatusSelect(item, newValue) {
-      const oldValue = item.status === 1 ? 0 : 1
-      item.status = oldValue
-
-      this.confirmDialog = {
-        show: true,
-        item,
-        targetValue: newValue,
-        oldValue,
-        fromStatusText: oldValue === 1 ? 'Kích hoạt' : 'Chưa kích hoạt',
-        toStatusText: newValue === 1 ? 'Kích hoạt' : 'Chưa kích hoạt',
-      }
-    },
-
-    async confirmStatusChange() {
-      const { item, targetValue } = this.confirmDialog
-
-      try {
-        await mailConfigService.updateStatus(item.id, targetValue)
-      } catch (e) {
-        // Vẫn cập nhật trạng thái tại client khi API chưa sẵn sàng.
-      } finally {
-        item.status = targetValue
-        this.confirmDialog.show = false
-      }
-    },
-
-    cancelStatusChange() {
-      const { item, oldValue } = this.confirmDialog
-      if (item) item.status = oldValue
-      this.confirmDialog.show = false
-    },
-
-    goToPage() {
-      const p = parseInt(this.pageInput)
-      if (p >= 1 && p <= this.totalPages) {
-        this.page = p
-      } else {
-        this.pageInput = this.page
-      }
-    },
-
-    changePage(newPage) {
-      this.page = newPage
-      this.pageInput = newPage
-    },
-
-    openCreateModal() {
-      this.createModal.isEdit = false
-      this.createModal.form = {
-        id: Date.now(),
-        name: '',
-        target: 'Sinh viên',
-        configType: 'Học lại',
-        actionType: null,
-        status: 1,
-        content: '',
-      }
-      this.createModal.show = true
-      this.$nextTick(() => {
-        if (this.$refs.createForm) this.$refs.createForm.resetValidation()
-      })
-    },
-
-    saveConfig() {
-      if (this.$refs.createForm && !this.$refs.createForm.validate()) return
-
-      if (this.createModal.isEdit) {
-        const index = this.items.findIndex(i => i.id === this.createModal.form.id)
-        if (index !== -1) {
-          this.$set(this.items, index, { ...this.createModal.form })
-        }
-      } else {
-        this.items.unshift({ ...this.createModal.form })
-      }
-
-      this.createModal.show = false
-      if (this.$showSuccess) this.$showSuccess('Lưu cấu hình thành công')
-    },
-
-    viewDetail(item) {
-      this.detailModal.item = { ...item }
-      this.detailModal.show = true
-    },
-
-    editItem(item) {
-      this.createModal.isEdit = true
-      this.createModal.form = { ...item }
-      this.createModal.show = true
-      this.$nextTick(() => {
-        if (this.$refs.createForm) this.$refs.createForm.resetValidation()
-      })
-    },
-
-    deleteItem(item) {
-      this.deleteModal.item = { ...item }
-      this.deleteModal.show = true
-    },
-
-    confirmDelete() {
-      this.items = this.items.filter(i => i.id !== this.deleteModal.item.id)
-      this.deleteModal.show = false
-    },
+  // Đảo trạng thái Mở rộng / Thu gọn dòng nội dung
+  toggleExpand(id) {
+    const idx = this.expandedItems.indexOf(id)
+    if (idx > -1) {
+      this.expandedItems.splice(idx, 1)
+    } else {
+      this.expandedItems.push(id)
+    }
   },
+
+  // 1. CHUYỂN ĐỔI ĐỐI TƯỢNG GỬI MAIL
+getSendTypeLabel(type) {
+  if (!type) return ''
+  const map = {
+    SV: 'Sinh viên',
+    GV: 'Giảng viên',
+    CBQL: 'Cán bộ quản lý',
+    STUDENT: 'Sinh viên',
+    TEACHER: 'Giảng viên',
+    MANAGER: 'Cán bộ quản lý',
+  }
+  return map[type] || type
+},
+
+getSendTypeColor(type) {
+  if (!type) return '#757575'
+  const map = {
+    // Mã enum tiếng Anh / Viết tắt
+    SV: '#2196F3',
+    GV: '#00897B',
+    CBQL: '#FB8C00',
+    STUDENT: '#2196F3',
+    TEACHER: '#00897B',
+    MANAGER: '#FB8C00',
+
+    // Trường hợp dữ liệu trả về sẵn tiếng Việt
+    'Sinh viên': '#2196F3',
+    'Giảng viên': '#00897B',
+    'Cán bộ quản lý': '#FB8C00',
+  }
+  return map[type] || '#757575'
+},
+
+// Thêm hàm lấy màu cho Loại cấu hình gửi mail
+  // 1. CHUYỂN ĐỔI LOẠI CẤU HÌNH GỬI MAIL (Nhãn chữ)
+    getConfigTypeLabel(type) {
+      if (!type) return ''
+      const map = {
+        RETAKE_COURSES: 'Học lại',
+        RETAKE_EXAM: 'Thi lại',
+        REASSESSMENT: 'Bảo vệ lại',
+        RE_LEARN: 'Học lại',
+        RE_EXAM: 'Thi lại',
+        RE_DEFEND: 'Bảo vệ lại',
+      }
+      return map[type] || type
+    },
+
+    // 2. CHUYỂN ĐỔI LOẠI CẤU HÌNH GỬI MAIL (Màu sắc)
+    getConfigTypeColor(type) {
+      if (!type) return '#0288D1'
+      const map = {
+        RETAKE_COURSES: '#0288D1',
+        RE_LEARN: '#0288D1',
+        RETAKE_EXAM: '#7B1FA2',
+        RE_EXAM: '#7B1FA2',
+        REASSESSMENT: '#00838F',
+        RE_DEFEND: '#00838F',
+        'Học lại': '#0288D1',
+        'Thi lại': '#7B1FA2',
+        'Bảo vệ lại': '#00838F',
+      }
+      return map[type] || '#0288D1'
+    },
+
+// 3. CHUYỂN ĐỔI LOẠI HÀNH ĐỘNG
+getActionTypeLabel(action) {
+  if (!action) return ''
+  const map = {
+    REMIND_REGISTER: '', // Chấm tròn xanh
+    PAY_SUCCESS: 'Thanh toán thành công',
+    PAYMENT_SUCCESS: 'Thanh toán thành công',
+    CONFIRM: 'Xác nhận đăng ký',
+    CONFIRM_REGISTER: 'Xác nhận đăng ký',
+    REMIND_PAY: 'Nhắc đóng học phí',
+    REMIND_FEE: 'Nhắc đóng học phí',
+    REJECT: 'Từ chối',
+    RESULT: 'Kết quả thi',
+    RESULT_EXAM: 'Kết quả thi',
+    OTP: 'Gửi mã OTP',
+    SEND_OTP: 'Gửi mã OTP',
+  }
+  return map[action] !== undefined ? map[action] : action
+},
+
+getActionTypeColor(action) {
+  if (!action) return '#757575'
+  const map = {
+    // Mã enum
+    REMIND_REGISTER: '#2196F3',
+    PAY_SUCCESS: '#4CAF50',
+    PAYMENT_SUCCESS: '#4CAF50',
+    CONFIRM: '#00BCD4',
+    CONFIRM_REGISTER: '#00BCD4',
+    REMIND_PAY: '#FF9800',
+    REMIND_FEE: '#FF9800',
+    REJECT: '#F44336',
+    RESULT: '#9C27B0',
+    RESULT_EXAM: '#9C27B0',
+    OTP: '#009688',
+    SEND_OTP: '#009688',
+
+    // Dữ liệu văn bản tiếng Việt
+    'Thanh toán thành công': '#4CAF50',
+    'Xác nhận đăng ký': '#00BCD4',
+    'Nhắc đóng học phí': '#FF9800',
+    'Từ chối': '#F44336',
+    'Kết quả thi': '#9C27B0',
+    'Gửi mã OTP': '#009688',
+  }
+  return map[action] || '#757575'
+},
+
+  async fetchData() {
+    this.loading = true
+    try {
+      const params = {
+        pageIndex: this.page,
+        pageSize: this.pageSize,
+        ...this.activeFilters,
+      }
+      const res = await mailConfigService.getList(params)
+      // Cấu trúc response API: res.data.data là mảng danh sách
+      if (res && res.data && res.data.data) {
+        this.items = res.data.data
+        this.totalRecords = res.data.totalRecords || 0
+        this.totalPages = res.data.totalPages || 1
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      this.loading = false
+    }
+  },
+
+  handleSearch() {
+    this.activeFilters = { ...this.filters }
+    this.page = 1
+    this.pageInput = 1
+    this.fetchData()
+  },
+
+  resetFilters() {
+    this.filters = {
+      keyword: '',
+      status: null,
+      type: null,
+    }
+    this.handleSearch()
+  },
+
+  handleStatusSelect(item, newValue) {
+    const oldValue = item.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE'
+    item.status = oldValue
+
+    this.confirmDialog = {
+      show: true,
+      item,
+      targetValue: newValue,
+      oldValue,
+      fromStatusText: oldValue === 'ACTIVE' ? 'Kích hoạt' : 'Chưa kích hoạt',
+      toStatusText: newValue === 'ACTIVE' ? 'Kích hoạt' : 'Chưa kích hoạt',
+    }
+  },
+
+  async confirmStatusChange() {
+    const { item, targetValue } = this.confirmDialog
+
+    try {
+      await mailConfigService.updateStatus(item.id, targetValue)
+    } catch (e) {
+      // Vẫn cập nhật trạng thái tại client khi API chưa sẵn sàng.
+    } finally {
+      item.status = targetValue
+      this.confirmDialog.show = false
+    }
+  },
+
+  cancelStatusChange() {
+    const { item, oldValue } = this.confirmDialog
+    if (item) item.status = oldValue
+    this.confirmDialog.show = false
+  },
+
+  goToPage() {
+    const p = parseInt(this.pageInput)
+    if (p >= 1 && p <= this.totalPages) {
+      this.page = p
+      this.fetchData()
+    } else {
+      this.pageInput = this.page
+    }
+  },
+
+  changePage(newPage) {
+    this.page = newPage
+    this.pageInput = newPage
+    this.fetchData()
+  },
+
+  openCreateModal() {
+    this.createModal.isEdit = false
+    this.createModal.form = {
+      id: Date.now(),
+      name: '',
+      sendType: 'SV',
+      type: 'RETAKE_COURSES',
+      actionSendType: 'REMIND_REGISTER',
+      status: 'ACTIVE',
+      content: '',
+    }
+    this.createModal.show = true
+    this.$nextTick(() => {
+      if (this.$refs.createForm) this.$refs.createForm.resetValidation()
+    })
+  },
+
+  saveConfig() {
+    if (this.$refs.createForm && !this.$refs.createForm.validate()) return
+
+    if (this.createModal.isEdit) {
+      const index = this.items.findIndex(i => i.id === this.createModal.form.id)
+      if (index !== -1) {
+        this.$set(this.items, index, { ...this.createModal.form })
+      }
+    } else {
+      this.items.unshift({ ...this.createModal.form })
+    }
+
+    this.createModal.show = false
+    if (this.$showSuccess) this.$showSuccess('Lưu cấu hình thành công')
+  },
+
+  viewDetail(item) {
+  this.detailModal.item = { ...item }
+  this.detailModal.show = true
+},
+
+editItem(item) {
+  this.createModal.isEdit = true
+  this.createModal.form = {
+    id: item.id,
+    name: item.name || '',
+    target: item.target || item.sendType || 'Sinh viên',
+    configType: item.configType || item.type || 'Học lại',
+    actionType: item.actionType || item.actionSendType || null,
+    status: item.status !== undefined ? item.status : 1,
+    content: item.content || '',
+  }
+  this.createModal.show = true
+  this.$nextTick(() => {
+    if (this.$refs.createForm) this.$refs.createForm.resetValidation()
+  })
+},
+
+  deleteItem(item) {
+    this.deleteModal.item = { ...item }
+    this.deleteModal.show = true
+  },
+
+  confirmDelete() {
+    this.items = this.items.filter(i => i.id !== this.deleteModal.item.id)
+    this.deleteModal.show = false
+  },
+},
 }
 </script>
 
@@ -967,25 +1107,38 @@ export default {
   box-sizing: border-box;
   position: relative;
   z-index: 1;
+  font-size: 15px;
 }
 
 .gap-2 {
   gap: 6px;
 }
 
+/* --- BẢNG DỮ LIỆU --- */
 .custom-table >>> table {
   width: 100% !important;
   table-layout: fixed !important;
 }
 
-/* TẤT CẢ CÁC CỘT MẶC ĐỊNH SẼ CĂN GIỮA THEO CHIỀU DỌC */
-.custom-table >>> td {
-  border-bottom: 1px solid #f0f0f0 !important;
-  padding: 0 8px !important;
-  vertical-align: middle !important;
+/* Header Bảng */
+.custom-table >>> th {
+  font-weight: 700 !important;
+  color: #111111 !important;
+  background-color: #f8f9fa !important;
+  border-bottom: 1px solid #e0e0e0 !important;
+  font-size: 0.86rem !important;
+  padding: 7px 9px !important;
 }
 
-/* RIÊNG CỘT NỘI DUNG SẼ CĂN LÊN TRÊN ĐỂ KHÔNG BỊ TRỐNG KHI MỞ RỘNG */
+/* Nội dung Cell Bảng - Mặc định căn giữa theo chiều dọc */
+.custom-table >>> td {
+  border-bottom: 1px solid #f0f0f0 !important;
+  padding: 6px 9px !important;
+  vertical-align: middle !important;
+  font-size: 0.86rem !important;
+}
+
+/* Cột Nội dung căn lên trên để không bị khoảng trống khi mở rộng */
 .custom-table >>> td.content-cell {
   vertical-align: top !important;
 }
@@ -995,147 +1148,48 @@ export default {
   color: #333 !important;
 }
 
-/* Custom Nút trạng thái dạng Pill đỏ trong bảng */
-.status-select-btn >>> .v-input__slot {
-  min-height: 24px !important;
-  padding: 0 6px !important;
-  border-radius: 12px !important;
-}
-
-.status-select-btn >>> .v-select__selection {
-  color: #ffffff !important;
-  font-size: 0.7rem !important;
-  margin: 0 !important;
-}
-
-.status-select-btn >>> .v-icon {
-  color: #ffffff !important;
-  font-size: 14px !important;
-}
-
-/* Bảng dữ liệu Header */
-.custom-table >>> th {
-  font-weight: 700 !important;
-  color: #111111 !important;
-  background-color: #f8f9fa !important;
-  border-bottom: 1px solid #e0e0e0 !important;
-  font-size: 0.78rem !important;
-  padding: 0 8px !important;
-}
-
-.dense-input >>> .v-input__slot {
-  min-height: 28px !important;
-  padding: 0 4px !important;
-}
-
-.dense-input >>> input {
-  padding: 2px 0 !important;
-  font-size: 0.75rem !important;
-}
-
-/* Header Modal màu đỏ rượu */
-.red-header {
-  background-color: #a2212b !important;
-}
-
-.detail-content-box {
-  white-space: pre-line;
-  line-height: 1.6;
-  font-size: 0.875rem;
-}
-
-/* Custom Field Outline sát viền */
-.custom-field >>> .v-input__slot {
-  min-height: 38px !important;
-}
-
-.custom-field >>> .v-label {
-  font-size: 0.85rem !important;
-}
-
-/* Khung Rich Text Editor */
-.editor-wrapper {
-  border: 1px solid #d0d0d0;
-  border-radius: 4px;
-  background: #fff;
-}
-
-.editor-toolbar {
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #e0e0e0;
-  gap: 2px;
-}
-
-.editor-btn {
-  background: transparent;
-  border: none;
-  outline: none;
-  padding: 2px 6px;
-  cursor: pointer;
-  border-radius: 3px;
-  font-size: 13px;
-  color: #444;
-}
-
-.editor-btn:hover {
-  background-color: #e0e0e0;
-}
-
-.divider-vertical {
-  width: 1px;
-  height: 16px;
-  background-color: #d0d0d0;
-  margin: 0 4px;
-}
-
-.editor-textarea >>> textarea {
-  font-size: 0.85rem !important;
-  line-height: 1.4 !important;
-  color: #333 !important;
-  padding: 8px !important;
-}
-
-.caption-select >>> .v-input__slot {
-  min-height: 24px !important;
-  padding: 0 4px !important;
-}
-
-.caption-select >>> .v-select__selection {
-  font-size: 0.75rem !important;
-}
-
-/* Tăng nhẹ kích thước tổng thể giao diện */
-.page-container {
-  font-size: 15px;
-}
-
-.page-container >>> .v-input input,
-.page-container >>> .v-select__selection,
-.page-container >>> .v-label {
-  font-size: 0.9rem !important;
-}
-
-.custom-table >>> th {
-  font-size: 0.86rem !important;
-  padding: 7px 9px !important;
-}
-
-.custom-table >>> td {
-  font-size: 0.86rem !important;
-  padding: 6px 9px !important;
-}
-
 .custom-table >>> .v-chip {
   font-size: 0.76rem !important;
   min-height: 24px !important;
 }
 
+/* --- CUSTOM NÚT TRẠNG THÁI (MỞ RỘNG HIỂN THỊ TRỌN CHỮ CHƯA KÍCH HOẠT) --- */
+.status-select-btn {
+  min-width: 135px !important;
+  width: 135px !important;
+}
+
+.status-select-btn >>> .v-input__slot {
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 0 8px !important;
+  border-radius: 14px !important;
+}
+
 .status-select-btn >>> .v-select__selection {
+  color: #ffffff !important;
   font-size: 0.76rem !important;
+  font-weight: 500 !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+}
+
+.status-select-btn >>> .v-icon {
+  color: #ffffff !important;
+  font-size: 16px !important;
+  margin-left: 2px !important;
+}
+
+/* --- PHÂN TRANG --- */
+.dense-input >>> .v-input__slot {
+  min-height: 28px !important;
+  padding: 0 4px !important;
 }
 
 .dense-input >>> input,
 .dense-input >>> .v-select__selection {
+  padding: 2px 0 !important;
   font-size: 0.82rem !important;
 }
 
@@ -1153,6 +1207,64 @@ export default {
   border-radius: 6px !important;
 }
 
+/* --- MODAL & EDITOR --- */
+.red-header {
+  background-color: #a2212b !important;
+}
+
+.detail-content-box {
+  white-space: pre-line;
+  line-height: 1.6;
+  font-size: 0.875rem;
+}
+
+.custom-field >>> .v-input__slot {
+  min-height: 38px !important;
+}
+
+.custom-field >>> .v-label {
+  font-size: 0.85rem !important;
+}
+
+.editor-wrapper {
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  background: #fff;
+}
+
+::v-deep .quill-editor {
+  background-color: #ffffff;
+  border-radius: 4px;
+}
+
+::v-deep .ql-toolbar.ql-snow {
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  border-color: #d0d0d0;
+  background-color: #f8f9fa;
+  padding: 6px 8px;
+}
+
+::v-deep .ql-container.ql-snow {
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+  border-color: #d0d0d0;
+  min-height: 180px;
+  font-size: 0.9rem;
+}
+
+::v-deep .ql-editor.ql-blank::before {
+  font-style: normal;
+  color: #9e9e9e;
+  font-size: 0.875rem;
+}
+
+.page-container >>> .v-input input,
+.page-container >>> .v-select__selection,
+.page-container >>> .v-label {
+  font-size: 0.9rem !important;
+}
+
 .editor-btn {
   padding: 4px 7px;
   font-size: 14px;
@@ -1163,4 +1275,13 @@ export default {
   padding: 10px !important;
 }
 
+/* Chấm tròn xanh cho hành động REMIND_REGISTER */
+.status-dot-blue {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background-color: #2196f3;
+  border-radius: 50%;
+  vertical-align: middle;
+}
 </style>
