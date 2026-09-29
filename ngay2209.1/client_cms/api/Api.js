@@ -1,34 +1,33 @@
-class Api {
-  constructor() {
-    this.$axios = null
-  }
+let $axios = null
 
-  init($axios) {
-    this.$axios = $axios
-  }
+const Api = {
+  // Hàm khởi tạo instance $axios từ plugin Nuxt
+  init(axiosInstance) {
+    $axios = axiosInstance
+  },
 
   get(url, config = {}) {
-    return this.$axios.$get(url, config)
-  }
+    return $axios.$get(url, config)
+  },
 
   post(url, data, config = {}) {
-    return this.$axios.$post(url, data, config)
-  }
+    return $axios.$post(url, data, config)
+  },
 
   put(url, data, config = {}) {
-    return this.$axios.$put(url, data, config)
-  }
+    return $axios.$put(url, data, config)
+  },
 
   delete(url, config = {}) {
-    return this.$axios.$delete(url, config)
-  }
+    return $axios.$delete(url, config)
+  },
 
   postMultipart(url, formData, config = {}) {
-    return this.$axios.$post(url, formData, {
+    return $axios.$post(url, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       ...config,
     })
-  }
+  },
 }
 
-export default new Api()
+export default Api

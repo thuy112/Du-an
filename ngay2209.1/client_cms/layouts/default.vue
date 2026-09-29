@@ -342,6 +342,16 @@ export default {
           title: 'Quản lý thi lại',
           path: '/quan-ly-thi-lai',
           icon: 'mdi-youtube-studio',
+          active: false,
+          children: [
+            { title: 'Quản lý kỳ đăng ký thi lại', path: '/quan-ly-thi-lai/quan-ly-ky-dang-ky-thi-lai' },
+            { title: 'DSSV được phép đăng ký', path: '/quan-ly-thi-lai/dssv-duoc-phep-dang-ky' },
+            { title: 'Danh sách sinh viên đăng ký', path: '/quan-ly-thi-lai/danh-sach-sinh-vien-dang-ky' },
+            { title: 'Danh sách lớp thi', path: '/quan-ly-thi-lai/danh-sach-lop-thi' },
+            { title: 'Kết quả thi', path: '/quan-ly-thi-lai/ket-qua-thi' },
+            { title: 'Quản lý định mức thi lại', path: '/quan-ly-thi-lai/quan-ly-dinh-muc-thi-lai' },
+            { title: 'Quản lý định mức thanh toán thi lại GV', path: '/quan-ly-thi-lai/quan-ly-dinh-muc-thanh-toan-thi-lai-gv' },
+          ],
         },
         {
           id: 'quan-ly-hoc-lai',
@@ -427,6 +437,7 @@ export default {
       let parentMenu = null
       let childMenu = null
 
+      // Duyệt qua menu để tìm đúng menu cha và menu con
       for (const menu of this.fullMenuList) {
         if (menu.children && menu.children.length) {
           const foundChild = menu.children.find((c) => c.path === currentPath)
@@ -442,15 +453,14 @@ export default {
       }
 
       if (parentMenu) {
+        items.push({ text: parentMenu.title, disabled: false })
         if (childMenu) {
-          items.push({ text: parentMenu.title, disabled: false })
           items.push({ text: childMenu.title, disabled: true })
-        } else {
-          items.push({ text: parentMenu.title, disabled: true })
         }
         return items
       }
 
+      // Fallback lấy theo pageTitle trong Vuex store nếu không khớp route
       const storeTitle = this.$store ? this.$store.state.pageTitle : ''
       if (storeTitle && storeTitle !== 'Trang chủ') {
         items.push({ text: storeTitle, disabled: true })
@@ -460,9 +470,20 @@ export default {
     },
   },
   watch: {
-    $route() {
-      this.activeSubMenu = null
-      this.mobileDrawer = false
+    $route: {
+      immediate: true,
+      handler(to) {
+        this.mobileDrawer = false
+        // Tự động tìm và mở Submenu tương ứng với Route hiện tại
+        const activeParent = this.fullMenuList.find(
+          (m) => m.children && m.children.some((c) => c.path === to.path)
+        )
+        if (activeParent) {
+          this.activeSubMenu = activeParent
+        } else {
+          this.activeSubMenu = null
+        }
+      },
     },
   },
   async mounted() {

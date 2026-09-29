@@ -113,6 +113,9 @@
       :items="paginatedItems"
       :loading="loading"
       hide-default-footer
+      disable-pagination
+      fixed-header
+      height="500px"
       class="elevation-0 custom-table bg-transparent"
     >
       <!-- Cột STT -->
@@ -750,6 +753,60 @@ export default {
         content: 'Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo tới [MA_SV] - [TEN_SV]...',
         status: 1,
       },
+      {
+        id: 1,
+        name: 'Thông báo sinh viên đăng ký học lại trước thời hạn',
+        target: 'Sinh viên',
+        configType: 'Học lại',
+        actionType: '',
+        content: `Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo:\n\nCăn cứ vào kết quả học tập, Sinh viên [TEN_SV] (MSSV: [MA_SV]) cần thực hiện đăng ký học lại môn học: [TEN_MON_HOC].\n• Đợt học lại: [DOT_HOC_LAI]\n• Thời hạn đăng ký cuối cùng: Trước ngày [HAN_CHOT]\nLưu ý: Sinh viên cần hoàn thành đăng ký đúng hạn để đảm bảo tiến độ học tập. Nếu cần hỗ trợ thêm thông tin, bạn vui lòng liên hệ trực tiếp với Cán bộ quản lý lớp để được hướng dẫn.\n\nTrân trọng!`,
+        status: 1,
+      },
+      {
+        id: 2,
+        name: 'Thông báo thanh toán tiền giảng dạy lớp học lại',
+        target: 'Giảng viên',
+        configType: 'Học lại',
+        actionType: 'Thanh toán thành công',
+        content: 'Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo:...',
+        status: 1,
+      },
+      {
+        id: 3,
+        name: 'Thông báo đăng ký bảo vệ lại thành công',
+        target: 'Sinh viên',
+        configType: 'Bảo vệ lại',
+        actionType: 'Xác nhận đăng ký',
+        content: 'Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo:...',
+        status: 1,
+      },
+      {
+        id: 4,
+        name: 'Thông báo gửi mã OTP dành cho sinh viên',
+        target: 'Sinh viên',
+        configType: 'Bảo vệ lại',
+        actionType: 'Gửi mã OTP',
+        content: 'Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo:...',
+        status: 1,
+      },
+      {
+        id: 5,
+        name: 'Thông báo sinh viên thanh toán thành công',
+        target: 'Sinh viên',
+        configType: 'Học lại',
+        actionType: 'Thanh toán thành công',
+        content: 'Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo:...',
+        status: 1,
+      },
+      {
+        id: 6,
+        name: 'Nhắc đóng học phí học',
+        target: 'Sinh viên',
+        configType: 'Học lại',
+        actionType: 'Nhắc đóng học phí',
+        content: 'Trung tâm Đào tạo liên tục - ĐẠI HỌC BÁCH KHOA HÀ NỘI xin thông báo tới [MA_SV] - [TEN_SV]...',
+        status: 1,
+      },
     ],
 
     // Dialog Thêm mới/Sửa
@@ -1122,15 +1179,17 @@ editItem(item) {
 
 /* Header Bảng */
 .custom-table >>> th {
-  font-weight: 700 !important;
-  color: #111111 !important;
-  background-color: #f8f9fa !important;
-  border-bottom: 1px solid #e0e0e0 !important;
-  font-size: 0.86rem !important;
-  padding: 7px 9px !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 3 !important;
 }
 
 /* Nội dung Cell Bảng - Mặc định căn giữa theo chiều dọc */
+.custom-table >>> .v-data-table__wrapper {
+  max-height: 500px !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+}
 .custom-table >>> td {
   border-bottom: 1px solid #f0f0f0 !important;
   padding: 6px 9px !important;
