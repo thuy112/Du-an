@@ -355,7 +355,6 @@ export default {
           title: 'Quản lý thi lại',
           path: '/quan-ly-thi-lai',
           icon: 'mdi-youtube-studio',
-          active: false,
           children: [
             { title: 'Quản lý kỳ đăng ký thi lại', path: '/quan-ly-thi-lai/quan-ly-ky-dang-ky-thi-lai' },
             { title: 'DSSV được phép đăng ký', path: '/quan-ly-thi-lai/sinh-vien-duoc-dang-ky' },
