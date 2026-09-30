@@ -27,7 +27,7 @@
             dense
             hide-details
             clearable
-            :menu-props="{ offsetY: true, zIndex: 999 }"
+            :menu-props="{ attach: true, offsetY: true, zIndex: 999 }"
             class="bg-white filter-item select-sm custom-outlined-input"
             @change="search"
           ></v-select>
@@ -41,7 +41,7 @@
             dense
             hide-details
             clearable
-            :menu-props="{ offsetY: true, zIndex: 999 }"
+            :menu-props="{ attach: true, offsetY: true, zIndex: 999 }"
             class="bg-white filter-item select-md custom-outlined-input"
             @change="search"
           ></v-select>
@@ -55,7 +55,7 @@
             dense
             hide-details
             clearable
-            :menu-props="{ offsetY: true, zIndex: 999 }"
+            :menu-props="{ attach: true, offsetY: true, zIndex: 999 }"
             class="bg-white filter-item select-md custom-outlined-input"
             @change="search"
           ></v-select>
@@ -69,7 +69,7 @@
             dense
             hide-details
             clearable
-            :menu-props="{ offsetY: true, zIndex: 999 }"
+            :menu-props="{ attach: true, offsetY: true, zIndex: 999 }"
             class="bg-white filter-item select-lg custom-outlined-input"
             @change="search"
           ></v-select>
@@ -87,7 +87,7 @@
       </div>
     </div>
 
-    <!-- 2. BẢNG DỮ LIỆU CÓ THANH CUỘN DỌC + CỐ ĐỊNH HEADER -->
+    <!-- 2. BẢNG DỮ LIỆU KHÔNG VIỀN KHUNG -->
     <div class="table-container bg-white">
       <v-data-table
         :headers="headers"
@@ -122,29 +122,52 @@
           </div>
         </template>
 
+        <!-- SLOT HIỂN THỊ LOẠI GIẢNG VIÊN -->
         <template #[`item.teacherType`]="{ item }">
-          <v-chip
-            small
-            dark
-            :color="item.teacherType === 'Đương chức' ? '#ffb100' : '#4caf50'"
-            class="font-weight-bold text-caption px-3"
+          <span
+            class="status-badge"
+            :class="(item.teacherType === 'Đương chức' || item.teacherType === 'FULL_TIME') ? 'type-fulltime' : 'type-visiting'"
           >
             {{ item.teacherType }}
-          </v-chip>
+          </span>
         </template>
 
+        <!-- SLOT HIỂN THỊ & CHUYỂN ĐỔI TRẠNG THÁI -->
         <template #[`item.status`]="{ item }">
-          <v-select
-            :value="item.status"
-            :items="['Hoạt động', 'Nghỉ hưu']"
-            dense
-            flat
-            solo
-            hide-details
-            :menu-props="{ offsetY: true, zIndex: 999 }"
-            class="status-select-btn"
-            @change="openConfirmStatusDialog(item, $event)"
-          ></v-select>
+          <v-menu 
+            offset-y 
+            bottom 
+            left 
+            :z-index="999"
+          >
+            <template #activator="{ on, attrs }">
+              <div
+                v-bind="attrs"
+                v-on="on"
+                class="status-badge style-pointer d-flex align-center justify-space-between"
+                :class="(item.status === 'Hoạt động' || item.status === 'ACTIVE') ? 'status-active' : 'status-inactive'"
+                style="cursor: pointer; min-width: 110px;"
+              >
+                <span>{{ item.status }}</span>
+                <v-icon size="20" color="white">
+                  mdi-menu-down
+                </v-icon>
+              </div>
+            </template>
+
+            <v-list dense class="py-1">
+              <v-list-item @click="openConfirmStatusDialog(item, 'Hoạt động')">
+                <v-list-item-title class="red--text text--darken-1 font-weight-bold">
+                  Hoạt động
+                </v-list-item-title>
+              </v-list-item>
+              <v-list-item @click="openConfirmStatusDialog(item, 'Nghỉ hưu')">
+                <v-list-item-title class="grey--text text--darken-2 font-weight-bold">
+                  Nghỉ hưu
+                </v-list-item-title>
+              </v-list-item>
+            </v-list>
+          </v-menu>
         </template>
 
         <template #[`item.actions`]="{ item }">
@@ -161,9 +184,15 @@
       </v-data-table>
     </div>
 
-    <!-- 3. THANH PHÂN TRANG DƯỚI (ĐÃ ĐƯỢC CĂN BẢN GHI VÀ TRANG NẰM ĐÚNG VỊ TRÍ LEVELED LABEL) -->
+    <!-- 3. THANH PHÂN TRANG DƯỚI -->
     <div class="bottom-fixed-bar d-flex align-center justify-space-between flex-wrap gap-2 py-3 px-1 bg-white">
-      <v-btn color="#2e7d32" dark elevation="0" class="text-capitalize rounded px-4 font-weight-bold">
+      <v-btn
+        color="#2e7d32"
+        dark
+        elevation="0"
+        class="text-capitalize rounded px-4 font-weight-bold"
+        @click="exportToExcel"
+      >
         <v-icon left small>mdi-export</v-icon> XUẤT FILE EXCEL
       </v-btn>
 
@@ -176,7 +205,7 @@
           dense
           outlined
           hide-details
-          :menu-props="{ top: true, offsetY: true, zIndex: 999 }"
+          :menu-props="{ attach: true, top: true, offsetY: true, zIndex: 999 }"
           class="pagination-input"
           style="width: 85px"
           @change="onItemsPerPageChange"
@@ -233,7 +262,7 @@
     <v-dialog v-model="confirmStatusDialog" max-width="500px" persistent>
       <v-card class="rounded-lg overflow-hidden">
         <v-card-title class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center" style="background-color: #a2212b;">
-          <span>Xác nhận</span>
+          <span>Xác nhận đổi trạng thái</span>
           <v-btn icon dark x-small @click="confirmStatusDialog = false">
             <v-icon>mdi-close</v-icon>
           </v-btn>
@@ -389,11 +418,15 @@
 </template>
 
 <script>
+import * as XLSX from 'xlsx'
+
 export default {
   name: 'QuanLyGiangVienPage',
   middleware: 'authenticated',
   mounted() {
-    this.$store.commit('SET_PAGE_TITLE', 'Quản lý giảng viên')
+    if (this.$store) {
+      this.$store.commit('SET_PAGE_TITLE', 'Quản lý giảng viên')
+    }
   },
   data() {
     return {
@@ -461,6 +494,33 @@ export default {
     }
   },
   methods: {
+    getStatusClass(status) {
+      if (!status) return 'status-inactive'
+      const val = status.toString().toUpperCase()
+      if (val === 'ACTIVE' || val === 'HOẠT ĐỘNG' || val === 'HOAT DONG') {
+        return 'status-active'
+      }
+      return 'status-inactive'
+    },
+
+    getStatusIconColor(status) {
+      if (!status) return '#5f6368'
+      const val = status.toString().toUpperCase()
+      if (val === 'ACTIVE' || val === 'HOẠT ĐỘNG' || val === 'HOAT DONG') {
+        return '#d93025'
+      }
+      return '#5f6368'
+    },
+
+    getTeacherTypeClass(type) {
+      if (!type) return 'type-visiting'
+      const val = type.toString().toUpperCase()
+      if (val === 'FULL_TIME' || val === 'ĐƯƠNG CHỨC' || val === 'DUONG CHUC') {
+        return 'type-fulltime'
+      }
+      return 'type-visiting'
+    },
+
     getCurrentDateTime() {
       const now = new Date()
       return `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
@@ -484,20 +544,69 @@ export default {
       if (item.hasUpdate) this.historyDialog = true
       else this.showToast('Không có dữ liệu cập nhật mới.', '#ffc107')
     },
+
     openConfirmStatusDialog(item, newStatus) {
       if (item.status === newStatus) return
       this.pendingStatusChange = { teacher: item, oldStatus: item.status, newStatus }
       this.confirmStatusDialog = true
     },
+
     confirmStatusUpdate() {
       if (this.pendingStatusChange.teacher) {
         const teacher = this.pendingStatusChange.teacher
         teacher.status = this.pendingStatusChange.newStatus
         teacher.hasUpdate = true
         teacher.lastUpdated = this.getCurrentDateTime()
+        
         this.confirmStatusDialog = false
-        this.showToast('Cập nhật thành công', '#4caf50')
+        this.showToast(`Đã chuyển trạng thái sang thành công`, '#4caf50')
       }
+    },
+
+    exportToExcel() {
+      const dataToExport = this.filteredTeachers.map((item, index) => ({
+        'STT': index + 1,
+        'Họ và Tên': item.fullName,
+        'Mã Giảng Viên': item.code,
+        'Số điện thoại': item.phone || '---',
+        'Email': item.email || '---',
+        'Giới tính': item.gender || '---',
+        'Ngày sinh': item.dob || '---',
+        'Đơn vị': item.unit || '---',
+        'Khoa/ Trường': item.department || '---',
+        'Mã số thuế': item.taxCode || '---',
+        'Loại giảng viên': item.teacherType,
+        'Trạng thái': item.status,
+      }))
+
+      if (dataToExport.length === 0) {
+        this.showToast('Không có dữ liệu để xuất file!', '#ffc107')
+        return
+      }
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+      const autoFitCols = Object.keys(dataToExport[0]).map(key => ({
+        wch: Math.max(key.length + 5, 15)
+      }))
+      worksheet['!cols'] = autoFitCols
+
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách giảng viên')
+
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      const hours = String(now.getHours()).padStart(2, '0')
+      const minutes = String(now.getMinutes()).padStart(2, '0')
+      const seconds = String(now.getSeconds()).padStart(2, '0')
+
+      const timeString = `${year}_${month}_${day}_${hours}${minutes}${seconds}`
+      const randomSuffix = Math.random().toString(16).substring(2, 6)
+
+      const fileName = `danh_sach_giang_vien_${timeString}_${randomSuffix}.xlsx`
+      XLSX.writeFile(workbook, fileName)
+      
     },
     showToast(message, color) {
       this.toast.message = message; this.toast.color = color; this.toast.show = true
@@ -507,6 +616,43 @@ export default {
 </script>
 
 <style scoped>
+/* --- BASE BADGE --- */
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* --- TRẠNG THÁI (STATUS) --- */
+/* Hoạt động / ACTIVE: Màu đỏ */
+.status-active {
+  background-color: #a2212b!important;
+  color: #ffff !important;
+}
+
+/* Nghỉ hưu / INACTIVE: Màu xám */
+.status-inactive {
+  background-color: #9e9e9e !important;
+  color: #ffff !important;
+}
+
+/* --- LOẠI GIẢNG VIÊN (TEACHER TYPE) --- */
+/* Đương chức / FULL_TIME: Màu vàng */
+.type-fulltime {
+  background-color: #ffae1f !important;
+  color: #ffff !important;
+}
+
+/* Mời giảng / VISITING: Màu xanh lá */
+.type-visiting {
+  background-color: #4caf50 !important;
+  color: #ffff !important;
+}
+
 .teacher-page {
   height: calc(100vh - 64px); 
   overflow: hidden;
@@ -581,10 +727,13 @@ export default {
   border: none !important;
 }
 
+/* CỬA SỔ CHỈNH SỬA TẠI ĐÂY:
+   Thay z-index từ 10 xuống 1 để header chỉ nằm trên các hàng dữ liệu (row) 
+   nhưng vẫn nằm bên dưới menu/dropdown/dialog/popup. */
 .custom-table >>> th {
   position: sticky !important;
   top: 0 !important;
-  z-index: 10 !important;
+  z-index: 1 !important;
   background-color: #f5f5f5 !important;
   font-weight: bold !important;
   color: #333 !important;
@@ -725,5 +874,10 @@ export default {
 }
 .table-container::-webkit-scrollbar-thumb:hover {
   background: #83161f;
+}
+
+/* Ép tất cả các Menu/Dropdown không bị trôi/văng lên đỉnh màn hình khi Zoom */
+.v-menu__content {
+  position: absolute !important;
 }
 </style>

@@ -1,12 +1,12 @@
 <template>
-  <div class="student-page pa-3 pa-sm-4 bg-white">
-    <!-- 1. THANH TÌM KIẾM CỐ ĐỊNH PHÍA TRÊN -->
-    <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-4 width-100">
-      <div class="text-subtitle-1 font-weight-bold mr-2 text-no-wrap">
-        Danh sách sinh viên ({{ filteredStudents.length }})
-      </div>
+  <div class="quan-ly-sinh-vien-container pa-4">
+    <!-- Header / Bộ lọc chính -->
+    <v-row class="mb-2 align-center justify-space-between" no-gutters>
+      <div class="d-flex align-center gap-2 flex-wrap" style="width: 100%;">
+        <span class="text-h6 font-weight-bold">Danh sách sinh viên ({{ filteredStudents.length }})</span>
+        <v-spacer></v-spacer>
 
-      <div class="d-flex align-center gap-2 flex-wrap flex-grow-1 justify-end">
+        <!-- Ô Tìm kiếm -->
         <v-text-field
           v-model="filters.search"
           placeholder="Tìm kiếm"
@@ -17,6 +17,7 @@
           @keyup.enter="search"
         ></v-text-field>
 
+        <!-- Lớp sinh viên -->
         <v-select
           v-model="filters.class"
           :items="['DH-BK-KTO1-K67', 'DH-BK-QTKD2.2-K66', 'DH-BK-CNTT1.1-K66']"
@@ -28,9 +29,16 @@
           class="bg-white rounded filter-item select-md custom-outlined-input"
         ></v-select>
 
+        <!-- Trạng thái -->
         <v-select
           v-model="filters.status"
-          :items="['Đang học tập', 'Đã nghỉ học', 'Bảo lưu', 'Tốt nghiệp']"
+          :items="[
+            { text: 'Đang học tập', value: 'STUDYING' },
+            { text: 'Bảo lưu', value: 'LEAVE_OF_ABSENCE' },
+            { text: 'Đã nghỉ học', value: 'DROP_OUT_OF_SCHOOL' }
+          ]"
+          item-text="text"
+          item-value="value"
           placeholder="Trạng thái"
           outlined
           dense
@@ -39,534 +47,199 @@
           class="bg-white rounded filter-item select-md custom-outlined-input"
         ></v-select>
 
-        <!-- Nút Mở Dialog Bộ Lọc Nâng Cao -->
-        <v-btn
-          icon
-          color="#a2212b"
-          class="min-w-0"
-          @click="openFilterDialog"
-        >
-          <v-icon color="#a2212b">mdi-filter-variant-plus</v-icon>
+        <!-- Nút Filter -->
+        <v-btn icon color="#a2212b" @click="openFilterDialog">
+          <v-icon size="24">mdi-filter-variant-plus</v-icon>
         </v-btn>
 
-        <!-- Nút Làm Mới (Reset) -->
-        <v-btn icon color="#a2212b" class="rounded-sm" @click="resetFilters">
-          <v-icon color="#a2212b">mdi-refresh</v-icon>
+        <!-- Nút Reset -->
+        <v-btn icon color="#a2212b" @click="resetFilters">
+          <v-icon size="24">mdi-refresh</v-icon>
         </v-btn>
 
-        <!-- Nút TÌM KIẾM chính -->
-        <v-btn color="#a2212b" dark elevation="0" class="min-w-0 px-3 rounded-sm action-btn" @click="search">
+        <!-- Nút Tìm kiếm -->
+        <v-btn color="#a2212b" class="action-btn white--text elevation-0 font-weight-bold" @click="search">
           <v-icon size="24">mdi-magnify</v-icon>
         </v-btn>
       </div>
-    </div>
+    </v-row>
 
-    <!-- 2. BẢNG DỮ LIỆU HIỂN THỊ TOÀN BỘ + CUỘN NGANG KHI THU NHỎ -->
-    <v-card flat class="border rounded-lg overflow-hidden mb-4">
+    <!-- Bảng Dữ Liệu Sinh Viên (ĐÃ BỎ KHUNG, ĐƯỜNG VIỀN & ĐỘ NỔI ELEVATION) -->
+    <v-card flat class="transparent overflow-hidden">
       <div class="table-responsive-wrapper">
         <v-data-table
           :headers="headers"
           :items="paginatedStudents"
           hide-default-footer
-          disable-pagination
           class="custom-table"
-          :loading="loading"
-          fixed-header
-          height="600px"
         >
           <!-- STT -->
           <template #[`item.stt`]="{ index }">
-            <span class="font-weight-medium">{{ (page - 1) * itemsPerPage + index + 1 }}</span>
+            {{ (page - 1) * itemsPerPage + index + 1 }}
           </template>
 
           <!-- Thông tin chung -->
           <template #[`item.generalInfo`]="{ item }">
             <div class="py-2">
-              <div class="font-weight-bold red--text text--darken-3 mb-1">
-                {{ item.fullName }}
-              </div>
-              <div v-if="item.studentCode" class="caption text--secondary mb-1">
-                Mã số sinh viên: <span class="red--text text--darken-3 font-weight-bold">{{ item.studentCode }}</span>
-              </div>
-              <div v-if="item.email" class="caption text--secondary mb-1">
-                Email: <span class="red--text text--darken-3 font-weight-medium">{{ item.email }}</span>
-              </div>
-              <div class="caption text--secondary">
-                Giới tính: <span class="black--text font-weight-medium">{{ item.gender }}</span>
-              </div>
+              <div class="font-weight-bold red--text text--darken-3 text-subtitle-2 mb-1">{{ item.fullName }}</div>
+              <div class="text-caption text-grey-darken-1">Mã số sinh viên: <span class="font-weight-medium red--text text--darken-3">{{ item.studentCode }}</span></div>
+              <div class="text-caption text-grey-darken-1">Email: <span class="red--text text--darken-3">{{ item.email || '---' }}</span></div>
+              <div class="text-caption text-grey-darken-1">Giới tính: {{ item.gender }}</div>
             </div>
           </template>
 
-          <!-- Đổi trạng thái sinh viên (Chuẩn giao diện Ảnh 2) -->
+          <!-- Trạng thái -->
           <template #[`item.status`]="{ item }">
-            <v-select
-              :value="item.status"
-              :items="['Đang học tập', 'Đã nghỉ học', 'Bảo lưu', 'Tốt nghiệp']"
-              dense
-              flat
-              solo
-              hide-details
-              :menu-props="{ offsetY: true, closeOnClick: true, closeOnContentClick: true }"
-              class="status-select-btn"
-              @change="openConfirmStatusDialog(item, $event)"
-            ></v-select>
+            <v-menu offset-y class="d-inline-block">
+              <template #activator="{ on, attrs }">
+                <div
+                  v-bind="attrs"
+                  v-on="on"
+                  class="status-badge style-pointer d-flex align-center justify-space-between px-3 py-1"
+                  :class="getStatusClass(item.status)"
+                  style="cursor: pointer; width: 130px; height: 32px;"
+                >
+                  <span class="text-caption font-weight-bold text-no-wrap">
+                    {{ getStatusText(item.status) }}
+                  </span>
+                  <v-icon size="18" class="ml-1" :color="item.status === 'LEAVE_OF_ABSENCE' ? 'black' : 'white'">
+                    mdi-menu-down
+                  </v-icon>
+                </div>
+              </template>
+
+              <v-list dense class="py-1">
+                <v-list-item @click="openConfirmStatusDialog(item, 'STUDYING')">
+                  <v-list-item-title class="text-body-2">Đang học tập</v-list-item-title>
+                </v-list-item>
+                <v-list-item @click="openConfirmStatusDialog(item, 'LEAVE_OF_ABSENCE')">
+                  <v-list-item-title class="text-body-2">Bảo lưu</v-list-item-title>
+                </v-list-item>
+                <v-list-item @click="openConfirmStatusDialog(item, 'DROP_OUT_OF_SCHOOL')">
+                  <v-list-item-title class="text-body-2">Đã nghỉ học</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-menu>
           </template>
 
-          <!-- Cột chức năng -->
+          <!-- Chức năng -->
           <template #[`item.actions`]="{ item }">
             <div class="d-flex align-center justify-center gap-1">
               <v-btn icon x-small color="cyan darken-1" @click="viewDetail(item)">
-                <v-icon size="22" color="blue">mdi-eye</v-icon>
+                <v-icon size="24" color="blue">mdi-eye</v-icon>
               </v-btn>
 
               <v-btn icon x-small color="teal" @click="checkHistory(item)">
-                <v-icon size="22" color="green">mdi-table-account</v-icon>
+                <v-icon size="24" color="green">mdi-table-account</v-icon>
               </v-btn>
             </div>
           </template>
         </v-data-table>
       </div>
+
+      <!-- Footer & Phân trang -->
+      <div class="d-flex align-center justify-space-between pt-3 pb-1 flex-wrap gap-2">
+        <v-btn color="#4caf50" class="white--text elevation-0 text-capitalize" @click="exportToExcel">
+          <v-icon left size="18">mdi-file-excel-outline</v-icon>
+          XUẤT FILE EXCEL
+        </v-btn>
+
+        <div class="d-flex align-center gap-2">
+          <span class="text-caption grey--text text--darken-1">Bản ghi</span>
+          <v-select
+            v-model="itemsPerPage"
+            :items="[10, 20, 50, 100]"
+            dense
+            outlined
+            hide-details
+            style="width: 70px;"
+            class="custom-outlined-input"
+            @change="onItemsPerPageChange"
+          ></v-select>
+
+          <span class="text-caption grey--text text--darken-1 ml-2">Trang</span>
+          <v-text-field
+            v-model="pageInput"
+            dense
+            outlined
+            hide-details
+            style="width: 50px;"
+            class="text-center custom-outlined-input"
+            @keyup.enter="goToPage"
+          ></v-text-field>
+
+          <v-btn color="#a2212b" class="white--text elevation-0 px-3" min-width="36" height="36" @click="goToPage">
+            Đi
+          </v-btn>
+
+          <v-btn icon small :disabled="page <= 1" @click="changePage(page - 1)">
+            <v-icon>mdi-chevron-left</v-icon>
+          </v-btn>
+
+          <v-btn
+            v-for="p in visiblePages"
+            :key="p"
+            small
+            min-width="32"
+            height="32"
+            :color="p === page ? '#a2212b' : 'transparent'"
+            :class="p === page ? 'white--text font-weight-bold' : 'grey--text text--darken-2'"
+            class="elevation-0 px-0"
+            @click="changePage(p)"
+          >
+            {{ p }}
+          </v-btn>
+
+          <v-btn icon small :disabled="page >= totalPages" @click="changePage(page + 1)">
+            <v-icon>mdi-chevron-right</v-icon>
+          </v-btn>
+        </div>
+      </div>
     </v-card>
 
-    <!-- 3. THANH PHÂN TRANG -->
-    <div class="d-flex align-center justify-end flex-wrap gap-2 my-2">
-      <v-btn color="success" dark elevation="0" class="text-capitalize rounded px-4 mr-auto font-weight-bold">
-        <v-icon left small>mdi-export</v-icon> XUẤT FILE EXCEL
-      </v-btn>
-
-      <div class="d-flex align-center gap-2 flex-wrap">
-        <span class="caption grey--text text--darken-1">Bản ghi</span>
-        <v-select
-          v-model="itemsPerPage"
-          :items="[10, 20, 50, 100]"
-          dense
-          outlined
-          hide-details
-          style="max-width: 75px"
-          @change="onItemsPerPageChange"
-        ></v-select>
-
-        <span class="caption grey--text text--darken-1 ml-1">Trang</span>
-        <v-text-field
-          v-model.number="pageInput"
-          dense
-          outlined
-          hide-details
-          style="max-width: 50px"
-          class="text-center"
-          @keyup.enter="goToPage"
-        ></v-text-field>
-
-        <v-btn color="#a2212b" dark small class="text-capitalize px-3 rounded-sm elevation-0" style="height: 36px;" @click="goToPage">
-          Đi
-        </v-btn>
-
-        <v-btn icon small :disabled="page <= 1" @click="changePage(page - 1)">
-          <v-icon>mdi-chevron-left</v-icon>
-        </v-btn>
-        
-        <v-btn
-          v-for="p in visiblePages"
-          :key="p"
-          small
-          :color="page === p ? '#a2212b' : ''"
-          :dark="page === p"
-          :outlined="page !== p"
-          class="min-w-0 pa-0 rounded-sm elevation-0"
-          style="width: 28px; height: 28px"
-          @click="changePage(p)"
-        >
-          {{ p }}
-        </v-btn>
-
-        <v-btn icon small :disabled="page >= totalPages" @click="changePage(page + 1)">
-          <v-icon>mdi-chevron-right</v-icon>
-        </v-btn>
-      </div>
-    </div>
-
-    <!-- POPUP BỘ LỌC NÂNG CAO -->
-    <v-dialog v-model="filterDialog" max-width="550px" persistent>
-      <v-card class="rounded-lg overflow-hidden">
-        <v-card-title class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center" style="background-color: #a2212b;">
-          <span>Bộ lọc</span>
-          <v-btn icon dark x-small @click="filterDialog = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-card-title>
-
-        <v-card-text class="pa-5 black--text">
-          <v-row dense class="mt-1">
-            <v-col cols="12" sm="6" class="py-2">
-              <v-select
-                v-model="tempDialogFilters.trainingType"
-                :items="['Vừa làm vừa học', 'Chính quy', 'Từ xa']"
-                placeholder="Hình thức đào tạo"
-                outlined
-                dense
-                hide-details
-                clearable
-              ></v-select>
-            </v-col>
-
-            <v-col cols="12" sm="6" class="py-2">
-              <v-select
-                v-model="tempDialogFilters.location"
-                :items="['Đại học Bách khoa Hà Nội', 'Cơ sở 2']"
-                placeholder="Địa điểm đào tạo"
-                outlined
-                dense
-                hide-details
-                clearable
-              ></v-select>
-            </v-col>
-
-            <v-col cols="12" sm="6" class="py-2">
-              <v-select
-                v-model="tempDialogFilters.major"
-                :items="['Kế toán', 'Quản trị kinh doanh', 'Công nghệ thông tin']"
-                placeholder="Ngành"
-                outlined
-                dense
-                hide-details
-                clearable
-              ></v-select>
-            </v-col>
-
-            <v-col cols="12" sm="6" class="py-2">
-              <v-select
-                v-model="tempDialogFilters.course"
-                :items="['Khóa 65', 'Khóa 66', 'Khóa 67']"
-                placeholder="Khóa"
-                outlined
-                dense
-                hide-details
-                clearable
-              ></v-select>
-            </v-col>
-
-            <v-col cols="12" sm="6" class="py-2">
-              <v-select
-                v-model="tempDialogFilters.gender"
-                :items="['Nam', 'Nữ', 'Khác']"
-                placeholder="Giới tính"
-                outlined
-                dense
-                hide-details
-                clearable
-              ></v-select>
-            </v-col>
-          </v-row>
-
-          <div class="d-flex justify-end gap-2 mt-6">
-            <v-btn
-              outlined
-              class="text-capitalize border-btn font-weight-bold"
-              color="#a2212b"
-              @click="filterDialog = false"
-            >
-              Đóng X
-            </v-btn>
-            <v-btn
-              color="#a2212b"
-              dark
-              elevation="0"
-              class="text-capitalize font-weight-bold"
-              @click="applyAdvancedFilters"
-            >
-              Tìm Kiếm <v-icon small class="ml-1">mdi-magnify</v-icon>
-            </v-btn>
-          </div>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
-
-    <!-- POPUP XÁC NHẬN ĐỔI TRẠNG THÁI -->
+    <!-- Dialog Xác Nhận Thay Đổi Trạng Thái -->
     <v-dialog v-model="confirmStatusDialog" max-width="500px" persistent>
       <v-card class="rounded-lg overflow-hidden">
         <v-card-title class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center" style="background-color: #a2212b;">
-          <span>Xác nhận</span>
-          <v-btn icon dark x-small @click="confirmStatusDialog = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
+          Xác nhận đổi trạng thái
         </v-card-title>
-
-        <v-card-text class="pa-5 black--text text-body-1">
-          <div class="my-2">
-            Bạn có chắc chắn muốn đổi trạng thái từ <span class="font-weight-bold red--text text--darken-2">{{ pendingStatusChange.oldStatus }}</span> sang <span class="font-weight-bold red--text text--darken-2">{{ pendingStatusChange.newStatus }}</span> không?
-          </div>
-
-          <div class="d-flex justify-end gap-2 mt-6">
-            <v-btn
-              outlined
-              class="text-capitalize border-btn font-weight-bold"
-              color="#a2212b"
-              @click="confirmStatusDialog = false"
-            >
-              Đóng X
-            </v-btn>
-            <v-btn
-              color="#a2212b"
-              dark
-              elevation="0"
-              class="text-capitalize font-weight-bold"
-              @click="confirmStatusUpdate"
-            >
-              Xác nhận
-            </v-btn>
-          </div>
+        <v-card-text class="pt-4 text-body-1 black--text">
+          Bạn có chắc chắn muốn đổi trạng thái
+          từ <span class="font-weight-bold red--text">{{ getStatusText(pendingStatusChange.oldStatus) }}</span> 
+          sang <span class="font-weight-bold red--text text--darken-2">{{ getStatusText(pendingStatusChange.newStatus) }}</span> không?
         </v-card-text>
+        <v-card-actions class="justify-end pb-4 pr-4">
+          <v-btn text color="grey darken-1" @click="confirmStatusDialog = false">Hủy</v-btn>
+          <v-btn color="#a2212b" class="white--text elevation-0 px-4" @click="confirmStatusUpdate">Đồng ý</v-btn>
+        </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <!-- POPUP CHI TIẾT SINH VIÊN -->
-    <v-dialog v-model="detailDialog" max-width="800px" scrollable persistent>
-      <v-card class="rounded-lg overflow-hidden">
-        <v-card-title class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center" style="background-color: #a2212b;">
-          <span>Thông tin sinh viên chi tiết</span>
-          <v-btn icon dark x-small @click="detailDialog = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-card-title>
-
-        <v-card-text class="pa-5 black--text style-scroll" style="max-height: 80vh;">
-          <div class="text-h6 font-weight-bold border-left-title mb-4 pl-2">Thông tin cá nhân</div>
-          <v-row dense class="text-body-2 mb-6">
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-1">Họ tên:</span> <span class="font-weight-bold red--text text--darken-3">{{ selectedStudent.fullName }}</span>
-            </v-col>
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-1">Giới tính:</span> <span class="font-weight-medium red--text text--darken-3">{{ selectedStudent.gender || 'Khác' }}</span>
-            </v-col>
-
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-1">Mã số sinh viên:</span> <span class="font-weight-bold red--text text--darken-3">{{ selectedStudent.studentCode }}</span>
-            </v-col>
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-1">CCCD:</span> <span class="font-weight-bold red--text text--darken-3">{{ selectedStudent.cccd || '030303010695' }}</span>
-            </v-col>
-
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-1">Ngày sinh:</span> <span class="font-weight-medium">{{ selectedStudent.dob || '' }}</span>
-            </v-col>
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-1">Email trường:</span> <span class="font-weight-medium red--text text--darken-3">{{ selectedStudent.email }}</span>
-            </v-col>
-
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-1">Nơi sinh:</span> <span class="font-weight-medium">{{ selectedStudent.pob || '' }}</span>
-            </v-col>
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-1">Email cá nhân:</span> <span class="font-weight-medium">{{ selectedStudent.personalEmail || '' }}</span>
-            </v-col>
-
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-1">Trú quán:</span> <span class="font-weight-medium">{{ selectedStudent.hometown || '' }}</span>
-            </v-col>
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-1">Dân tộc:</span> <span class="font-weight-medium">{{ selectedStudent.ethnicity || '' }}</span>
-            </v-col>
-
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-1">Địa chỉ liên hệ:</span> <span class="font-weight-medium">{{ selectedStudent.address || '' }}</span>
-            </v-col>
-            <v-col cols="6" class="py-1 d-flex align-center">
-              <span class="grey--text text--darken-1 mr-2">Trạng thái:</span>
-              <v-chip x-small dark color="#a2212b" class="font-weight-bold">
-                {{ selectedStudent.status }}
-              </v-chip>
-            </v-col>
-
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-1">SĐT:</span> <span class="font-weight-medium">{{ selectedStudent.phone || '' }}</span>
-            </v-col>
-          </v-row>
-
-          <div class="text-h6 font-weight-bold border-left-title mb-4 pl-2">Thông tin đào tạo</div>
-          <v-row dense class="text-body-2">
-            <v-col cols="12" class="py-1">
-              <span class="grey--text text--darken-1">Địa điểm đào tạo:</span> <span class="font-weight-bold red--text text--darken-3">{{ selectedStudent.location }}</span>
-            </v-col>
-
-            <v-col cols="12" class="py-1">
-              <span class="grey--text text--darken-1">Tên lớp:</span> <span class="font-weight-bold red--text text--darken-3">{{ selectedStudent.className }}</span>
-            </v-col>
-
-            <v-col cols="12" class="py-1">
-              <span class="grey--text text--darken-1">Tên khóa học:</span> <span class="font-weight-bold red--text text--darken-3">{{ selectedStudent.course }}</span>
-            </v-col>
-
-            <v-col cols="12" class="py-1">
-              <span class="grey--text text--darken-1">Loại hình đào tạo:</span> <span class="font-weight-bold red--text text--darken-3">{{ selectedStudent.educationType || 'Dài hạn' }}</span>
-            </v-col>
-
-            <v-col cols="12" class="py-1">
-              <span class="grey--text text--darken-1">Hình thức đào tạo:</span> <span class="font-weight-bold red--text text--darken-3">{{ selectedStudent.trainingType }}</span>
-            </v-col>
-
-            <v-col cols="12" class="py-1">
-              <span class="grey--text text--darken-1">Ngành:</span> <span class="font-weight-bold red--text text--darken-3">{{ selectedStudent.major || 'Kế toán' }}</span>
-            </v-col>
-
-            <v-col cols="4" class="py-1">
-              <span class="grey--text text--darken-1">Bằng cấp:</span> <span class="font-weight-bold red--text text--darken-3">{{ selectedStudent.degree }}</span>
-            </v-col>
-            <v-col cols="4" class="py-1">
-              <span class="grey--text text--darken-1">Thời gian bắt đầu:</span> <span class="font-weight-medium">{{ selectedStudent.startDate || '---' }}</span>
-            </v-col>
-            <v-col cols="4" class="py-1">
-              <span class="grey--text text--darken-1">Thời gian kết thúc:</span> <span class="font-weight-medium">{{ selectedStudent.endDate || '---' }}</span>
-            </v-col>
-          </v-row>
-
-          <div class="d-flex justify-center mt-6">
-            <v-btn
-              outlined
-              class="text-capitalize px-6 border-btn font-weight-bold"
-              color="#a2212b"
-              @click="detailDialog = false"
-            >
-              Đóng X
-            </v-btn>
-          </div>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
-
-    <!-- POPUP LỊCH SỬ DỮ LIỆU SINH VIÊN -->
-    <v-dialog v-model="historyDialog" max-width="850px" persistent>
-      <v-card class="rounded-lg overflow-hidden">
-        <v-card-title class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center" style="background-color: #a2212b;">
-          <span>Lịch sử dữ liệu sinh viên</span>
-          <v-btn icon dark x-small @click="historyDialog = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-card-title>
-
-        <v-card-text class="pa-5 black--text">
-          <div class="d-flex align-center gap-2 mb-4 flex-wrap justify-end">
-            <v-select
-              v-model="historyFilters.subject"
-              :items="['Tất cả học phần']"
-              placeholder="Học phần"
-              outlined
-              dense
-              hide-details
-              style="max-width: 180px"
-              class="bg-white rounded"
-            ></v-select>
-
-            <v-select
-              v-model="historyFilters.process"
-              :items="['Tất cả quy trình']"
-              placeholder="Quy trình học tập"
-              outlined
-              dense
-              hide-details
-              style="max-width: 180px"
-              class="bg-white rounded"
-            ></v-select>
-
-            <v-btn icon color="#a2212b" class="rounded-sm" @click="resetHistoryFilters">
-              <v-icon color="#a2212b" size="24">mdi-refresh</v-icon>
-            </v-btn>
-
-            <v-btn color="#a2212b" dark elevation="0" class="min-w-0 px-3 rounded-sm action-btn">
-              <v-icon size="24">mdi-magnify</v-icon>
-            </v-btn>
-          </div>
-
-          <v-card flat class="border rounded-lg overflow-hidden mb-4">
-            <div class="table-responsive-wrapper">
-              <v-data-table
-                :headers="historyHeaders"
-                :items="historyLogs"
-                hide-default-footer
-                class="custom-table"
-              >
-                <template #no-data>
-                  <div class="py-6 grey--text text-center">Không có dữ liệu.</div>
-                </template>
-              </v-data-table>
-            </div>
-          </v-card>
-
-          <div class="d-flex align-center justify-end gap-2">
-            <span class="caption grey--text text--darken-1">Bản ghi</span>
-            <v-select
-              v-model="historyItemsPerPage"
-              :items="[10, 20, 50]"
-              dense
-              outlined
-              hide-details
-              class="history-record-select"
-            ></v-select>
-
-            <span class="caption grey--text text--darken-1 ml-1">Trang</span>
-            <v-text-field
-              v-model.number="historyPage"
-              dense
-              outlined
-              hide-details
-              style="max-width: 45px"
-              class="history-page-field"
-            ></v-text-field>
-
-            <v-btn icon disabled class="history-pagination-arrow">
-              <v-icon>mdi-chevron-left</v-icon>
-            </v-btn>
-            <v-btn icon disabled class="history-pagination-arrow">
-              <v-icon>mdi-chevron-right</v-icon>
-            </v-btn>
-          </div>
-
-          <div class="d-flex justify-end mt-4">
-            <v-btn
-              outlined
-              class="text-capitalize px-6 border-btn font-weight-bold"
-              color="#a2212b"
-              @click="historyDialog = false"
-            >
-              Đóng X
-            </v-btn>
-          </div>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
-
-    <!-- SNACKBAR NOTIFICATION -->
+    <!-- Toast Notification (ĐÃ CHUYỂN LÊN GÓC TRÊN CÙNG BÊN PHẢI VÀ THÊM NÚT X TẮT) -->
     <v-snackbar
       v-model="toast.show"
-      top
-      right
       :color="toast.color"
       timeout="3000"
+      top
+      right
       class="custom-toast"
     >
-      <div class="d-flex align-center font-weight-medium white--text">
-        <v-icon color="white" class="mr-2">
-          {{ toast.color === '#4caf50' ? 'mdi-check-circle' : 'mdi-alert-circle' }}
-        </v-icon>
+      <div class="d-flex align-center justify-space-between w-100">
         <span>{{ toast.message }}</span>
-      </div>
-      <template #action="{ attrs }">
-        <v-btn text icon color="white" v-bind="attrs" @click="toast.show = false">
-          <v-icon small>mdi-close</v-icon>
+        <v-btn icon small color="white" class="ml-2" @click="toast.show = false">
+          <v-icon size="18">mdi-close</v-icon>
         </v-btn>
-      </template>
+      </div>
     </v-snackbar>
   </div>
 </template>
 
 <script>
+import * as XLSX from 'xlsx'
+
 export default {
   name: 'QuanLySinhVienPage',
   middleware: 'authenticated',
-  mounted() {
-    if (this.$store) {
-      this.$store.commit('SET_PAGE_TITLE', 'Quản lý sinh viên')
-    }
-  },
   data() {
     return {
       page: 1,
@@ -642,21 +315,12 @@ export default {
         { text: 'Chức năng', value: 'actions', sortable: false, align: 'center', width: '80px' },
       ],
       students: [
-        { id: 1, fullName: 'Phan Thị Phương', studentCode: '20210452P', email: 'Phuong.PT210452P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 67', className: 'DH-BK-KTO1-K67', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'Đang học tập', major: 'Kế toán' },
-        { id: 2, fullName: 'Vũ Phương Linh', studentCode: '20210344P', email: 'Linh.VP210344P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-QTKD2.2-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'Đang học tập', major: 'Quản trị kinh doanh' },
-        { id: 3, fullName: 'Trịnh Thanh Tâm', studentCode: '20210377P', email: 'Tam.TT210377P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-QTKD2.2-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'Đang học tập', major: 'Quản trị kinh doanh' },
-        { id: 4, fullName: 'Nguyễn Khánh An', studentCode: '20210105P', email: 'An.NK210105P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-CNTT1.1-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'Đang học tập', major: 'Công nghệ thông tin' },
-        { id: 5, fullName: 'Nguyễn Linh Anh', studentCode: '20210108P', email: '', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-CNTT1.1-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'Đang học tập', major: 'Công nghệ thông tin' },
-        { id: 6, fullName: 'Phan Thị Phương', studentCode: '20210452P', email: 'Phuong.PT210452P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 67', className: 'DH-BK-KTO1-K67', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'Đang học tập', major: 'Kế toán' },
-        { id: 7, fullName: 'Vũ Phương Linh', studentCode: '20210344P', email: 'Linh.VP210344P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-QTKD2.2-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'Đang học tập', major: 'Quản trị kinh doanh' },
-        { id: 8, fullName: 'Trịnh Thanh Tâm', studentCode: '20210377P', email: 'Tam.TT210377P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-QTKD2.2-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'Đang học tập', major: 'Quản trị kinh doanh' },
-        { id: 9, fullName: 'Nguyễn Khánh An', studentCode: '20210105P', email: 'An.NK210105P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-CNTT1.1-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'Đang học tập', major: 'Công nghệ thông tin' },
-        { id: 10, fullName: 'Nguyễn Linh Anh', studentCode: '20210108P', email: '', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-CNTT1.1-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'Đang học tập', major: 'Công nghệ thông tin' },
-        { id: 11, fullName: 'Phan Thị Phương', studentCode: '20210452P', email: 'Phuong.PT210452P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 67', className: 'DH-BK-KTO1-K67', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'Đang học tập', major: 'Kế toán' },
-        { id: 12, fullName: 'Vũ Phương Linh', studentCode: '20210344P', email: 'Linh.VP210344P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-QTKD2.2-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'Đang học tập', major: 'Quản trị kinh doanh' },
-        { id: 13, fullName: 'Trịnh Thanh Tâm', studentCode: '20210377P', email: 'Tam.TT210377P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-QTKD2.2-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'Đang học tập', major: 'Quản trị kinh doanh' },
-        { id: 14, fullName: 'Nguyễn Khánh An', studentCode: '20210105P', email: 'An.NK210105P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-CNTT1.1-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'Đang học tập', major: 'Công nghệ thông tin' },
-        { id: 15, fullName: 'Nguyễn Linh Anh', studentCode: '20210108P', email: '', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-CNTT1.1-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'Đang học tập', major: 'Công nghệ thông tin' },
+        { id: 1, fullName: 'Phan Thị Phương', studentCode: '20210452P', email: 'Phuong.PT210452P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 67', className: 'DH-BK-KTO1-K67', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'STUDYING', major: 'Kế toán' },
+        { id: 2, fullName: 'Vũ Phương Linh', studentCode: '20210344P', email: 'Linh.VP210344P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-QTKD2.2-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'STUDYING', major: 'Quản trị kinh doanh' },
+        { id: 3, fullName: 'Trịnh Thanh Tâm', studentCode: '20210377P', email: 'Tam.TT210377P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-QTKD2.2-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'STUDYING', major: 'Quản trị kinh doanh' },
+        { id: 4, fullName: 'Nguyễn Khánh An', studentCode: '20210105P', email: 'An.NK210105P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-CNTT1.1-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'STUDYING', major: 'Công nghệ thông tin' },
+        { id: 5, fullName: 'Nguyễn Linh Anh', studentCode: '20210108P', email: '', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-CNTT1.1-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'STUDYING', major: 'Công nghệ thông tin' },
+        { id: 6, fullName: 'Phan Thị Phương', studentCode: '20210452P', email: 'Phuong.PT210452P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 67', className: 'DH-BK-KTO1-K67', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', startDate: '', endDate: '', status: 'STUDYING', major: 'Kế toán' },
       ],
     }
   },
@@ -694,7 +358,36 @@ export default {
       return pages
     }
   },
+  mounted() {
+    if (this.$store) {
+      this.$store.commit('SET_PAGE_TITLE', 'Quản lý sinh viên')
+    }
+  },
   methods: {
+    // Chuyển mã Enum thành Text tiếng Việt
+    getStatusText(status) {
+      const statusMap = {
+        STUDYING: 'Đang học tập',
+        LEAVE_OF_ABSENCE: 'Bảo lưu',
+        DROP_OUT_OF_SCHOOL: 'Đã nghỉ học'
+      }
+      return statusMap[status] || status
+    },
+
+    // Trả về class màu sắc theo từng trạng thái
+    getStatusClass(status) {
+      switch (status) {
+        case 'STUDYING':
+          return 'status-studying'
+        case 'LEAVE_OF_ABSENCE':
+          return 'status-leave'
+        case 'DROP_OUT_OF_SCHOOL':
+          return 'status-dropout'
+        default:
+          return 'status-unknown'
+      }
+    },
+
     search() {
       this.appliedFilters = {
         ...this.appliedFilters,
@@ -800,6 +493,51 @@ export default {
       }
     },
 
+    exportToExcel() {
+      const dataToExport = this.filteredStudents.map((item, index) => ({
+        'STT': index + 1,
+        'Họ và Tên': item.fullName,
+        'Mã Sinh Viên': item.studentCode,
+        'Email': item.email || '---',
+        'Giới tính': item.gender || '---',
+        'Khóa': item.course || '---',
+        'Lớp': item.className || '---',
+        'Hình thức đào tạo': item.trainingType || '---',
+        'Ngành': item.major || '---',
+        'Bằng cấp': item.degree || '---',
+        'Địa điểm đào tạo': item.location || '---',
+        'Trạng thái': this.getStatusText(item.status),
+      }))
+
+      if (dataToExport.length === 0) {
+        this.showToast('Không có dữ liệu để xuất file!', '#f44336')
+        return
+      }
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+      const autoFitCols = Object.keys(dataToExport[0]).map(key => ({
+        wch: Math.max(key.length + 5, 15)
+      }))
+      worksheet['!cols'] = autoFitCols
+
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách sinh viên')
+
+      const now = new Date()
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      const hours = String(now.getHours()).padStart(2, '0')
+      const minutes = String(now.getMinutes()).padStart(2, '0')
+      const seconds = String(now.getSeconds()).padStart(2, '0')
+
+      const timeString = `${year}_${month}_${day}_${hours}${minutes}${seconds}`
+      const randomSuffix = Math.random().toString(16).substring(2, 6)
+
+      const fileName = `danh_sach_sinh_vien_${timeString}_${randomSuffix}.xlsx`
+      XLSX.writeFile(workbook, fileName)
+    },
+
     showToast(message, color) {
       this.toast.message = message
       this.toast.color = color
@@ -814,7 +552,7 @@ export default {
 .gap-2 { gap: 8px; }
 .border-btn { border: 1px solid #a2212b !important; }
 
-/* 1. THANH PHẦN ĐẦU CỐ ĐỊNH PHÂN BỔ ĐỀU */
+/* 1. THANH BỘ LỌC */
 .filter-item {
   flex-grow: 1;
   flex-shrink: 1;
@@ -827,7 +565,7 @@ export default {
 .custom-outlined-input >>> fieldset { border-color: #ccc !important; border-radius: 4px !important; }
 .custom-outlined-input.v-input--is-focused >>> fieldset { border-color: #a2212b !important; border-width: 1px !important; }
 
-/* 2. CHẾ ĐỘ CUỘN NGANG RESPONSIVE KHI MÀN HÌNH NHỎ */
+/* 2. BẢNG KHÔNG CÓ BỎ KHUNG BÊN NGOÀI */
 .table-responsive-wrapper {
   width: 100%;
   overflow-x: auto;
@@ -836,6 +574,11 @@ export default {
 
 .custom-table {
   min-width: 1100px !important;
+  background-color: transparent !important;
+}
+
+.custom-table >>> .v-data-table__wrapper {
+  border: none !important;
 }
 
 .custom-table >>> th {
@@ -845,55 +588,41 @@ export default {
   white-space: nowrap !important;
 }
 
-/* CHỈNH SELECT TRẠNG THÁI HIỂN THỊ CHUẨN MẪU ĐỎ BÁCH KHOA */
-.status-select-btn {
-  width: 135px !important;
-  max-width: 135px !important;
-  margin: 0 auto !important;
-}
-
-.status-select-btn >>> .v-input__slot {
-  background-color: #a2212b !important;
+/* 3. MÀU TRẠNG THÁI */
+.status-badge {
+  transition: opacity 0.2s ease-in-out;
+  user-select: none;
   border-radius: 16px !important;
-  min-height: 28px !important;
-  height: 28px !important;
-  padding: 0 10px !important;
 }
 
-.status-select-btn >>> .v-select__selection {
-  color: white !important;
-  font-size: 12px !important;
-  font-weight: bold !important;
+.status-badge:hover {
+  opacity: 0.9;
 }
 
-.status-select-btn >>> .v-icon {
-  color: white !important;
-  font-size: 16px !important;
+/* Đang học tập: Nền đỏ Bách Khoa, chữ trắng */
+.status-studying {
+  background-color: #a2212b !important;
+  color: #ffffff !important;
 }
 
-/* PHÂN TRANG POPUP LỊCH SỬ */
-.history-record-select {
-  width: 75px;
-  max-width: 75px;
-}
-.history-record-select >>> .v-input__slot {
-  min-height: 36px !important;
-  border-radius: 4px !important;
-}
-.history-page-field >>> input {
-  text-align: center !important;
-}
-.history-pagination-arrow {
-  border: none !important;
-  border-radius: 4px !important;
-  background-color: #ffffff !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18) !important;
-  opacity: 1 !important;
-}
-.history-pagination-arrow >>> .v-icon {
-  color: #a2212b !important;
+/* Bảo lưu: Nền vàng, chữ đen */
+.status-leave {
+  background-color: #fbc02d !important;
+  color: #000000 !important;
 }
 
+/* Đã nghỉ học: Nền xám, chữ trắng */
+.status-dropout {
+  background-color: #616161 !important;
+  color: #ffffff !important;
+}
+
+.status-unknown {
+  background-color: #e0e0e0 !important;
+  color: #424242 !important;
+}
+
+/* 4. THÀNH PHẦN KHÁC */
 .border-left-title {
   border-left: 4px solid #a2212b;
   line-height: 1.2;
@@ -901,17 +630,10 @@ export default {
 
 .custom-toast >>> .v-snack__wrapper {
   border-radius: 8px !important;
+  min-width: 280px !important;
 }
 
-.style-scroll::-webkit-scrollbar {
-  width: 6px;
-}
-.style-scroll::-webkit-scrollbar-thumb {
-  background-color: #ccc;
-  border-radius: 4px;
-}
-
-/* Thanh cuộn ngang Bách Khoa */
+/* Thanh cuộn */
 .table-responsive-wrapper::-webkit-scrollbar {
   height: 6px;
 }
