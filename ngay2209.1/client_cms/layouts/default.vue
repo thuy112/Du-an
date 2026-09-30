@@ -357,7 +357,7 @@ export default {
           icon: 'mdi-youtube-studio',
           children: [
             { title: 'Quản lý kỳ đăng ký thi lại', path: '/quan-ly-thi-lai/quan-ly-ky-dang-ky-thi-lai' },
-            { title: 'DSSV được phép đăng ký', path: '/quan-ly-thi-lai/sinh-vien-duoc-dang-ky' },
+            { title: 'DSSV được phép đăng ký', path: '/quan-ly-thi-lai/dssv-duoc-phep-dang-ky' },
             { title: 'Danh sách sinh viên đăng ký', path: '/quan-ly-thi-lai/sinh-vien-dang-ky' },
             { title: 'Danh sách lớp thi', path: '/quan-ly-thi-lai/danh-sach-lop-thi' },
             { title: 'Kết quả thi', path: '/quan-ly-thi-lai/ket-qua-thi' },
