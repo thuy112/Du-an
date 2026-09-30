@@ -727,9 +727,6 @@ export default {
   border: none !important;
 }
 
-/* CỬA SỔ CHỈNH SỬA TẠI ĐÂY:
-   Thay z-index từ 10 xuống 1 để header chỉ nằm trên các hàng dữ liệu (row) 
-   nhưng vẫn nằm bên dưới menu/dropdown/dialog/popup. */
 .custom-table >>> th {
   position: sticky !important;
   top: 0 !important;
