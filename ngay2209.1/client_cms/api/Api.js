@@ -1,6 +1,6 @@
 let $axios = null
 
-const Api = {
+export default {
   // Hàm khởi tạo instance $axios từ plugin Nuxt
   init(axiosInstance) {
     $axios = axiosInstance
@@ -24,10 +24,11 @@ const Api = {
 
   postMultipart(url, formData, config = {}) {
     return $axios.$post(url, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
       ...config,
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...(config.headers || {}),
+      },
     })
   },
 }
-
-export default Api

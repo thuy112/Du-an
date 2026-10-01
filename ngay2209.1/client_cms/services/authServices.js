@@ -1,4 +1,4 @@
-import Api from '~/api/Api.js' //
+import Api from '~/api/Api.js' 
 
 export default {
   // Gọi API đăng nhập[cite: 1]
