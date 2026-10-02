@@ -10,6 +10,13 @@ export default {
     return $axios.$get(url, config)
   },
 
+  getBlob(url, config = {}) {
+    return $axios.$get(url, {
+      ...config,
+      responseType: 'blob',
+    })
+  },
+
   post(url, data, config = {}) {
     return $axios.$post(url, data, config)
   },
