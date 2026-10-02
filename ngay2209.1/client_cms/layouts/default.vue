@@ -160,7 +160,11 @@
             :to="item.to"
             :exact="item.exact"
             :disabled="item.disabled"
-            :class="item.text === 'Trang chủ' ? 'text-home-red' : 'text-breadcrumb-gray'"
+            :class="{
+              'text-home-red': item.text === 'Trang chủ',
+              'text-retake-list-red': item.text === 'Danh sách lớp học lại',
+              'text-breadcrumb-gray': item.text !== 'Trang chủ' && item.text !== 'Danh sách lớp học lại',
+            }"
           >
             {{ item.text }}
           </v-breadcrumbs-item>
@@ -466,12 +470,28 @@ export default {
 
     breadcrumbs() {
       const currentPath = this.$route.path
+      const routeParams = this.$route.params
 
       if (currentPath === '/') {
         return [{ text: 'Trang chủ', disabled: true }]
       }
 
       const items = [{ text: 'Trang chủ', to: '/', exact: true }]
+
+      const isRetakeGradeSheet =
+        /^\/quan-ly-hoc-lai\/danh-sach-lop-hoc\/[^/]+\/bang-diem\/?$/.test(currentPath)
+
+      if (isRetakeGradeSheet) {
+        items.push({ text: 'Quản lý học lại', disabled: true })
+        items.push({
+          text: 'Danh sách lớp học lại',
+          to: '/quan-ly-hoc-lai/danh-sach-lop-hoc',
+          exact: true,
+          disabled: false,
+        })
+        items.push({ text: routeParams.id || '', disabled: true })
+        return items
+      }
 
       if (currentPath === '/thong-tin-ca-nhan') {
         items.push({ text: 'Thông tin người dùng', disabled: true })
@@ -843,4 +863,9 @@ export default {
   font-weight: 400;
   font-size: 0.88rem !important;
 }
-</style> 
+
+.custom-breadcrumbs >>> .text-retake-list-red .v-breadcrumbs__item,
+.custom-breadcrumbs >>> .text-retake-list-red.v-breadcrumbs__item--disabled {
+  color: #a2212b !important;
+}
+</style>
