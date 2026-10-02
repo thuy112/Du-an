@@ -163,8 +163,8 @@ export default {
     }
   },
   mounted() {
-    // 1. LẤY ID/CẤU TRÚC ĐƯỜNG DẪN URL
-    this.classCode = this.$route.params.id || 'G_20261_5_046'
+    // Route dùng ID số của lớp học lại.
+    this.classCode = this.$route.params.id || ''
 
     // 2. LẤY QUERY PARAMETERS
     this.examSessionId = this.$route.query.examSessionId

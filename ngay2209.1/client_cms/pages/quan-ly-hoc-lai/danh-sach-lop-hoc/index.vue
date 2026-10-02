@@ -62,7 +62,7 @@
             ></v-select>
 
             <div class="d-flex align-center filter-action-buttons">
-              <RetakeSessionFilterModal
+              <RetakeCourseRetakeSessionFilter
                 ref="retakeSessionFilterModal"
                 @apply-filter="handleAdvancedFilter"
               />
@@ -416,7 +416,7 @@
       :loading="detailModal.loading"
       :error="detailModal.error"
     />
-    <AssignTeacherModal
+    <RetakeCourseAssignTeacherModal
       v-model="assignTeacherModal.show"
       :class-item="assignTeacherModal.item"
       :saving="assignTeacherModal.saving"
@@ -437,9 +437,9 @@ import classCoefficientServices from '~/services/coefficientServices'
 export default {
   name: 'DanhSachLopHocLai',
   components: {
-    AssignTeacherModal,
+    RetakeCourseAssignTeacherModal: AssignTeacherModal,
     RetakeCourseDetailModal,
-    RetakeSessionFilterModal,
+    RetakeCourseRetakeSessionFilter: RetakeSessionFilterModal,
   },
   data() {
     return {
@@ -1073,13 +1073,14 @@ export default {
       }
     },
     navigateToGradeSheet(item) {
-      if (!item || item.id === null || item.id === undefined || item.id === '') {
-        this.showNotification('Không tìm thấy ID lớp!', '#C62828')
+      const classCode = item && (item.maLop || item.classCode)
+      if (!classCode) {
+        this.showNotification('Không tìm thấy mã lớp học lại!', '#C62828')
         return
       }
 
       return this.$router.push({
-        path: `/quan-ly-hoc-lai/${encodeURIComponent(item.id)}/bang-diem`,
+        path: `/quan-ly-hoc-lai/danh-sach-lop-hoc/${encodeURIComponent(classCode)}/bang-diem`,
       })
     },
     handleAssignTeacher(item) {
