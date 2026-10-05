@@ -1081,6 +1081,9 @@ export default {
 
       return this.$router.push({
         path: `/quan-ly-hoc-lai/danh-sach-lop-hoc/${encodeURIComponent(classCode)}/bang-diem`,
+        query: {
+          examStatus: item.examStatus || item.gradeStatus || 'NOT_ANNOUNCED',
+        },
       })
     },
     handleAssignTeacher(item) {

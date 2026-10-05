@@ -25,4 +25,8 @@ export default {
   exportExcel(params) {
     return Api.getBlob('/api/v1/retake-courses/export', { params })
   },
+
+  addMustRetakeStudent(data) {
+    return Api.post('/api/v1/retake-courses/must-retake-students', data)
+  },
 }

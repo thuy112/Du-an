@@ -378,7 +378,7 @@ export default {
             { title: 'Quản lý đợt đăng ký học lại', path: '/quan-ly-hoc-lai/quan-ly-dot-dang-ky-hoc-lai'},
             { title: 'Quản lý hệ số lớp', path: '/quan-ly-hoc-lai/quan-ly-he-so-lop'},
             { title: 'Danh sách lớp học lại', path: '/quan-ly-hoc-lai/danh-sach-lop-hoc'},
-            { title: 'Danh sách sinh viên phải học lại', path: 'quan-ly-hoc-lai/sinh-vien-phai-hoc-lai'},
+            { title: 'Danh sách sinh viên phải học lại', path: '/quan-ly-hoc-lai/sinh-vien-phai-hoc-lai'},
             { title: 'Danh sách sinh viên đã đăng ký học lại', path: '/quan-ly-hoc-lai/sinh-vien-dang-ky'},
             { title: 'Kết quả học lại', path: '/quan-ly-hoc-lai/ket-qua-thi'},
             { title: 'Định mức giảng viên', path: '/quan-ly-hoc-lai/dinh-muc-giang-vien'},

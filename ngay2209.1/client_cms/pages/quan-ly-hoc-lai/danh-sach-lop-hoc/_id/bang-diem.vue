@@ -21,22 +21,29 @@
 
         <!-- NÚT RESET / RELOAD -->
         <v-btn icon color="#a2212b" class="btn-action-icon" @click="fetchGradeData">
-          <v-icon size="22">mdi-refresh</v-icon>
+          <v-icon size="24">mdi-refresh</v-icon>
         </v-btn>
 
         <!-- NÚT TÌM KIẾM (ĐỎ) -->
         <v-btn color="#a2212b" dark class="btn-action-square" elevation="0" @click="handleSearch">
-          <v-icon size="20">mdi-magnify</v-icon>
+          <v-icon size="24">mdi-magnify</v-icon>
         </v-btn>
 
         <!-- NÚT THÊM SINH VIÊN / THÊM BẢNG ĐIỂM (ĐỎ +) -->
-        <v-btn color="#a2212b" dark class="btn-action-square" elevation="0" @click="openAddGradeModal">
-          <v-icon size="20">mdi-plus</v-icon>
+        <v-btn
+          v-if="!isGradeLocked"
+          color="#a2212b"
+          dark
+          class="btn-action-square"
+          elevation="0"
+          @click="openAddGradeModal"
+        >
+          <v-icon size="24">mdi-plus</v-icon>
         </v-btn>
 
         <!-- NÚT THÊM/SỬA ĐIỂM HÀNG LOẠT (CAM) -->
         <v-btn color="#f57c00" dark class="btn-action-square" elevation="0" @click="openBatchEditModal">
-          <v-icon size="20">mdi-account-edit-outline</v-icon>
+          <v-icon size="24">mdi-checkbox-marked-circle-plus-outline</v-icon>
         </v-btn>
       </div>
     </div>
@@ -94,17 +101,19 @@
       <!-- HÀNG BOTTOM: IMPORT BẢNG ĐIỂM VÀ PHÂN TRANG -->
       <div class="d-flex align-center justify-space-between pt-5 pb-3 px-3">
         <!-- NÚT IMPORT BẢNG ĐIỂM -->
-        <v-btn
-          color="#4cae51"
-          dark
-          class="btn-import-excel px-4 text-none font-weight-medium"
-          elevation="0"
-          :disabled="isGradeLocked"
-          @click="triggerImportExcel"
-        >
-          <v-icon left size="18">mdi-file-excel</v-icon>
-          IMPORT BẢNG ĐIỂM
-        </v-btn>
+        <div class="import-action-slot">
+          <v-btn
+            :color="isGradeLocked ? '#e0e0e0' : '#4cae51'"
+            :dark="!isGradeLocked"
+            class="btn-import-excel px-4 text-none font-weight-medium"
+            elevation="0"
+            :disabled="isGradeLocked"
+            @click="triggerImportExcel"
+          >
+            <v-icon left size="16">mdi-microsoft-excel</v-icon>
+            IMPORT BẢNG ĐIỂM
+          </v-btn>
+        </div>
 
         <!-- INPUT FILE ẨN -->
         <input
@@ -192,12 +201,14 @@
                           dense
                           hide-details="auto"
                           class="score-input"
-                          type="number"
+                          type="text"
+                          inputmode="decimal"
                           min="0"
                           max="10"
                           step="0.1"
                           :rules="scoreRules"
                           @keydown="preventNegativeInput"
+                          @input="onScoreInput(item, $event)"
                         />
                       </td>
                       <td class="text-left py-2">
@@ -265,7 +276,6 @@ export default {
       itemsPerPage: 50,
       pageInput: 1,
 
-      isGradeLocked: false,
       studentGrades: [], // Mặc định rỗng như ảnh 1 & 2
 
       // MODAL DATA
@@ -276,10 +286,17 @@ export default {
 
       // RÀNG BUỘC ĐIỀU KIỆN Ô ĐIỂM (ĐIỀU KIỆN SỐ VÀ KHÔNG ĐƯỢC ÂM, TỐI ĐA 10)
       scoreRules: [
-        v => v === null || v === undefined || v === '' || !isNaN(v) || 'Phải là số',
-        v => v === null || v === undefined || v === '' || Number(v) >= 0 || 'Không được âm',
-        v => v === null || v === undefined || v === '' || Number(v) <= 10 || 'Điểm tối đa là 10'
+        v => v === null || v === undefined || v === '' || !isNaN(Number(String(v).replace(',', '.'))) || 'Phải là số',
+        v => v === null || v === undefined || v === '' || Number(String(v).replace(',', '.')) >= 0 || 'Không được âm',
+        v => v === null || v === undefined || v === '' || Number(String(v).replace(',', '.')) <= 10 || 'Điểm tối đa là 10'
       ]
+    }
+  },
+  computed: {
+    isGradeLocked() {
+      const status = this.$route.query.examStatus || this.$route.query.gradeStatus || ''
+      const normalizedStatus = String(Array.isArray(status) ? status[0] : status).trim().toUpperCase()
+      return ['ANNOUNCED', 'ACTIVE', 'ĐÃ CÓ ĐIỂM'].includes(normalizedStatus)
     }
   },
   mounted() {
@@ -295,9 +312,11 @@ export default {
     },
 
     openAddGradeModal() {
+      if (this.isGradeLocked) return
+
       // Ví dụ: Khi có sinh viên, bạn chỉ cần gán mảng danh sách vào this.modalStudents
       // Nếu không có sinh viên (this.modalStudents = []), modal sẽ hiện "Không có dữ liệu" như Ảnh 1
-      /*
+      
       this.modalStudents = [
         { id: 1, fullName: 'Nguyễn Khánh An', score: null, note: '' },
         { id: 2, fullName: 'Nguyễn Quang Anh', score: null, note: '' },
@@ -308,7 +327,6 @@ export default {
         { id: 7, fullName: 'Bùi Minh Chiến', score: null, note: '' },
         { id: 8, fullName: 'Lê Văn Chiến', score: null, note: '' }
       ]
-      */
       
       this.dialogAddGrade = true
     },
@@ -325,6 +343,35 @@ export default {
       if (e.key === '-' || e.key === 'e' || e.key === 'E') {
         e.preventDefault()
       }
+    },
+
+    onScoreInput(item, value) {
+      const normalized = this.normalizeScoreInput(value)
+      if (normalized !== value) {
+        item.score = normalized
+      }
+    },
+
+    normalizeScoreInput(value) {
+      if (value === null || value === undefined || value === '') return ''
+
+      const raw = String(value).trim()
+      if (raw === '') return ''
+
+      const digits = raw.replace(/[^\d]/g, '')
+      if (!digits) return ''
+
+      if (digits.length === 1) return digits
+      if (digits.length === 2) {
+        const numericValue = Number(digits)
+        if (numericValue > 10) return `${digits[0]},${digits[1]}`
+        return digits
+      }
+
+      const firstTwo = digits.slice(0, 2)
+      const numericValue = Number(firstTwo)
+      if (numericValue > 10) return `${firstTwo[0]},${firstTwo[1]}`
+      return firstTwo
     },
 
     submitSaveGrades() {
@@ -429,11 +476,22 @@ export default {
 }
 
 .btn-import-excel {
+  display: inline-flex !important;
   height: 36px !important;
   border-radius: 4px !important;
   font-size: 13px !important;
   letter-spacing: 0.3px;
   background-color: #4cae51 !important;
+}
+
+.btn-import-excel.v-btn--disabled {
+  background-color: #e0e0e0 !important;
+  color: #9e9e9e !important;
+  opacity: 1 !important;
+}
+
+.import-action-slot {
+  flex: 0 0 160px;
 }
 
 .pagination-wrapper {
@@ -537,7 +595,9 @@ export default {
   min-height: 36px !important;
   padding: 0 4px !important;
   border-radius: 4px !important;
-  border: 1px solid #d0d0d0 !important;
+  border: 1px solid transparent !important;
+  background: #fafafa !important;
+  box-shadow: none !important;
 }
 
 .score-input >>> input {
@@ -559,7 +619,9 @@ export default {
 .note-input >>> .v-input__slot {
   min-height: 36px !important;
   border-radius: 4px !important;
-  border: 1px solid #e0e0e0 !important;
+  border: 1px solid transparent !important;
+  background: #fafafa !important;
+  box-shadow: none !important;
 }
 
 .btn-close {
