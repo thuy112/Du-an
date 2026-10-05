@@ -284,8 +284,10 @@
 
     <RetakeCourseAddMustRetakeStudentModal
       v-model="showAddModal"
-      :retake-class-list="studentList"
-      @success="handleAddSuccess"
+      :must-retake-students="studentList"
+      :registered-classes-list="studentList"
+      mock-mode
+      @success="onAddSuccess"
     />
     <!-- DIALOG XÁC NHẬN XÓA -->
 <v-dialog v-model="deleteDialog" width="500px" persistent class="confirm-delete-dialog">
@@ -417,13 +419,11 @@ export default {
   },
   methods: {
     fetchData() {
-      this.loading = true
       this.mockData()
-      this.loading = false
     },
 
     mockData() {
-      this.studentList = [
+      const originalStudents = [
         { id: 1, fullName: 'Lê Tuấn Anh', studentCode: '20210110P', className: 'ĐH-BK-CNTT1.2-K66', sessionCode: '20261-A-4', termCode: '20261', subjectCode: 'IT3100', subjectName: 'Lập trình hướng đối tượng', failedScore: '', isRegistered: false },
         { id: 2, fullName: 'Đỗ Tiến Tây Anh', studentCode: '20210112P', className: 'ĐH-BK-CNTT1.1-K66', sessionCode: '20261-A-4', termCode: '20261', subjectCode: 'IT3100', subjectName: 'Lập trình hướng đối tượng', failedScore: '', isRegistered: false },
         { id: 3, fullName: 'Đỗ Tiến Tây Anh', studentCode: '20210112P', className: 'ĐH-BK-CNTT1.1-K66', sessionCode: '20261-A-5', termCode: '20261', subjectCode: 'IT3100', subjectName: 'Lập trình hướng đối tượng', failedScore: '', isRegistered: true },
@@ -432,10 +432,27 @@ export default {
         { id: 6, fullName: 'Nguyễn Quang Anh', studentCode: '20210107P', className: 'ĐH-BK-CNTT1.2-K66', sessionCode: '20261-A-5', termCode: '20261', subjectCode: 'IT3070', subjectName: 'Nguyên lý hệ điều hành', failedScore: '', isRegistered: true },
         { id: 7, fullName: 'Nguyễn Khánh An', studentCode: '20210105P', className: 'ĐH-BK-CNTT1.1-K66', sessionCode: '20261-A-5', termCode: '20261', subjectCode: 'IT3011', subjectName: 'Cấu trúc dữ liệu và thuật toán', failedScore: '', isRegistered: true },
       ]
-      // Cập nhật tổng số dòng động
+      const savedStudents = this.getSavedTestStudents()
+      this.studentList = [...savedStudents, ...originalStudents]
       this.totalItems = this.studentList.length
       this.selectedItems = []
       this.selectAll = false
+    },
+
+    getSavedTestStudents() {
+      try {
+        const saved = localStorage.getItem('mustRetakeStudentTestData')
+        if (!saved) return []
+
+        const students = JSON.parse(saved)
+        if (!Array.isArray(students)) {
+          throw new TypeError('Dữ liệu sinh viên thử nghiệm không hợp lệ.')
+        }
+        return students
+      } catch (error) {
+        this.addToast('Không thể đọc danh sách thử nghiệm đã lưu trên trình duyệt', 3000)
+        return []
+      }
     },
 
     handleSearch() {
@@ -447,18 +464,26 @@ export default {
       this.showAddModal = true
     },
 
-    handleAddSuccess(newStudent) {
-      if (!newStudent || newStudent.length === 0) {
-        this.fetchData()
+    onAddSuccess(newStudents) {
+      this.currentPage = 1
+      const addedStudents = Array.isArray(newStudents) ? newStudents : [newStudents]
+      if (!addedStudents.length || !addedStudents[0]) return
+
+      this.studentList.unshift(...addedStudents)
+      this.totalItems = this.studentList.length
+      this.selectedItems = []
+      this.selectAll = false
+      try {
+        localStorage.setItem(
+          'mustRetakeStudentTestData',
+          JSON.stringify([...addedStudents, ...this.getSavedTestStudents()])
+        )
+      } catch (error) {
+        this.addToast('Đã thêm vào danh sách nhưng không thể lưu dữ liệu thử nghiệm trên trình duyệt', 3000)
         return
       }
 
-      const addedStudents = Array.isArray(newStudent) ? newStudent : [newStudent]
-      this.studentList.unshift(...addedStudents)
-      this.totalItems += addedStudents.length
-      this.currentPage = 1
-      this.selectedItems = []
-      this.selectAll = false
+      this.addToast('Thêm danh sách sinh viên học lại thành công')
     },
 
     confirmDelete(item) {

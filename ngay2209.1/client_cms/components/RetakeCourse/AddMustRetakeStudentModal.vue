@@ -110,7 +110,7 @@
                 </v-row>
 
                 <div class="d-flex justify-end mt-4">
-                  <v-btn color="#A62229" dark small class="px-6 text-none font-weight-medium rounded-sm" elevation="0" @click="currentStep = 2">
+                  <v-btn color="#A62229" dark small class="px-6 text-none font-weight-medium rounded-sm" elevation="0" @click="goToStep2">
                     Tiếp tục
                   </v-btn>
                 </div>
@@ -128,10 +128,27 @@
             <div v-else-if="currentStep === 2" class="animate-fade-in">
               <v-row dense class="custom-form-dense">
                 <v-col cols="6">
-                  <v-select v-model="form.sessionId" :items="sessionOptions" placeholder="Đợt học lại *" outlined dense hide-details></v-select>
+                  <v-select
+                    v-model="form.sessionId"
+                    :items="sessionOptions"
+                    label="Đợt học lại *"
+                    outlined
+                    dense
+                    hide-details
+                    clearable
+                    @change="onSessionChange"
+                  ></v-select>
                 </v-col>
                 <v-col cols="6">
-                  <v-select v-model="form.termId" :items="termOptions" placeholder="Học kỳ *" outlined dense hide-details></v-select>
+                  <v-select
+                    v-model="form.termId"
+                    :items="termOptions"
+                    label="Học kỳ *"
+                    outlined
+                    dense
+                    hide-details
+                    @change="onTermChange"
+                  ></v-select>
                 </v-col>
 
                 <v-col cols="6">
@@ -244,6 +261,26 @@
         </div>
       </v-card-text>
 
+      <div v-if="snackbar.show" class="toast-container">
+        <div class="toast-item" :style="{ backgroundColor: snackbar.color }">
+          <div class="toast-content">
+            <v-icon left dark>{{ snackbar.icon }}</v-icon>
+            <span class="white--text font-weight-medium flex-grow-1">{{ snackbar.text }}</span>
+            <v-btn icon dark x-small aria-label="Đóng thông báo" @click="snackbar.show = false">
+              <v-icon small>mdi-close</v-icon>
+            </v-btn>
+          </div>
+        </div>
+        <div class="toast-progress-bg">
+          <div
+            :key="snackbar.key"
+            class="toast-progress-bar"
+            :style="{ animationDuration: `${snackbar.duration}ms` }"
+            @animationend="closeNotification(snackbar.key)"
+          ></div>
+        </div>
+      </div>
+
       <v-divider></v-divider>
 
       <!-- FOOTER DIALOG -->
@@ -340,6 +377,15 @@ export default {
         }
       ]
     },
+    // DANH SÁCH LỚP HỌC LẠI ĐÃ ĐĂNG KÝ TỪ quan-ly-hoc-lai/danh-sach-lop-hoc
+    registeredClassesList: {
+      type: Array,
+      default: () => []
+    },
+    mockMode: {
+      type: Boolean,
+      default: false
+    },
     isUnregistered: {
       type: Boolean,
       default: true
@@ -357,7 +403,6 @@ export default {
 
       subjectList: [],
       selectedSubjects: [],
-      totalSubjects: 0,
       selectAllSubjects: false,
 
       form: {
@@ -375,6 +420,14 @@ export default {
         practiceScore: '',
         weight: '',
         teacherId: null
+      },
+      snackbar: {
+        show: false,
+        text: '',
+        color: '#2E7D32',
+        icon: 'mdi-check-circle',
+        duration: 3000,
+        key: 0
       }
     }
   },
@@ -386,6 +439,9 @@ export default {
     // DANH SÁCH LẤY TRỰC TIẾP TỪ TRANG SỬ DỤNG
     studentOptions() {
       return this.mustRetakeStudents || []
+    },
+    totalSubjects() {
+      return this.subjectList.length
     }
   },
   watch: {
@@ -399,6 +455,113 @@ export default {
     }
   },
   methods: {
+    showNotification(message, color = '#2E7D32', icon = 'mdi-check-circle') {
+      this.snackbar.text = message
+      this.snackbar.color = color
+      this.snackbar.icon = icon
+      this.snackbar.key += 1
+      this.snackbar.show = true
+    },
+
+    closeNotification(key) {
+      if (key === this.snackbar.key) {
+        this.snackbar.show = false
+      }
+    },
+
+    validateRequiredFields() {
+      const missingFields = []
+
+      if (!this.selectedStudent || !this.selectedStudent.studentCode) {
+        missingFields.push('sinh viên')
+      }
+
+      if (!this.form.sessionId) {
+        missingFields.push('đợt học lại')
+      }
+
+      if (!this.form.termId) {
+        missingFields.push('học kỳ')
+      }
+
+      if (!this.selectedSubjects || this.selectedSubjects.length === 0) {
+        missingFields.push('học phần')
+      }
+
+      return missingFields
+    },
+
+    goToStep2() {
+      this.currentStep = 2
+      this.filterSubjects()
+    },
+
+    // KHI BẤM CHỌN ĐỢT HỌC LẠI: TỰ ĐỘNG GÁN HỌC KỲ VÀ LỌC LẠI BẢNG
+    onSessionChange(val) {
+      if (!val) {
+        this.form.termId = null
+        this.termOptions = []
+        this.subjectList = []
+        this.selectedSubjects = []
+        this.selectAllSubjects = false
+        return
+      }
+
+      const sessionRecords = this.getStudentRecords().filter(item =>
+        String(item.sessionId || item.sessionCode || '').trim() === String(val).trim()
+      )
+      this.termOptions = sessionRecords
+        .map(item => item.termId || item.termCode)
+        .filter((term, index, terms) => term && terms.indexOf(term) === index)
+      this.form.termId = this.termOptions[0] || null
+      this.filterSubjects()
+    },
+
+    // KHI BẤM CHỌN HỌC KỲ: LỌC LẠI BẢNG
+    onTermChange() {
+      this.filterSubjects()
+    },
+
+    // HÀM LỌC DANH SÁCH HỌC PHẦN
+    filterSubjects() {
+      if (!this.selectedStudent || !this.selectedStudent.studentCode || !this.form.sessionId) {
+        this.subjectList = []
+        this.selectedSubjects = []
+        this.selectAllSubjects = false
+        return
+      }
+
+      const studentCode = String(this.selectedStudent.studentCode).trim().toLowerCase()
+      const selectedSession = this.form.sessionId
+      const selectedTerm = this.form.termId
+
+      const filtered = (this.registeredClassesList || []).filter(item => {
+        const matchStudent = String(item.studentCode || '').trim().toLowerCase() === studentCode
+        const matchSession = String(item.sessionId || item.sessionCode || '').trim() === String(selectedSession).trim()
+        const matchTerm = !selectedTerm ||
+          String(item.termId || item.termCode || '').trim() === String(selectedTerm).trim()
+        return matchStudent && matchSession && matchTerm
+      })
+
+      this.subjectList = filtered.map((item, idx) => ({
+        id: item.id || item.subjectCode || `sub_${idx}`,
+        code: item.subjectCode,
+        name: item.subjectName,
+        tuitionCredits: item.tuitionCredits,
+        trainingCredits: item.trainingCredits
+      }))
+
+      this.selectedSubjects = []
+      this.selectAllSubjects = false
+    },
+
+    getStudentRecords() {
+      const studentCode = String(this.selectedStudent?.studentCode || '').trim().toLowerCase()
+      return (this.registeredClassesList || []).filter(item =>
+        String(item.studentCode || '').trim().toLowerCase() === studentCode
+      )
+    },
+
     toggleSelectAll(val) {
       if (!this.isUnregistered) return
       if (val) {
@@ -410,11 +573,63 @@ export default {
 
     onStudentSelect(std) {
       this.selectedStudent = std || null
+      this.form.sessionId = null
+      this.form.termId = null
+      this.sessionOptions = this.getStudentRecords()
+        .map(item => item.sessionId || item.sessionCode)
+        .filter((session, index, sessions) => session && sessions.indexOf(session) === index)
+      this.termOptions = []
+      this.filterSubjects()
     },
 
     async saveData() {
+      const missingFields = this.validateRequiredFields()
+
+      if (missingFields.length > 0) {
+        const message = missingFields.length === 1
+          ? `Bạn chưa chọn ${missingFields[0]}.`
+          : `Bạn chưa chọn: ${missingFields.join(', ')}.`
+        this.showNotification(message, '#F9A825', 'mdi-alert-circle')
+        return
+      }
+
+      const selectedSubjects = this.subjectList.filter(subject =>
+        this.selectedSubjects.includes(subject.id)
+      )
+      if (selectedSubjects.length === 0) {
+        this.showNotification('Bạn chưa chọn học phần.', '#F9A825', 'mdi-alert-circle')
+        return
+      }
+
       this.submitting = true
       try {
+        const newStudentData = selectedSubjects.map((subject, index) => ({
+          id: Date.now() + index,
+          studentCode: this.selectedStudent.studentCode,
+          fullName: this.selectedStudent.fullName,
+          className: this.selectedStudent.className || '',
+          gender: this.selectedStudent.gender || '',
+          email: this.selectedStudent.email || '',
+          academicYear: this.selectedStudent.academicYear || '',
+          majorName: this.selectedStudent.majorName || '',
+          trainingType: this.selectedStudent.trainingType || '',
+          sessionCode: this.form.sessionId,
+          termCode: this.form.termId,
+          subjectCode: subject.code,
+          subjectName: subject.name,
+          failingScore: '',
+          failedScore: '',
+          status: 'Chưa đăng ký',
+          isRegistered: false
+        }))
+
+        if (this.mockMode) {
+          this.$emit('success', newStudentData)
+          this.showNotification('Đã thêm vào danh sách thử nghiệm (chưa lưu lên máy chủ).', '#2E7D32', 'mdi-check-circle')
+          this.closeModal()
+          return
+        }
+
         const payload = {
           studentCode: this.selectedStudent?.studentCode,
           selectedSubjects: this.selectedSubjects,
@@ -422,40 +637,18 @@ export default {
         }
         const res = await retakeCourseServices.addMustRetakeStudent(payload)
         if (res && res.success) {
-          const selectedSubject =
-            this.subjectList.find(subject => this.selectedSubjects.includes(subject.id)) ||
-            this.subjectList[0] ||
-            {}
-          const newStudentData = {
+          const savedStudents = newStudentData.map(item => ({
             ...(res.data || {}),
-            id: res.data?.id || Date.now(),
-            studentCode: this.selectedStudent?.studentCode,
-            fullName: this.selectedStudent?.fullName,
-            className: this.selectedStudent?.className || 'ĐH-BK-CNTT1.1-K66',
-            gender: this.selectedStudent?.gender || 'Nam',
-            email: this.selectedStudent?.email,
-            academicYear: this.selectedStudent?.academicYear,
-            majorName: this.selectedStudent?.majorName,
-            trainingType: this.selectedStudent?.trainingType,
-            sessionId: this.form.sessionId || '20252-A-1',
-            sessionCode: this.form.sessionId || '20252-A-1',
-            termId: this.form.termId || 'Học kỳ II (2025)',
-            termCode: this.form.termId || 'Học kỳ II (2025)',
-            subjectCode: selectedSubject.code || selectedSubject.subjectCode || 'SSH1121',
-            subjectName: selectedSubject.name || selectedSubject.subjectName || 'Kinh tế chính trị Mác - Lênin',
-            failingScore: 'F',
-            failedScore: 'F',
-            status: 'Chưa đăng ký',
-            isRegistered: false
-          }
-          this.$toast?.success?.('Thêm sinh viên phải học lại thành công!')
-          this.$emit('success', newStudentData)
+            ...item
+          }))
+          this.showNotification('Thêm sinh viên phải học lại thành công!', '#2E7D32', 'mdi-check-circle')
+          this.$emit('success', savedStudents)
           this.closeModal()
         } else {
-          this.$toast?.error?.('Không thể thêm sinh viên phải học lại!')
+          this.showNotification('Không thể thêm sinh viên phải học lại!', '#F44336', 'mdi-alert-circle')
         }
       } catch (err) {
-        this.$toast?.error?.('Lỗi khi lưu dữ liệu!')
+        this.showNotification('Lỗi khi lưu dữ liệu!', '#F44336', 'mdi-alert-circle')
       } finally {
         this.submitting = false
       }
@@ -465,8 +658,12 @@ export default {
       this.currentStep = 1
       this.selectedStudent = null
       this.selectedSubjects = []
+      this.subjectList = []
       this.selectAllSubjects = false
-      this.form = { type: 'Học lại' }
+      this.sessionOptions = []
+      this.termOptions = []
+      this.form = { type: 'Học lại', sessionId: null, termId: null }
+      this.snackbar.show = false
     },
 
     closeModal() {
@@ -540,8 +737,51 @@ export default {
 
 .gap-2 { gap: 8px; }
 
+.toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 99999;
+  width: 320px;
+}
+
+.toast-item {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.toast-progress-bg {
+  height: 3px;
+  width: 100%;
+  border-radius: 0 0 2px 2px;
+  background-color: rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+}
+
+.toast-progress-bar {
+  height: 100%;
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.65);
+  animation-name: toastCountdown;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
 .animate-fade-in {
   animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes toastCountdown {
+  from { width: 100%; }
+  to { width: 0; }
 }
 
 @keyframes fadeIn {
