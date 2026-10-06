@@ -917,6 +917,239 @@
       </v-card>
     </v-dialog>
 
+    <v-dialog v-model="dialogPayment" width="750px" persistent>
+      <v-card class="rounded-lg overflow-hidden">
+        <v-card-title class="bg-red-bk white--text pa-3 d-flex justify-space-between align-center">
+          <span class="text-subtitle-1 font-weight-bold">Xác nhận gửi danh sách thu phí</span>
+          <v-btn icon dark small :disabled="isSendingPaymentList" @click="dialogPayment = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-5 black--text">
+          <div class="text-caption mb-3">
+            Danh sách sinh viên sẽ được gửi thu phí (<strong>{{ paymentSelectedStudents.length }}</strong>):
+          </div>
+          <v-alert
+            v-if="paymentErrorMessage"
+            type="error"
+            dense
+            color="#FFEBEE"
+            class="red--text text--darken-3 text-caption font-weight-medium mb-3 border-red-alert"
+            icon="mdi-alert"
+          >
+            {{ paymentErrorMessage }}
+          </v-alert>
+
+          <v-simple-table dense class="payment-modal-table mb-4">
+            <template #default>
+              <thead>
+                <tr>
+                  <th class="text-left">Mã sinh viên</th>
+                  <th class="text-left">Họ và tên</th>
+                  <th class="text-left">Mã đơn đăng ký</th>
+                  <th class="text-left">Đợt học lại</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="student in paymentSelectedStudents" :key="student.id">
+                  <td>{{ student.studentCode || '-' }}</td>
+                  <td>{{ student.studentName || '-' }}</td>
+                  <td>{{ student.registrationCode || '-' }}</td>
+                  <td>{{ student.sessionCode || '-' }}</td>
+                </tr>
+                <tr v-if="paymentSelectedStudents.length === 0">
+                  <td colspan="4" class="text-center">Không có dữ liệu</td>
+                </tr>
+              </tbody>
+            </template>
+          </v-simple-table>
+
+          <v-menu
+            v-model="menuPaymentDate"
+            :close-on-content-click="false"
+            transition="scale-transition"
+            offset-y
+            max-width="290px"
+            min-width="290px"
+          >
+            <template #activator="{ on, attrs }">
+              <v-text-field
+                :value="formattedPaymentDate"
+                placeholder="Hạn nộp học phí"
+                outlined
+                dense
+                readonly
+                hide-details
+                style="max-width: 250px;"
+                append-icon="mdi-calendar"
+                v-bind="attrs"
+                v-on="on"
+              ></v-text-field>
+            </template>
+            <v-date-picker
+              v-model="paymentDueDate"
+              color="#A62229"
+              locale="vi-VN"
+              @input="menuPaymentDate = false"
+            ></v-date-picker>
+          </v-menu>
+        </v-card-text>
+
+        <v-card-actions class="pa-3 d-flex justify-end gap-2">
+          <v-btn
+            outlined
+            small
+            color="#333"
+            class="text-none"
+            :disabled="isSendingPaymentList"
+            @click="dialogPayment = false"
+          >
+            Đóng X
+          </v-btn>
+          <v-btn
+            :color="paymentErrorMessage || !modalSelected.length || !paymentDueDate ? '#E0E0E0' : '#A62229'"
+            :dark="!paymentErrorMessage && modalSelected.length > 0 && !!paymentDueDate"
+            small
+            class="text-none font-weight-bold"
+            elevation="0"
+            :disabled="!!paymentErrorMessage || !modalSelected.length || !paymentDueDate || isSendingPaymentList"
+            :loading="isSendingPaymentList"
+            @click="submitSendPaymentList"
+          >
+            Gửi Danh Sách
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="dialogExtend" width="700px" persistent>
+      <v-card class="rounded-lg overflow-hidden">
+        <v-card-title class="bg-red-bk white--text pa-3 d-flex justify-space-between align-center">
+          <span class="text-subtitle-1 font-weight-bold">Xác nhận gia hạn hạn nộp học phí</span>
+          <v-btn icon dark small :disabled="isExtendingDueDate" @click="dialogExtend = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-5 black--text">
+          <div class="text-caption mb-2">
+            Danh sách sinh viên sẽ được gia hạn (<strong>{{ extendSelectedStudents.length }}</strong>):
+          </div>
+          <v-alert
+            v-if="extendErrorMessage"
+            type="error"
+            dense
+            color="#FFEBEE"
+            class="red--text text--darken-3 text-caption font-weight-medium mb-3 border-red-alert"
+            icon="mdi-alert"
+          >
+            {{ extendErrorMessage }}
+          </v-alert>
+          <v-chip
+            v-else
+            color="#E8F5E9"
+            class="green--text text--darken-3 font-weight-medium mb-3"
+            small
+          >
+            <v-icon left x-small color="green">mdi-check-circle</v-icon>
+            Tất cả đơn đăng ký cùng đợt – Đợt: {{ currentSessionName }}
+          </v-chip>
+
+          <v-simple-table dense class="payment-modal-table mb-4">
+            <template #default>
+              <thead>
+                <tr>
+                  <th class="text-center">STT</th>
+                  <th class="text-left">Mã SV</th>
+                  <th class="text-left">Họ và tên</th>
+                  <th class="text-left">Đợt học lại</th>
+                  <th class="text-left">Học phần đăng ký</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(student, index) in extendSelectedStudents" :key="student.id || index">
+                  <td class="text-center">{{ index + 1 }}</td>
+                  <td>{{ student.studentCode || '-' }}</td>
+                  <td>{{ student.studentName || student.fullName || '-' }}</td>
+                  <td>{{ student.sessionCode || '20261-A-5' }}</td>
+                  <td>
+                    <div
+                      v-for="(subject, subjectIndex) in (student.subjects || [student])"
+                      :key="subjectIndex"
+                    >
+                      {{ subjectIndex + 1 }}.
+                      {{ subject.subjectName || subject.name || '-' }} -
+                      {{ subject.subjectCode || subject.code || '-' }}
+                    </div>
+                  </td>
+                </tr>
+                <tr v-if="extendSelectedStudents.length === 0">
+                  <td colspan="5" class="text-center">Không có dữ liệu</td>
+                </tr>
+              </tbody>
+            </template>
+          </v-simple-table>
+
+          <v-menu
+            v-model="menuExtendDate"
+            :close-on-content-click="false"
+            transition="scale-transition"
+            offset-y
+            max-width="290px"
+            min-width="290px"
+          >
+            <template #activator="{ on, attrs }">
+              <v-text-field
+                :value="formattedExtendDate"
+                placeholder="Hạn nộp mới"
+                outlined
+                dense
+                hide-details
+                readonly
+                style="max-width: 250px;"
+                append-icon="mdi-calendar"
+                v-bind="attrs"
+                v-on="on"
+              ></v-text-field>
+            </template>
+            <v-date-picker
+              v-model="newDueDate"
+              locale="vi-VN"
+              color="#A62229"
+              @input="menuExtendDate = false"
+            ></v-date-picker>
+          </v-menu>
+        </v-card-text>
+
+        <v-card-actions class="pa-3 d-flex justify-end gap-2">
+          <v-btn
+            outlined
+            small
+            color="#333"
+            class="text-none"
+            :disabled="isExtendingDueDate"
+            @click="dialogExtend = false"
+          >
+            Đóng X
+          </v-btn>
+          <v-btn
+            v-if="!extendErrorMessage"
+            :color="newDueDate ? '#A62229' : '#E0E0E0'"
+            :dark="!!newDueDate"
+            small
+            class="text-none font-weight-bold"
+            elevation="0"
+            :disabled="!newDueDate || isExtendingDueDate"
+            :loading="isExtendingDueDate"
+            @click="submitExtendDueDate"
+          >
+            Gia Hạn
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <div class="email-toast-container" aria-live="polite" aria-atomic="false">
       <transition-group name="email-toast-list" tag="div" class="email-toast-stack">
         <div
@@ -970,6 +1203,20 @@ export default {
       dialogApprove: false,
       dialogEdit: false,
       dialogConfirm: false,
+      dialogPayment: false,
+      dialogExtend: false,
+      paymentErrorMessage: '',
+      extendErrorMessage: '',
+      currentSessionName: '',
+      paymentDueDate: '',
+      newDueDate: '',
+      menuPaymentDate: false,
+      menuExtendDate: false,
+      modalSelected: [],
+      paymentSelectedStudents: [],
+      extendSelectedStudents: [],
+      isSendingPaymentList: false,
+      isExtendingDueDate: false,
       detailData: {},
       approveItem: null,
       approveItems: [],
@@ -1239,6 +1486,12 @@ export default {
     }
   },
   computed: {
+    formattedPaymentDate() {
+      return this.formatDate(this.paymentDueDate)
+    },
+    formattedExtendDate() {
+      return this.formatDate(this.newDueDate)
+    },
     studentOptions() {
       const studentsByCode = new Map()
       this.items.forEach(item => {
@@ -1585,7 +1838,7 @@ export default {
     },
     handleSendEmail() {
       if (!this.isActionActive) return
-      this.onSend()
+      this.openSendPaymentModal()
     },
     async submitConfirmedEmail() {
       if (this.isSendingEmail || this.emailIdsToSend.length === 0 || !this.emailTypeToSend) return
@@ -1632,7 +1885,100 @@ export default {
     },
     handleSchedule() {
       if (!this.isActionActive) return;
-      this.onCalendar()
+      this.openExtendDueDateModal()
+    },
+    openSendPaymentModal() {
+      this.paymentSelectedStudents = this.selectedRows.slice()
+      this.modalSelected = this.paymentSelectedStudents.map(student => student.id)
+      this.paymentDueDate = ''
+      this.menuPaymentDate = false
+      this.paymentErrorMessage = ''
+
+      const isInvalid = this.paymentSelectedStudents.some(student =>
+        student.approvalStatus !== 'Đã duyệt' || student.bankStatus !== 'Đã duyệt'
+      )
+      if (isInvalid) {
+        this.paymentErrorMessage = 'Không lấy được token CED (host chính) để kiểm tra dữ liệu master'
+      }
+
+      this.dialogPayment = true
+    },
+    openExtendDueDateModal() {
+      this.extendSelectedStudents = this.selectedRows.slice()
+      this.newDueDate = ''
+      this.menuExtendDate = false
+      this.extendErrorMessage = ''
+      this.currentSessionName = this.extendSelectedStudents.length
+        ? this.extendSelectedStudents[0].sessionCode || '20261-A-5'
+        : '20261-A-5'
+
+      const paidList = this.extendSelectedStudents.filter(student =>
+        [student.paymentStatus, student.tuitionStatus].some(status =>
+          ['paid', 'đã trả học phí'].includes(String(status || '').trim().toLowerCase())
+        ) ||
+        student.isPaid === true
+      )
+      if (paidList.length > 0) {
+        const codes = paidList.map(student => student.registrationCode || student.code || 'HL_2026_1207').join(', ')
+        this.extendErrorMessage = `Các đăng ký sau đã được đóng học phí, không thể gia hạn: ${codes}`
+      } else {
+        const invalidStatus = this.extendSelectedStudents.some(student => {
+          const status = String(student.approvalStatus || '').trim()
+          return !['Đã duyệt lớp', 'Đã xác nhận'].includes(status)
+        })
+
+        if (invalidStatus) {
+          this.extendErrorMessage = 'Chỉ cho phép gia hạn đối với đơn có trạng thái là "Đã duyệt lớp" hoặc "Đã xác nhận"!'
+        }
+      }
+
+      this.dialogExtend = true
+    },
+    async submitSendPaymentList() {
+      if (this.paymentErrorMessage || this.modalSelected.length === 0 || !this.paymentDueDate || this.isSendingPaymentList) return
+
+      this.isSendingPaymentList = true
+      try {
+        await this.$axios.$post('/api/send-payment', {
+          studentIds: this.modalSelected,
+          dueDate: this.paymentDueDate
+        })
+        this.dialogPayment = false
+        this.$emit('send', this.modalSelected.slice())
+        this.showEmailNotification('Gửi danh sách thu phí thành công!', '#2E7D32')
+      } catch (error) {
+        this.showEmailNotification(
+          error.response && error.response.data && error.response.data.message
+            ? error.response.data.message
+            : 'Có lỗi xảy ra khi gửi danh sách!',
+          '#C62828'
+        )
+      } finally {
+        this.isSendingPaymentList = false
+      }
+    },
+    async submitExtendDueDate() {
+      if (this.extendErrorMessage || this.extendSelectedStudents.length === 0 || !this.newDueDate || this.isExtendingDueDate) return
+
+      this.isExtendingDueDate = true
+      try {
+        await this.$axios.$post('/api/extend-due-date', {
+          studentIds: this.extendSelectedStudents.map(student => student.id),
+          newDueDate: this.newDueDate
+        })
+        this.dialogExtend = false
+        this.$emit('calendar', this.extendSelectedStudents.map(student => student.id))
+        this.showEmailNotification('Gia hạn hạn nộp học phí thành công!', '#2E7D32')
+      } catch (error) {
+        this.showEmailNotification(
+          error.response && error.response.data && error.response.data.message
+            ? error.response.data.message
+            : 'Có lỗi xảy ra khi gia hạn!',
+          '#C62828'
+        )
+      } finally {
+        this.isExtendingDueDate = false
+      }
     },
     fetchData() {
       this.loading = true
@@ -1644,6 +1990,11 @@ export default {
     formatCurrency(val) {
       if (!val) return '0'
       return new Intl.NumberFormat('vi-VN').format(val)
+    },
+    formatDate(date) {
+      if (!date) return ''
+      const [year, month, day] = date.split('-')
+      return `${day}/${month}/${year}`
     },
 
     goToPage() {
@@ -2066,6 +2417,14 @@ export default {
 
 .text-red-bold { color: #A62229 !important; }
 .bg-red-bk { background-color: #A62229 !important; color: white !important; }
+.border-red-alert {
+  border: 1px solid #FFCDD2 !important;
+}
+
+.payment-modal-table {
+  border: 1px solid #E0E0E0;
+  border-radius: 4px;
+}
 .bg-orange-btn { background-color: #F57C00 !important; color: white !important; }
 
 .btn-action-icon {
