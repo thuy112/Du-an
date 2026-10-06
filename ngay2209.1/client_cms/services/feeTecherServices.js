@@ -6,11 +6,11 @@ export default {
     return Api.get('/api/v1/fee-teachers', { params })
   },
 
-  calculateFee(params) {//Tính toán thù lao giảng dạy học lại cho giảng viên
+  calculateFee(params) {// Tính toán thù lao giảng dạy học lại cho giảng viên
     return Api.post('/api/v1/fee-teachers/calculate', params)
   },
 
-  exportExcel(params) {//Xuất file excel thù lao giảng dạy học lại cho giảng viên
+  exportExcel(params) {// Xuất file excel thù lao giảng dạy học lại cho giảng viên
     return Api.getBlob('/api/v1/fee-teachers/export', { params })
   },
 }
