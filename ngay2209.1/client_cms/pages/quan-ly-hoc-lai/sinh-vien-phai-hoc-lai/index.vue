@@ -1,23 +1,25 @@
 <template>
-  <div class="must-retake-page pa-4 bg-white">
-    <!-- TIÊU ĐỀ TRANG (SỐ ĐIỀU CHỈNH ĐỘNG THEO DỮ LIỆU BẢNG) -->
+  <div class="must-retake-page pa-3 pa-md-4 bg-white">
+    <!-- TIÊU ĐỀ TRANG -->
     <div class="text-h6 font-weight-bold black--text mb-3">
-      Danh sách sinh viên phải học lại (<span class="text-red-bold">{{ totalItems }}</span>)
+      Danh sách sinh viên phải học lại (<span class="text-red-bold">{{ filteredList.length }}</span>)
     </div>
 
-    <!-- BỘ LỌC VÀ THANH CÔNG CỤ -->
-    <div class="d-flex align-center justify-space-between mb-4 gap-2 flex-wrap">
+    <!-- 1. BỘ LỌC TÌM KIẾM VÀ CỤM NÚT ICON (NẰM THẲNG HÀNG TRÊN DESKTOP) -->
+    <div class="d-flex align-center justify-space-between mb-3 gap-2 flex-wrap flex-md-nowrap">
       <!-- CÁC Ô LỌC DỮ LIỆU -->
-      <div class="d-flex align-center gap-2 flex-grow-1 flex-wrap">
+      <div class="d-flex align-center gap-2 flex-grow-1 flex-wrap flex-md-nowrap">
         <v-text-field
           v-model="filters.keyword"
           placeholder="Tìm kiếm"
           outlined
           dense
           hide-details
+          clearable
           class="filter-input"
-          style="width: 200px;"
+          style="min-width: 160px;"
           @keyup.enter="handleSearch"
+          @click:clear="handleClearKeyword"
         ></v-text-field>
 
         <v-select
@@ -29,7 +31,7 @@
           hide-details
           clearable
           class="filter-input"
-          style="width: 150px;"
+          style="min-width: 130px;"
         ></v-select>
 
         <v-select
@@ -41,7 +43,7 @@
           hide-details
           clearable
           class="filter-input"
-          style="width: 150px;"
+          style="min-width: 130px;"
         ></v-select>
 
         <v-select
@@ -53,7 +55,7 @@
           hide-details
           clearable
           class="filter-input"
-          style="width: 150px;"
+          style="min-width: 130px;"
         ></v-select>
 
         <v-select
@@ -65,223 +67,335 @@
           hide-details
           clearable
           class="filter-input"
-          style="width: 140px;"
+          style="min-width: 130px;"
         ></v-select>
       </div>
 
-      <!-- BỘ NÚT ICON GÓC PHẢI -->
+      <!-- CỤM NÚT ICON THẲNG HÀNG VỚI CÁC Ô TÌM KIẾM -->
       <div class="d-flex align-center gap-2">
         <v-btn icon color="#A62229" class="btn-square-action" @click="refreshData">
-          <v-icon size="24">mdi-refresh</v-icon>
+          <v-icon size="22">mdi-refresh</v-icon>
         </v-btn>
 
         <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" @click="handleSearch">
-          <v-icon size="24">mdi-magnify</v-icon>
+          <v-icon size="22">mdi-magnify</v-icon>
         </v-btn>
 
-        <!-- NÚT GỬI EMAIL CÓ BADGE SỐ LƯỢNG -->
         <v-badge
-            :content="selectedItems.length"
-            :value="selectedItems.length > 0"
-            color="#FF5252"
-            overlap
-            offset-x="12"
-            offset-y="12"
+          :content="selectedItems.length"
+          :value="selectedItems.length > 0"
+          color="#FF5252"
+          overlap
+          offset-x="12"
+          offset-y="12"
         >
-        <v-btn
+          <v-btn
             elevation="0"
-             :disabled="selectedItems.length === 0"
-             :class="selectedItems.length > 0 ? 'btn-email-active' : 'btn-email-disabled'"
-             class="btn-email-custom"
-             @click="sendEmailDirectly"
-            >
-             <v-icon :color="selectedItems.length > 0 ? '#FFFFFF' : '#8C8C8C'" small>
-                     mdi-email
-             </v-icon>
-        </v-btn>
-    </v-badge>
+            :disabled="selectedItems.length === 0"
+            :class="selectedItems.length > 0 ? 'btn-email-active' : 'btn-email-disabled'"
+            class="btn-email-custom"
+            @click="sendEmailDirectly"
+          >
+            <v-icon :color="selectedItems.length > 0 ? '#FFFFFF' : '#8C8C8C'" small>
+              mdi-email
+            </v-icon>
+          </v-btn>
+        </v-badge>
 
         <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" @click="openAddModal">
-          <v-icon size="24">mdi-plus</v-icon>
-          
+          <v-icon size="22">mdi-plus</v-icon>
         </v-btn>
       </div>
     </div>
 
-    <!-- BẢNG DỮ LIỆU (ĐÃ BỎ KHUNG VIỀN NGOÀI) -->
-    <v-simple-table class="flat-table">
-      <template v-slot:default>
-        <thead>
-          <tr class="bg-gray-head">
-            <th style="width: 40px;" class="text-center">
-              <v-checkbox
-                v-model="selectAll"
-                hide-details
-                dense
-                class="ma-0 pa-0"
-                @change="handleSelectAll"
-              ></v-checkbox>
-            </th>
-            <th class="text-left font-weight-bold gray-head-text" style="width: 60px;">STT</th>
-            <th class="text-left font-weight-bold gray-head-text" style="width: 250px;">Thông tin sinh viên</th>
-            <th class="text-left font-weight-bold gray-head-text" style="width: 120px;">Đợt học lại</th>
-            <th class="text-left font-weight-bold gray-head-text" style="width: 90px;">Học kỳ</th>
-            <th class="text-left font-weight-bold gray-head-text" style="width: 110px;">Mã học phần</th>
-            <th class="text-left font-weight-bold gray-head-text">Tên học phần</th>
-            <th class="text-center font-weight-bold gray-head-text" style="width: 90px;">Điểm trượt</th>
-            <th class="text-center font-weight-bold gray-head-text" style="width: 130px;">Trạng thái</th>
-            <th class="text-center font-weight-bold gray-head-text" style="width: 100px;">Chức năng</th>
-          </tr>
-        </thead>
-        <tbody>
-          <template v-if="studentList && studentList.length > 0">
-            <tr v-for="(item, idx) in studentList" :key="item.id || idx">
-              <td class="text-center">
+    <!-- 2. GIAO DIỆN DESKTOP: BẢNG DỮ LIỆU TABLE -->
+    <div class="d-none d-md-block table-responsive-wrapper">
+      <v-simple-table class="flat-table">
+        <template v-slot:default>
+          <thead>
+            <tr class="bg-gray-head">
+              <th style="width: 40px;" class="text-center">
                 <v-checkbox
-                  v-model="selectedItems"
-                  :value="item.id"
-                  :disabled="item.isRegistered"
+                  v-model="selectAll"
                   hide-details
                   dense
                   class="ma-0 pa-0"
-                  @change="handleItemSelect"
+                  @change="handleSelectAll"
                 ></v-checkbox>
-              </td>
-              <td>{{ (currentPage - 1) * itemsPerPage + idx + 1 }}</td>
-              <td class="py-2">
-                <div class="font-weight-bold text-red-bold cursor-pointer" @click="viewDetail(item)">
-                  {{ item.fullName }}
-                </div>
-                <div class="text-caption font-weight-medium">
-                  Mã số sinh viên: <span class="text-red-bold">{{ item.studentCode }}</span>
-                </div>
-                <div class="text-caption text-grey-darken-1">
-                  Lớp: {{ item.className }}
-                </div>
-              </td>
-              <td>{{ item.sessionCode }}</td>
-              <td>{{ item.termCode }}</td>
-              <td class="font-weight-medium">{{ item.subjectCode }}</td>
-              <td>{{ item.subjectName }}</td>
-              <td class="text-center font-weight-bold">{{ item.failedScore || '' }}</td>
-              <td class="text-center">
-                <span :class="['status-badge', item.isRegistered ? 'bg-green' : 'bg-grey']">
-                  {{ item.isRegistered ? 'Đã đăng ký' : 'Chưa đăng ký' }}
-                </span>
-              </td>
-              <td class="text-center">
-                <div class="d-flex align-center justify-center gap-1">
-                  <v-btn icon small color="blue" @click="viewDetail(item)">
-                    <v-icon size="24">mdi-eye</v-icon>
-                  </v-btn>
-                  <v-btn
-                    v-if="!item.isRegistered"
-                    icon
-                    small
-                    color="error"
-                    aria-label="Xóa sinh viên chưa đăng ký"
-                    @click="confirmDelete(item)"
-                  >
-                    <v-icon size="24">mdi-delete</v-icon>
-                  </v-btn>
-                </div>
+              </th>
+              <th class="text-center font-weight-bold gray-head-text" style="width: 60px;">STT</th>
+              <th class="text-left font-weight-bold gray-head-text" style="min-width: 200px;">Thông tin sinh viên</th>
+              <th class="text-left font-weight-bold gray-head-text" style="min-width: 100px;">Đợt học lại</th>
+              <th class="text-left font-weight-bold gray-head-text" style="min-width: 80px;">Học kỳ</th>
+              <th class="text-left font-weight-bold gray-head-text" style="min-width: 100px;">Mã học phần</th>
+              <th class="text-left font-weight-bold gray-head-text" style="min-width: 180px;">Tên học phần</th>
+              <th class="text-center font-weight-bold gray-head-text" style="min-width: 90px;">Điểm trượt</th>
+              <th class="text-center font-weight-bold gray-head-text" style="min-width: 120px;">Trạng thái</th>
+              <th class="text-center font-weight-bold gray-head-text" style="min-width: 100px;">Chức năng</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-if="paginatedList && paginatedList.length > 0">
+              <tr v-for="(item, idx) in paginatedList" :key="item.id || idx">
+                <td class="text-center">
+                  <v-checkbox
+                    v-model="selectedItems"
+                    :value="item.id"
+                    :disabled="item.isRegistered"
+                    hide-details
+                    dense
+                    class="ma-0 pa-0"
+                    @change="handleItemSelect"
+                  ></v-checkbox>
+                </td>
+                <td class="text-center">{{ (currentPage - 1) * itemsPerPage + idx + 1 }}</td>
+                <td class="py-2">
+                  <div class="font-weight-bold text-red-bold cursor-pointer" @click="viewDetail(item)">
+                    {{ item.fullName }}
+                  </div>
+                  <div class="text-caption font-weight-medium">
+                    Mã SV: <span class="text-red-bold">{{ item.studentCode }}</span>
+                  </div>
+                  <div class="text-caption text-grey-darken-1">
+                    Lớp: {{ item.className }}
+                  </div>
+                </td>
+                <td>{{ item.sessionCode }}</td>
+                <td>{{ item.termCode }}</td>
+                <td class="font-weight-medium">{{ item.subjectCode }}</td>
+                <td>{{ item.subjectName }}</td>
+                <td class="text-center font-weight-bold">{{ item.failedScore || '' }}</td>
+                <td class="text-center">
+                  <span :class="['status-badge', item.isRegistered ? 'bg-green' : 'bg-grey']">
+                    {{ item.isRegistered ? 'Đã đăng ký' : 'Chưa đăng ký' }}
+                  </span>
+                </td>
+                <td class="text-center">
+                  <div class="d-flex align-center justify-center gap-1">
+                    <v-btn icon small color="blue" @click="viewDetail(item)">
+                      <v-icon size="20">mdi-eye</v-icon>
+                    </v-btn>
+                    <v-btn
+                      v-if="!item.isRegistered"
+                      icon
+                      small
+                      color="error"
+                      @click="confirmDelete(item)"
+                    >
+                      <v-icon size="20">mdi-delete</v-icon>
+                    </v-btn>
+                  </div>
+                </td>
+              </tr>
+            </template>
+            <tr v-else>
+              <td colspan="10" class="text-center py-8 text-grey-color">
+                Không có dữ liệu
               </td>
             </tr>
-          </template>
-          <tr v-else>
-            <td colspan="10" class="text-center py-8 text-grey-color">
-              Không có dữ liệu
-            </td>
-          </tr>
-        </tbody>
-      </template>
-    </v-simple-table>
+          </tbody>
+        </template>
+      </v-simple-table>
+    </div>
 
-    <!-- BOTTOM BAR: XUẤT/NHẬP FILE VÀ PHÂN TRANG -->
-    <div class="d-flex align-center justify-space-between pt-4 mt-2 flex-wrap gap-2">
-      <!-- NÚT XUẤT/NHẬP FILE -->
-      <div class="d-flex align-center gap-2">
-        <input
-          ref="fileInput"
-          type="file"
-          accept=".xlsx, .xls"
-          class="d-none"
-          @change="handleImportFile"
-        />
-
-        <v-btn
-          color="#2E7D32"
-          dark
-          class="text-none font-weight-medium"
-          elevation="0"
-          @click="exportToExcel"
-        >
-          <v-icon left small>mdi-export</v-icon>
-          XUẤT FILE BÁO CÁO
-        </v-btn>
-
-        <v-btn
-          color="#2E7D32"
-          dark
-          class="text-none font-weight-medium ml-2"
-          elevation="0"
-          @click="triggerFileInput"
-        >
-          <v-icon left small>mdi-microsoft-excel</v-icon>
-          NHẬP FILE ĐĂNG KÝ
-        </v-btn>
+    <!-- 3. GIAO DIỆN MOBILE: TÍCH TỔNG BÊN TRÁI, TÍCH TỪNG CÁI BÊN PHẢI (BỎ KHUNG) -->
+    <div class="d-block d-md-none mobile-card-list">
+      <!-- THANH TÍCH TỔNG MOBILE (CĂN BÊN TRÁI - NỀN XÁM NHẠT - KHÔNG CHỮ) -->
+      <div class="mobile-select-all-header mb-3 pa-3 bg-gray-head d-flex align-center justify-start">
+        <v-checkbox
+          v-model="selectAll"
+          hide-details
+          dense
+          class="ma-0 pa-0"
+          @change="handleSelectAll"
+        ></v-checkbox>
       </div>
 
-      <!-- PHÂN TRANG PAGINATION -->
-      <div class="d-flex align-center gap-2">
-        <span class="text-caption text-grey-color">Bản ghi</span>
-        <v-select
-          v-model="itemsPerPage"
-          :items="[10, 20, 50, 100]"
-          dense
-          outlined
-          hide-details
-          class="select-per-page"
-          style="width: 75px;"
-          @change="fetchData"
-        ></v-select>
-
-        <span class="text-caption text-grey-color ml-2">Trang</span>
-        <v-text-field
-          v-model="currentPage"
-          dense
-          outlined
-          hide-details
-          class="input-page-num"
-          style="width: 50px;"
-          @keyup.enter="fetchData"
-        ></v-text-field>
-
-        <v-btn color="#A62229" dark small class="px-3 min-w-0" elevation="0" @click="fetchData">Đi</v-btn>
-        
-        <v-btn icon small :disabled="currentPage <= 1" class="border-btn" @click="currentPage--; fetchData()">
-          <v-icon>mdi-chevron-left</v-icon>
-        </v-btn>
-
-        <v-btn
-          v-for="p in totalPages"
-          :key="p"
-          small
-          :color="p === currentPage ? '#A62229' : ''"
-          :dark="p === currentPage"
-          class="min-w-0 px-2 border-btn"
-          elevation="0"
-          @click="currentPage = p; fetchData()"
+      <template v-if="paginatedList && paginatedList.length > 0">
+        <div 
+          v-for="(item, idx) in paginatedList" 
+          :key="item.id || idx"
+          class="mobile-card-item mb-4 pa-2"
         >
-          {{ p }}
-        </v-btn>
+          <!-- CHECKBOX TỪNG CÁI MOBILE (CĂN BÊN PHẢI) -->
+          <div class="d-flex justify-end mb-2">
+            <v-checkbox
+              v-model="selectedItems"
+              :value="item.id"
+              :disabled="item.isRegistered"
+              hide-details
+              dense
+              class="ma-0 pa-0"
+              @change="handleItemSelect"
+            ></v-checkbox>
+          </div>
 
-        <v-btn icon small :disabled="currentPage >= totalPages" class="border-btn" @click="currentPage++; fetchData()">
-          <v-icon>mdi-chevron-right</v-icon>
-        </v-btn>
+          <div class="mobile-info-row d-flex justify-space-between py-1">
+            <span class="info-label text-caption font-weight-bold">STT</span>
+            <span class="info-value text-caption">{{ (currentPage - 1) * itemsPerPage + idx + 1 }}</span>
+          </div>
+
+          <div class="mobile-info-row d-flex justify-space-between align-center py-1">
+            <span class="info-label text-caption font-weight-bold">Thông tin sinh viên</span>
+            <div class="info-value text-right">
+              <div class="font-weight-bold text-red-bold cursor-pointer text-caption" @click="viewDetail(item)">
+                {{ item.fullName }}
+              </div>
+              <div class="text-caption">
+                Mã số sinh viên: <span class="text-red-bold">{{ item.studentCode }}</span>
+              </div>
+              <div class="text-caption text-grey-darken-1">
+                Lớp: {{ item.className }}
+              </div>
+            </div>
+          </div>
+
+          <div class="mobile-info-row d-flex justify-space-between py-1">
+            <span class="info-label text-caption font-weight-bold">Đợt học lại</span>
+            <span class="info-value text-caption">{{ item.sessionCode }}</span>
+          </div>
+
+          <div class="mobile-info-row d-flex justify-space-between py-1">
+            <span class="info-label text-caption font-weight-bold">Học kỳ</span>
+            <span class="info-value text-caption">{{ item.termCode }}</span>
+          </div>
+
+          <div class="mobile-info-row d-flex justify-space-between py-1">
+            <span class="info-label text-caption font-weight-bold">Mã học phần</span>
+            <span class="info-value text-caption font-weight-medium">{{ item.subjectCode }}</span>
+          </div>
+
+          <div class="mobile-info-row d-flex justify-space-between py-1">
+            <span class="info-label text-caption font-weight-bold">Tên học phần</span>
+            <span class="info-value text-caption text-right">{{ item.subjectName }}</span>
+          </div>
+
+          <div class="mobile-info-row d-flex justify-space-between py-1">
+            <span class="info-label text-caption font-weight-bold">Điểm trượt</span>
+            <span class="info-value text-caption font-weight-bold">{{ item.failedScore || '' }}</span>
+          </div>
+
+          <div class="mobile-info-row d-flex justify-space-between align-center py-1">
+            <span class="info-label text-caption font-weight-bold">Trạng thái</span>
+            <span :class="['status-badge', item.isRegistered ? 'bg-green' : 'bg-grey']">
+              {{ item.isRegistered ? 'Đã đăng ký' : 'Chưa đăng ký' }}
+            </span>
+          </div>
+
+          <div class="mobile-info-row d-flex justify-space-between align-center py-1">
+            <span class="info-label text-caption font-weight-bold">Chức năng</span>
+            <div class="d-flex align-center gap-1">
+              <v-btn icon small color="blue" @click="viewDetail(item)">
+                <v-icon size="20">mdi-eye</v-icon>
+              </v-btn>
+              <v-btn
+                v-if="!item.isRegistered"
+                icon
+                small
+                color="error"
+                @click="confirmDelete(item)"
+              >
+                <v-icon size="20">mdi-delete</v-icon>
+              </v-btn>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <div v-else class="text-center py-8 text-grey-color">
+        Không có dữ liệu
       </div>
     </div>
 
+    <!-- 4. BOTTOM BAR -->
+    <div class="pagination-bottom-container mt-4 pt-2">
+      <div class="d-flex align-center justify-space-between flex-wrap flex-md-nowrap gap-3">
+        <!-- CỤM NÚT XUẤT/NHẬP FILE -->
+        <div class="d-flex align-center gap-2 flex-wrap flex-md-nowrap">
+          <input
+            ref="fileInput"
+            type="file"
+            accept=".xlsx, .xls"
+            class="d-none"
+            @change="handleImportFile"
+          />
+
+          <v-btn
+            color="#2E7D32"
+            dark
+            small
+            class="text-none font-weight-medium rounded-lg text-nowrap"
+            elevation="0"
+            @click="exportToExcel"
+          >
+            <v-icon left small>mdi-export</v-icon>
+            XUẤT FILE BÁO CÁO
+          </v-btn>
+
+          <v-btn
+            color="#2E7D32"
+            dark
+            small
+            class="text-none font-weight-medium rounded-lg text-nowrap"
+            elevation="0"
+            @click="triggerFileInput"
+          >
+            <v-icon left small>mdi-microsoft-excel</v-icon>
+            NHẬP FILE ĐĂNG KÝ
+          </v-btn>
+        </div>
+
+        <!-- CỤM BẢN GHI VÀ PHÂN TRANG -->
+        <div class="pagination-scroll-wrapper">
+          <div class="d-flex align-center gap-2 flex-nowrap pb-1" style="min-width: max-content;">
+            <span class="text-caption text-grey-color text-nowrap">Bản ghi</span>
+            <v-select
+              v-model="itemsPerPage"
+              :items="[10, 20, 50, 100]"
+              dense
+              outlined
+              hide-details
+              class="select-per-page"
+              style="width: 75px;"
+              @change="handleSearch"
+            ></v-select>
+
+            <span class="text-caption text-grey-color text-nowrap ml-1">Trang</span>
+            <v-text-field
+              v-model="pageInput"
+              dense
+              outlined
+              hide-details
+              class="input-page-num"
+              style="width: 50px;"
+              @keyup.enter="goToPage"
+            ></v-text-field>
+
+            <v-btn color="#A62229" dark small class="px-3 min-w-0 text-nowrap rounded-lg" elevation="0" @click="goToPage">Đi</v-btn>
+            
+            <v-btn icon small :disabled="currentPage <= 1" class="border-btn" @click="currentPage--; syncSelectAll()">
+              <v-icon>mdi-chevron-left</v-icon>
+            </v-btn>
+
+            <v-pagination
+              v-model="currentPage"
+              :length="totalPages"
+              :total-visible="4"
+              color="#A62229"
+              dense
+              class="custom-pagination"
+              @input="syncSelectAll"
+            ></v-pagination>
+
+            <v-btn icon small :disabled="currentPage >= totalPages" class="border-btn" @click="currentPage++; syncSelectAll()">
+              <v-icon>mdi-chevron-right</v-icon>
+            </v-btn>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL THÊM SINH VIÊN -->
     <RetakeCourseAddMustRetakeStudentModal
       v-model="showAddModal"
       :must-retake-students="studentList"
@@ -289,56 +403,43 @@
       mock-mode
       @success="onAddSuccess"
     />
+
     <!-- DIALOG XÁC NHẬN XÓA -->
-<v-dialog v-model="deleteDialog" width="500px" persistent class="confirm-delete-dialog">
-  <v-card class="rounded-lg overflow-hidden">
-    <!-- HEADER -->
-    <v-card-title class="bg-red-bk white--text pa-3 px-4 d-flex justify-space-between align-center">
-      <span class="text-subtitle-1 font-weight-bold">Xác nhận</span>
-      <v-btn icon dark small class="ma-0" @click="deleteDialog = false">
-        <v-icon small>mdi-close</v-icon>
-      </v-btn>
-    </v-card-title>
+    <v-dialog v-model="deleteDialog" width="450px" persistent class="confirm-delete-dialog">
+      <v-card class="rounded-lg overflow-hidden">
+        <v-card-title class="bg-red-bk white--text pa-3 px-4 d-flex justify-space-between align-center">
+          <span class="text-subtitle-1 font-weight-bold">Xác nhận</span>
+          <v-btn icon dark small class="ma-0" @click="deleteDialog = false">
+            <v-icon small>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
 
-    <!-- CONTENT -->
-    <v-card-text class="pa-5 text-subtitle-2 font-weight-normal grey--text text--dark-3">
-      Bạn có chắc chắn muốn xóa sinh viên được đăng ký này không?
-    </v-card-text>
+        <v-card-text class="pa-5 text-subtitle-2 font-weight-normal grey--text text--dark-3">
+          Bạn có chắc chắn muốn xóa sinh viên được đăng ký này không?
+        </v-card-text>
 
-    <v-divider></v-divider>
+        <v-divider></v-divider>
 
-    <!-- ACTIONS -->
-    <v-card-actions class="pa-3 px-4 d-flex justify-end bg-white">
-      <!-- Nút Đóng -->
-      <v-btn
-        text
-        small
-        class="text-none btn-close-custom mr-2"
-        @click="deleteDialog = false"
-      >
-        Đóng
-        <v-icon right small class="ml-1">mdi-close</v-icon>
-      </v-btn>
+        <v-card-actions class="pa-3 px-4 d-flex justify-end bg-white">
+          <v-btn text small class="text-none btn-close-custom mr-2" @click="deleteDialog = false">
+            Đóng
+            <v-icon right small class="ml-1">mdi-close</v-icon>
+          </v-btn>
 
-      <!-- Nút Xác Nhận -->
-      <v-btn
-        dark
-        small
-        elevation="0"
-        class="text-none btn-confirm-custom"
-        @click="executeDelete"
-      >
-        Xác Nhận
-      </v-btn>
-    </v-card-actions>
-  </v-card>
-</v-dialog>
+          <v-btn dark small elevation="0" class="text-none btn-confirm-custom" @click="executeDelete">
+            Xác Nhận
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
+    <!-- MODAL XEM CHI TIẾT -->
     <RetakeCourseDetailMustRetakeStudentModal
       v-model="showDetailModal"
       :student-data="selectedStudentDetail"
     />
 
+    <!-- TOAST NOTIFICATION -->
     <div class="toast-container">
       <transition-group name="toast-list" tag="div" class="d-flex flex-column gap-2">
         <div
@@ -385,12 +486,17 @@ export default {
         status: null,
       },
 
-      termOptions: [],
-      sessionOptions: [],
-      subjectOptions: [],
+      activeFilters: {
+        keyword: '',
+        termId: null,
+        sessionId: null,
+        subjectId: null,
+        status: null,
+      },
+
       statusOptions: [
-        { text: 'Chưa đăng ký', value: 0 },
-        { text: 'Đã đăng ký', value: 1 }
+        { text: 'Chưa đăng ký', value: false },
+        { text: 'Đã đăng ký', value: true }
       ],
 
       selectAll: false,
@@ -402,26 +508,58 @@ export default {
       showDetailModal: false,
       itemToDelete: null,
       selectedStudentDetail: null,
-      loading: false,
+      
       currentPage: 1,
+      pageInput: 1,
       itemsPerPage: 50,
-      totalItems: 0, // Mặc định là 0, sẽ tự động cập nhật số lượng thực tế khi gọi API/mockData
       studentList: [],
     }
   },
   computed: {
+    termOptions() {
+      const terms = [...new Set(this.studentList.map(item => item.termCode).filter(Boolean))]
+      return terms.map(term => ({ text: term, value: term }))
+    },
+    sessionOptions() {
+      const sessions = [...new Set(this.studentList.map(item => item.sessionCode).filter(Boolean))]
+      return sessions.map(sess => ({ text: sess, value: sess }))
+    },
+    subjectOptions() {
+      const subjects = [...new Set(this.studentList.map(item => item.subjectName).filter(Boolean))]
+      return subjects.map(sub => ({ text: sub, value: sub }))
+    },
+
+    filteredList() {
+      return this.studentList.filter(item => {
+        const kw = this.activeFilters.keyword ? this.activeFilters.keyword.trim().toLowerCase() : ''
+        const matchKw = !kw || 
+          (item.fullName && item.fullName.toLowerCase().includes(kw)) ||
+          (item.studentCode && item.studentCode.toLowerCase().includes(kw)) ||
+          (item.className && item.className.toLowerCase().includes(kw)) ||
+          (item.subjectCode && item.subjectCode.toLowerCase().includes(kw)) ||
+          (item.subjectName && item.subjectName.toLowerCase().includes(kw))
+
+        const matchTerm = !this.activeFilters.termId || item.termCode === this.activeFilters.termId
+        const matchSession = !this.activeFilters.sessionId || item.sessionCode === this.activeFilters.sessionId
+        const matchSubject = !this.activeFilters.subjectId || item.subjectName === this.activeFilters.subjectId
+        const matchStatus = this.activeFilters.status === null || this.activeFilters.status === undefined || item.isRegistered === this.activeFilters.status
+
+        return matchKw && matchTerm && matchSession && matchSubject && matchStatus
+      })
+    },
+
     totalPages() {
-      return Math.ceil(this.totalItems / this.itemsPerPage) || 1
+      return Math.ceil(this.filteredList.length / this.itemsPerPage) || 1
+    },
+    paginatedList() {
+      const start = (this.currentPage - 1) * this.itemsPerPage
+      return this.filteredList.slice(start, start + this.itemsPerPage)
     }
   },
   mounted() {
-    this.fetchData()
+    this.mockData()
   },
   methods: {
-    fetchData() {
-      this.mockData()
-    },
-
     mockData() {
       const originalStudents = [
         { id: 1, fullName: 'Lê Tuấn Anh', studentCode: '20210110P', className: 'ĐH-BK-CNTT1.2-K66', sessionCode: '20261-A-4', termCode: '20261', subjectCode: 'IT3100', subjectName: 'Lập trình hướng đối tượng', failedScore: '', isRegistered: false },
@@ -434,7 +572,6 @@ export default {
       ]
       const savedStudents = this.getSavedTestStudents()
       this.studentList = [...savedStudents, ...originalStudents]
-      this.totalItems = this.studentList.length
       this.selectedItems = []
       this.selectAll = false
     },
@@ -442,22 +579,67 @@ export default {
     getSavedTestStudents() {
       try {
         const saved = localStorage.getItem('mustRetakeStudentTestData')
-        if (!saved) return []
-
-        const students = JSON.parse(saved)
-        if (!Array.isArray(students)) {
-          throw new TypeError('Dữ liệu sinh viên thử nghiệm không hợp lệ.')
-        }
-        return students
+        return saved ? JSON.parse(saved) : []
       } catch (error) {
-        this.addToast('Không thể đọc danh sách thử nghiệm đã lưu trên trình duyệt', 3000)
         return []
       }
     },
 
+    handleSelectAll(isChecked) {
+      if (isChecked) {
+        const unregisteredIds = this.filteredList
+          .filter(item => !item.isRegistered)
+          .map(item => item.id)
+        this.selectedItems = unregisteredIds
+      } else {
+        this.selectedItems = []
+      }
+    },
+
+    handleItemSelect() {
+      this.syncSelectAll()
+    },
+
+    syncSelectAll() {
+      const unregisteredItems = this.filteredList.filter(item => !item.isRegistered)
+      this.selectAll =
+        unregisteredItems.length > 0 &&
+        unregisteredItems.every(item => this.selectedItems.includes(item.id))
+    },
+
     handleSearch() {
+      this.activeFilters = { ...this.filters }
       this.currentPage = 1
-      this.fetchData()
+      this.pageInput = 1
+      this.syncSelectAll()
+    },
+
+    goToPage() {
+      this.activeFilters = { ...this.filters }
+      const pageNum = Number(this.pageInput)
+      if (pageNum >= 1 && pageNum <= this.totalPages) {
+        this.currentPage = pageNum
+      } else {
+        this.currentPage = 1
+        this.pageInput = 1
+      }
+      this.syncSelectAll()
+    },
+
+    handleClearKeyword() {
+      this.filters.keyword = ''
+    },
+
+    refreshData() {
+      this.filters = {
+        keyword: '',
+        termId: null,
+        sessionId: null,
+        subjectId: null,
+        status: null,
+      }
+      this.handleSearch()
+      this.addToast('Làm mới dữ liệu thành công')
     },
 
     openAddModal() {
@@ -470,7 +652,6 @@ export default {
       if (!addedStudents.length || !addedStudents[0]) return
 
       this.studentList.unshift(...addedStudents)
-      this.totalItems = this.studentList.length
       this.selectedItems = []
       this.selectAll = false
       try {
@@ -479,8 +660,7 @@ export default {
           JSON.stringify([...addedStudents, ...this.getSavedTestStudents()])
         )
       } catch (error) {
-        this.addToast('Đã thêm vào danh sách nhưng không thể lưu dữ liệu thử nghiệm trên trình duyệt', 3000)
-        return
+        console.error(error)
       }
 
       this.addToast('Thêm danh sách sinh viên học lại thành công')
@@ -495,14 +675,10 @@ export default {
     executeDelete() {
       if (this.itemToDelete && !this.itemToDelete.isRegistered) {
         this.studentList = this.studentList.filter(student => student.id !== this.itemToDelete.id)
-        this.totalItems = Math.max(0, this.totalItems - 1)
         this.selectedItems = this.selectedItems.filter(id => id !== this.itemToDelete.id)
         this.syncSelectAll()
         this.addToast('Xóa thông tin thành công')
-      } else if (this.itemToDelete?.isRegistered) {
-        this.$toast?.error?.('Không thể xóa sinh viên đã đăng ký!')
       }
-
       this.deleteDialog = false
       this.itemToDelete = null
     },
@@ -512,7 +688,7 @@ export default {
       this.showDetailModal = true
     },
 
-    addToast(message = 'Xóa thông tin thành công', duration = 3000) {
+    addToast(message = 'Thao tác thành công', duration = 3000) {
       const id = Date.now() + Math.random()
       this.toasts.unshift({ id, message, duration })
     },
@@ -521,45 +697,9 @@ export default {
       this.toasts = this.toasts.filter(toast => toast.id !== id)
     },
 
-    handleSelectAll(isChecked) {
-      this.selectedItems = isChecked
-        ? this.studentList.filter(item => !item.isRegistered).map(item => item.id)
-        : []
-      this.syncSelectAll()
-    },
-
-    handleItemSelect() {
-      const selectableItems = this.studentList.filter(item => !item.isRegistered)
-      this.selectAll =
-        selectableItems.length > 0 &&
-        selectableItems.every(item => this.selectedItems.includes(item.id))
-    },
-
-    syncSelectAll() {
-      const selectableItems = this.studentList.filter(item => !item.isRegistered)
-      this.selectAll =
-        selectableItems.length > 0 &&
-        selectableItems.every(item => this.selectedItems.includes(item.id))
-    },
-
-    refreshData() {
-      this.fetchData()
-    },
-
     sendEmailDirectly() {
       if (this.selectedItems.length === 0) return
-
       const count = this.selectedItems.length
-      /* Nếu có gọi API gửi Email phía Backend:
-      try {
-        await this.$axios.$post('/api/retake-student/send-email', {
-          studentIds: this.selectedItems
-        })
-      } catch (err) {
-        this.addToast('Gửi email thất bại', 3000)
-        return
-      }
-      */
       this.addToast(`Gửi email thành công (${count} email)`, 3000)
       this.selectedItems = []
       this.selectAll = false
@@ -567,34 +707,31 @@ export default {
 
     exportToExcel() {
       try {
-        if (!this.studentList.length) {
-          this.addToast('Không có dữ liệu sinh viên để xuất file', 3000)
-          return
-        }
+        if (!this.filteredList.length) return
 
         const itemsToExport = this.selectedItems.length
-          ? this.studentList.filter(item => this.selectedItems.includes(item.id))
-          : this.studentList
+          ? this.filteredList.filter(item => this.selectedItems.includes(item.id))
+          : this.filteredList
+
         const dataForExcel = itemsToExport.map((item, index) => ({
           STT: index + 1,
           'Họ và tên': item.fullName || '',
           'Mã sinh viên': item.studentCode || '',
           'Lớp': item.className || '',
-          'Đợt học lại': item.sessionId || item.sessionCode || '',
-          'Học kỳ': item.termId || item.termCode || '',
+          'Đợt học lại': item.sessionCode || '',
+          'Học kỳ': item.termCode || '',
           'Mã học phần': item.subjectCode || '',
           'Tên học phần': item.subjectName || '',
-          'Điểm trượt': item.failingScore || item.failedScore || '',
-          'Trạng thái': item.status || (item.isRegistered ? 'Đã đăng ký' : 'Chưa đăng ký')
+          'Điểm trượt': item.failedScore || '',
+          'Trạng thái': item.isRegistered ? 'Đã đăng ký' : 'Chưa đăng ký'
         }))
 
         const worksheet = XLSX.utils.json_to_sheet(dataForExcel)
         const workbook = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Bao_Cao_Sinh_Vien')
         XLSX.writeFile(workbook, `Bao_Cao_Sinh_Vien_Phai_Hoc_Lai_${Date.now()}.xlsx`)
-        this.addToast('Xuất file báo cáo thành công', 3000)
       } catch (error) {
-        this.addToast('Lỗi xuất file báo cáo', 3000)
+        console.error('Lỗi xuất file báo cáo:', error)
       }
     },
 
@@ -606,12 +743,6 @@ export default {
       const file = event.target.files && event.target.files[0]
       if (!file) return
 
-      if (!/\.(xlsx|xls)$/i.test(file.name)) {
-        this.addToast('Vui lòng chọn file Excel đúng định dạng (.xlsx, .xls)', 3000)
-        event.target.value = ''
-        return
-      }
-
       try {
         const arrayBuffer = await new Promise((resolve, reject) => {
           const reader = new FileReader()
@@ -620,47 +751,30 @@ export default {
           reader.readAsArrayBuffer(file)
         })
         const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' })
-        const firstSheetName = workbook.SheetNames[0]
-        if (!firstSheetName) {
-          this.addToast('File Excel không có dữ liệu', 3000)
-          return
-        }
-
-        const worksheet = workbook.Sheets[firstSheetName]
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]]
         const rows = XLSX.utils.sheet_to_json(worksheet)
-        if (!rows.length) {
-          this.addToast('File Excel không có dữ liệu', 3000)
-          return
-        }
 
         const importedStudents = rows.map((row, index) => {
-          const status = row['Trạng thái'] || 'Chưa đăng ký'
+          const isRegistered = row['Trạng thái'] === 'Đã đăng ký'
           return {
             id: Date.now() + index,
-            fullName: row['Họ và tên'] || row.fullName || '—',
-            studentCode: row['Mã sinh viên'] || row.studentCode || '—',
-            className: row['Lớp'] || row.className || '—',
-            sessionId: row['Đợt học lại'] || row.sessionId || '—',
-            sessionCode: row['Đợt học lại'] || row.sessionCode || row.sessionId || '—',
-            termId: row['Học kỳ'] || row.termId || '—',
-            termCode: row['Học kỳ'] || row.termCode || row.termId || '—',
-            subjectCode: row['Mã học phần'] || row.subjectCode || '—',
-            subjectName: row['Tên học phần'] || row.subjectName || '—',
-            failingScore: row['Điểm trượt'] || row.failingScore || '',
-            failedScore: row['Điểm trượt'] || row.failedScore || row.failingScore || '',
-            status,
-            isRegistered: status === 'Đã đăng ký'
+            fullName: row['Họ và tên'] || '—',
+            studentCode: row['Mã sinh viên'] || '—',
+            className: row['Lớp'] || '—',
+            sessionCode: row['Đợt học lại'] || '—',
+            termCode: row['Học kỳ'] || '—',
+            subjectCode: row['Mã học phần'] || '—',
+            subjectName: row['Tên học phần'] || '—',
+            failedScore: row['Điểm trượt'] || '',
+            isRegistered
           }
         })
 
         this.studentList = [...importedStudents, ...this.studentList]
-        this.totalItems += importedStudents.length
-        this.currentPage = 1
-        this.selectedItems = []
-        this.selectAll = false
+        this.handleSearch()
         this.addToast(`Đã nhập thành công ${importedStudents.length} bản ghi`, 3000)
       } catch (error) {
-        this.addToast('File Excel không hợp lệ hoặc bị lỗi cấu trúc', 3000)
+        this.addToast('File Excel không hợp lệ', 3000)
       } finally {
         event.target.value = ''
       }
@@ -679,7 +793,60 @@ export default {
 .text-grey-color { color: #757575 !important; }
 .gray-head-text { color: #333333 !important; }
 
-.bg-gray-head { background-color: #F5F5F5 !important; }
+/* NỀN XÁM CHO BẢNG CỦA MÁY TÍNH VÀ THANH CHỌN TẤT CẢ DI ĐỘNG */
+.bg-gray-head { background-color: #EEEEEE !important; }
+
+.mobile-card-item {
+  background-color: #FFFFFF;
+}
+
+.mobile-info-row {
+  border-bottom: 1px dashed #EEEEEE;
+}
+.mobile-info-row:last-child {
+  border-bottom: none;
+}
+.info-label {
+  color: #333333;
+}
+.info-value {
+  color: #555555;
+}
+
+.table-responsive-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pagination-scroll-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
+}
+
+.pagination-scroll-wrapper::-webkit-scrollbar {
+  height: 5px;
+}
+
+.pagination-scroll-wrapper::-webkit-scrollbar-track {
+  background: #F1F1F1;
+  border-radius: 4px;
+}
+
+.pagination-scroll-wrapper::-webkit-scrollbar-thumb {
+  background: #A62229;
+  border-radius: 4px;
+}
+
+.pagination-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #8E1D23;
+}
+
+.pagination-scroll-wrapper {
+  scrollbar-width: thin;
+  scrollbar-color: #A62229 #F1F1F1;
+}
 
 .filter-input >>> .v-input__slot {
   border-radius: 6px !important;
@@ -698,14 +865,9 @@ export default {
   min-width: 38px !important;
 }
 
-.btn-import-excel {
-  border-radius: 6px !important;
-  height: 38px !important;
-  background-color: #2E7D32 !important;
-}
-
 .flat-table {
   background: transparent !important;
+  white-space: nowrap;
 }
 
 .border-btn {
@@ -725,7 +887,16 @@ export default {
 
 .gap-1 { gap: 4px; }
 .gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
 .cursor-pointer { cursor: pointer; }
+
+.text-nowrap {
+  white-space: nowrap !important;
+}
+
+.flex-nowrap {
+  flex-wrap: nowrap !important;
+}
 
 .toast-container {
   position: fixed;
@@ -733,6 +904,7 @@ export default {
   right: 24px;
   z-index: 99999;
   width: 320px;
+  max-width: 90vw;
   pointer-events: none;
 }
 
@@ -742,9 +914,7 @@ export default {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
-.opacity-80 {
-  opacity: 0.8;
-}
+.opacity-80 { opacity: 0.8; }
 
 .toast-progress-bg {
   height: 3px;
@@ -764,79 +934,39 @@ export default {
   to { width: 0%; }
 }
 
-.toast-list-enter-active,
-.toast-list-leave-active,
-.toast-list-move {
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-.toast-list-enter {
-  opacity: 0;
-  transform: translateY(-15px) scale(0.96);
-}
-
-.toast-list-leave-to {
-  opacity: 0;
-  transform: translateX(40px);
-}
-/* Màu đỏ đặc trưng theo giao diện */
-.bg-red-bk {
-  background-color: #A62229 !important;
-}
-
-/* Nút Đóng (Chữ màu đỏ, icon x nhỏ) */
 .btn-close-custom {
   color: #A62229 !important;
   font-weight: 500;
-  letter-spacing: normal;
   border-radius: 6px;
 }
 
-.btn-close-custom:hover {
-  background-color: rgba(166, 34, 41, 0.04) !important;
-}
-
-/* Nút Xác Nhận (Nền đỏ, chữ trắng, bo góc) */
 .btn-confirm-custom {
   background-color: #A62229 !important;
   color: #ffffff !important;
   font-weight: 500;
-  letter-spacing: normal;
   border-radius: 8px !important;
   padding: 0 16px !important;
   height: 36px !important;
 }
 
-.btn-confirm-custom:hover {
-  background-color: #8e1d23 !important;
-}
-/* Style chung cho nút Mail */
 .btn-email-custom {
   min-width: 44px !important;
   width: 44px !important;
-  height: 36px !important;
+  height: 38px !important;
   border-radius: 8px !important;
   padding: 0 !important;
-  transition: all 0.2s ease-in-out;
 }
 
-/* Ảnh 1: Trạng thái Chưa chọn (Disabled - Nền xám nhạt, Icon xám) */
 .btn-email-disabled {
   background-color: #E0E0E0 !important;
   cursor: not-allowed !important;
 }
 
-/* Ảnh 2: Trạng thái Đã tích chọn (Active - Nền đỏ, Icon trắng) */
 .btn-email-active {
   background-color: #A62229 !important;
   cursor: pointer !important;
 }
 
-.btn-email-active:hover {
-  background-color: #8E1D23 !important;
-}
-
-/* Custom riêng cho Badge đỏ hiện số lượng ở góc trên */
 ::v-deep .v-badge__badge {
   font-size: 11px !important;
   font-weight: bold !important;
@@ -844,5 +974,9 @@ export default {
   min-width: 18px !important;
   padding: 0 5px !important;
   border-radius: 10px !important;
+}
+
+.custom-pagination >>> .v-pagination__navigation {
+  display: none !important;
 }
 </style>
