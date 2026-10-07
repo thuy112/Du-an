@@ -84,11 +84,7 @@
             clearable
           ></v-select>
         </v-col>
-      </v-row>
-
-      <!-- HÀNG LỌC 2 & CỤM NÚT THAO TÁC -->
-      <v-row dense align="center">
-        <v-col cols="12" sm="6" md="2.4" style="flex: 0 0 20%; max-width: 20%;">
+         <v-col cols="12" sm="4" md="2">
           <v-select
             v-model="filters.tuitionStatus"
             :items="['Đã trả học phí', 'Chưa trả học phí']"
@@ -99,7 +95,7 @@
             clearable
           ></v-select>
         </v-col>
-        <v-col cols="12" sm="6" md="2.4" style="flex: 0 0 20%; max-width: 20%;">
+        <v-col cols="12" sm="4" md="2">
           <v-select
             v-model="filters.emailStatus"
             :items="['Đã gửi', 'Chưa gửi']"
@@ -110,7 +106,7 @@
             clearable
           ></v-select>
         </v-col>
-        <v-col cols="12" sm="6" md="2.4" style="flex: 0 0 20%; max-width: 20%;">
+        <v-col cols="12" sm="4" md="2">
           <v-select
             v-model="filters.approvalStatus"
             :items="['Chờ xác nhận', 'Đã xác nhận', 'Từ chối','Đã duyệt lớp']"
@@ -121,7 +117,7 @@
             clearable
           ></v-select>
         </v-col>
-        <v-col cols="12" sm="6" md="2.4" style="flex: 0 0 20%; max-width: 20%;">
+        <v-col cols="12" sm="4" md="2">
           <v-select
             v-model="filters.bankStatus"
             :items="['Đã lập danh sách', 'Chưa lập danh sách']"
@@ -132,7 +128,10 @@
             clearable
           ></v-select>
         </v-col>
+      </v-row>
 
+      <!-- HÀNG LỌC 2 & CỤM NÚT THAO TÁC -->
+      <v-row dense align="center">
         <!-- CỤM NÚT ICON THAO TÁC BÊN PHẢI -->
       <div class="action-toolbar d-flex align-center gap-2">
           <!-- Nút Reload (Dạng icon tròn không nền) -->
@@ -273,7 +272,7 @@
             <td colspan="15" class="text-center py-5 text-grey">Không có dữ liệu sinh viên đăng ký học lại</td>
           </tr>
           <tr v-for="(item, index) in paginatedItems" :key="item.id || index">
-            <td class="text-center">
+            <td class="text-center" data-label="">
               <v-checkbox
                 v-model="selectedIds"
                 :value="item.id"
@@ -283,10 +282,11 @@
                 @change="onItemSelectChange"
               ></v-checkbox>
             </td>
-            <td class="text-center">{{ (page - 1) * pageSize + index + 1 }}</td>
+            <!-- Dòng STT đã được CSS đè center ở mobile -->
+            <td class="text-center" data-label="STT">{{ (page - 1) * pageSize + index + 1 }}</td>
 
             <!-- THÔNG TIN SINH VIÊN (TÊN, MÃ SV, LỚP) -->
-            <td>
+            <td data-label="Thông tin sinh viên">
               <div class="font-weight-bold text-red-bold mb-1">Tên SV: {{ item.studentName }}</div>
               <div class="text-caption grey--text text--dark-2 mb-1">
                 Mã số SV: <span class="font-weight-medium text-red-bold">{{ item.studentCode }}</span>
@@ -296,64 +296,64 @@
               </div>
             </td>
 
-            <td>{{ item.sessionCode }}</td>
+            <td data-label="Kỳ đăng ký học lại">{{ item.sessionCode }}</td>
 
             <!-- HỌC PHẦN ĐĂNG KÝ -->
-            <td>
+            <td data-label="Học phần đăng ký">
               <div class="text-body-2">1. {{ item.subjectName }} - {{ item.subjectCode }}</div>
             </td>
 
-            <td>{{ item.registrationCode }}</td>
+            <td data-label="Mã đơn đăng ký">{{ item.registrationCode }}</td>
 
             <!-- THỜI GIAN ĐĂNG KÝ -->
-            <td class="text-center">
+            <td class="text-center" data-label="Thời gian đăng ký">
               <div>{{ item.registerDate }}</div>
               <div class="text-caption grey--text">{{ item.registerTime }}</div>
             </td>
 
             <!-- THỜI GIAN DUYỆT ĐƠN -->
-            <td class="text-center">
+            <td class="text-center" data-label="Thời gian duyệt đơn">
               {{ item.approvalDate || '-' }}
             </td>
 
             <!-- TỔNG HỌC PHÍ -->
-            <td class="text-right font-weight-medium">
+            <td class="text-right font-weight-medium" data-label="Tổng học phí">
               {{ formatCurrency(item.totalFee) }}
             </td>
 
             <!-- TRẠNG THÁI TRẢ HỌC PHÍ -->
-            <td class="text-center">
+            <td class="text-center" data-label="Trạng thái trả học phí">
               <span class="status-badge" :style="getStatusStyle(item.tuitionStatus, 'feePaidStatusMap')">
                 {{ getStatusLabel(item.tuitionStatus, 'feePaidStatusMap') }}
               </span>
             </td>
 
             <!-- THỜI GIAN VÀ CB GỬI THU PHÍ -->
-            <td class="text-center">{{ item.collectorInfo || '-' }}</td>
+            <td class="text-center" data-label="Thời gian và CB gửi Thu phí">{{ item.collectorInfo || '-' }}</td>
 
             <!-- TT THÊM DS NGÂN HÀNG -->
-            <td class="text-center">
+            <td class="text-center" data-label="TT thêm DS ngân hàng">
               <span class="status-badge" :style="getStatusStyle(item.bankStatus, 'bankStatusMap')">
                 {{ getStatusLabel(item.bankStatus, 'bankStatusMap') }}
               </span>
             </td>
 
             <!-- TRẠNG THÁI GỬI EMAIL -->
-            <td class="text-center">
+            <td class="text-center" data-label="Trạng thái gửi email">
               <span class="status-badge" :style="getStatusStyle(item.emailStatus, 'sendMailStatusMap')">
                 {{ getStatusLabel(item.emailStatus, 'sendMailStatusMap') }}
               </span>
             </td>
 
             <!-- TRẠNG THÁI DUYỆT ĐƠN -->
-            <td class="text-center">
+            <td class="text-center" data-label="Trạng thái duyệt đơn">
               <span class="status-badge" :style="getStatusStyle(item.approvalStatus, 'registerStudentStatusMap')">
                 {{ getStatusLabel(item.approvalStatus, 'registerStudentStatusMap') }}
               </span>
             </td>
 
             <!-- CỘT CHỨC NĂNG -->
-            <td class="text-center">
+            <td class="text-center" data-label="Chức năng">
               <div class="d-flex align-center justify-center gap-1">
                 <v-tooltip bottom>
                   <template #activator="{ on, attrs }">
@@ -2440,7 +2440,7 @@ export default {
   font-size: 13px;
   font-weight: 600;
   text-align: center;
-  white-space: nowrap;
+  
   color: #ffffff !important;
 }
 
@@ -2692,6 +2692,7 @@ export default {
   grid-template-columns: 1fr 1fr;
   gap: 12px 24px;
   font-size: 14px;
+  white-space: nowrap
 }
 
 .text-red {
@@ -2733,7 +2734,7 @@ export default {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
-  white-space: nowrap;
+  
 }
 
 .edit-table th {
@@ -2907,7 +2908,7 @@ export default {
 .custom-table >>> th {
   background-color: #f1f3f5 !important;
   font-weight: 600 !important;
-  white-space: nowrap;
+  
 }
 
 .custom-table >>> td,
@@ -2941,7 +2942,7 @@ export default {
   width: 100%;
   min-width: 1050px;
   border-collapse: collapse;
-  white-space: nowrap;
+  
 }
 
 .table-scroll-wrapper .custom-table >>> td,
@@ -2981,7 +2982,7 @@ export default {
   font-weight: 600;
   padding: 10px 8px;
   border-bottom: 2px solid #E0E0E0;
-  white-space: nowrap;
+  
 }
 
 .table-footer {
@@ -3153,5 +3154,145 @@ export default {
 
 .btn-calendar.active:hover {
   background-color: #3367d6 !important;
+}
+
+/* ===== RESPONSIVE MOBILE (Dưới 768px) ===== */
+@media (max-width: 768px) {
+  /* Bỏ cố định chiều cao trang, cho phép cuộn tự nhiên trên điện thoại */
+  .registered-students-page {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  .table-container {
+    overflow: visible !important;
+  }
+
+  /* Ép bảng thành dạng block */
+  .custom-data-table,
+  .custom-data-table tbody,
+  .custom-data-table tr,
+  .custom-data-table td {
+    display: block;
+    width: 100%;
+  }
+
+  /* Xử lý thanh tiêu đề (chỉ giữ lại Checkbox Chọn tất cả) */
+  .custom-data-table thead {
+    display: block;
+  }
+  .custom-data-table thead tr {
+    display: flex;
+    background-color: transparent;
+    margin-bottom: 0;
+    padding: 8px 0;
+    border: none;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .custom-data-table th {
+    position: static !important;
+  }
+  .custom-data-table thead th {
+    display: none; 
+  }
+  .custom-data-table thead th:first-child {
+    display: block; 
+    padding: 0;
+    border: none;
+    background: transparent;
+    margin-left: auto; /* Đẩy checkbox Chọn tất cả sang mép phải */
+  }
+
+  /* BỎ KHUNG: Xóa border và bo góc, chỉ dùng line phân cách bên dưới */
+  .custom-data-table tbody tr {
+    margin-bottom: 16px;
+    border: none;
+    border-bottom: 1px solid #e0e0e0; /* Đường phân cách nhạt */
+    border-radius: 0;
+    padding: 36px 0 16px 0; /* Bỏ padding 2 bên, để chừa không gian phía trên cho checkbox */
+    position: relative;
+    background-color: transparent;
+  }
+  
+  /* Xóa gạch dưới ở dòng cuối cùng tránh dư thừa */
+  .custom-data-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  /* Định vị checkbox của từng item lên góc trên cùng bên phải (ngay trên dòng STT) */
+  .custom-data-table tbody td:first-child {
+    position: absolute;
+    top: 4px;
+    right: 0;
+    padding: 0;
+    border: none;
+    width: auto;
+  }
+  .custom-data-table tbody td:first-child::before {
+    display: none; 
+  }
+
+  /* Định dạng các ô td thành dạng Flexbox: Label bên trái, Value bên phải */
+  /* Sử dụng !important ở text-align để đè class text-center mặc định của Vuetify */
+  .custom-data-table tbody td {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+    padding: 12px 0 !important; /* Khoảng cách giữa các dòng thông tin như STT, Họ tên... */
+    border-bottom: none !important;
+    text-align: right !important; 
+    
+  }
+
+  /* Hiển thị tự động nhãn (Label) từ thuộc tính data-label */
+  .custom-data-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #333;
+    flex-shrink: 0;
+    margin-right: 16px;
+    text-align: left !important;
+  }
+
+  /* Các nội dung bên trong td (tên sinh viên, mã, v.v) cần ép dạt phải */
+  .custom-data-table tbody td > div,
+  .custom-data-table tbody td > span {
+    text-align: right !important;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  /* Cụm icon chức năng: đẩy sang bên phải */
+  .custom-data-table tbody td[data-label="Chức năng"] .d-flex {
+    justify-content: flex-end !important;
+  }
+
+  /* Xử lý gập dòng thanh công cụ Filter Toolbar */
+  .action-toolbar {
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  /* Dàn dọc các nút chức năng ở Table Footer */
+  .table-footer {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 16px;
+  }
+  .table-footer > div:first-child {
+    flex-direction: column;
+    width: 100%;
+    align-items: flex-start;
+  }
+  .table-footer > div:first-child .v-btn {
+    width: auto;
+    margin-bottom: 8px;
+  }
+
+  /* Xếp cụm thanh phân trang qua góc phải */
+  .table-footer > div.d-flex.align-center.gap-2 {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
 }
 </style>

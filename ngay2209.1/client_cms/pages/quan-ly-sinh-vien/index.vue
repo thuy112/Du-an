@@ -1,7 +1,7 @@
 <template>
-  <div class="quan-ly-sinh-vien-container pa-4">
+  <div class="quan-ly-sinh-vien-container pa-2 pa-sm-4 bg-white">
     <!-- Header / Bộ lọc chính -->
-    <v-row class="student-filter-bar align-center justify-space-between" no-gutters>
+    <v-row class="student-filter-bar align-center justify-space-between bg-white" no-gutters>
       <div class="d-flex align-center gap-2 flex-wrap" style="width: 100%;">
         <span class="text-h6 font-weight-bold">Danh sách sinh viên ({{ filteredStudents.length }})</span>
         <v-spacer></v-spacer>
@@ -74,22 +74,22 @@
           :items-per-page="itemsPerPage"
           :headers-length="headers.length"
           fixed-header
-          height="100%"
           hide-default-footer
+          mobile-breakpoint="600"
           class="custom-table"
         >
           <!-- STT -->
           <template #[`item.stt`]="{ index }">
-            {{ (page - 1) * itemsPerPage + index + 1 }}
+            <span class="font-weight-medium">{{ (page - 1) * itemsPerPage + index + 1 }}</span>
           </template>
 
           <!-- Thông tin chung -->
           <template #[`item.generalInfo`]="{ item }">
-            <div class="py-2">
+            <div class="py-2 info-block">
               <div class="font-weight-bold red--text text--darken-3 text-subtitle-2 mb-1">{{ item.fullName }}</div>
               <div class="text-caption text-grey-darken-1">Mã số sinh viên: <span class="font-weight-medium red--text text--darken-3">{{ item.studentCode }}</span></div>
               <div class="text-caption text-grey-darken-1">Email: <span class="red--text text--darken-3">{{ item.schoolEmail || item.email || '---' }}</span></div>
-              <div class="text-caption text-grey-darken-1">Giới tính: {{ item.gender }}</div>
+              <div class="text-caption text-grey-darken-1">Giới tính: <span class="font-weight-bold">{{ item.gender }}</span></div>
             </div>
           </template>
 
@@ -115,21 +115,21 @@
 
               <v-list dense class="py-1">
                 <v-list-item @click="openConfirmStatusDialog(item, 'STUDYING')">
-                  <v-list-item-title class="text-body-2">Đang học tập</v-list-item-title>
+                  <v-list-item-title class="text-body-2 font-weight-bold red--text text--darken-1">Đang học tập</v-list-item-title>
                 </v-list-item>
                 <v-list-item @click="openConfirmStatusDialog(item, 'LEAVE_OF_ABSENCE')">
-                  <v-list-item-title class="text-body-2">Bảo lưu</v-list-item-title>
+                  <v-list-item-title class="text-body-2 font-weight-bold orange--text text--darken-2">Bảo lưu</v-list-item-title>
                 </v-list-item>
                 <v-list-item @click="openConfirmStatusDialog(item, 'DROP_OUT_OF_SCHOOL')">
-                  <v-list-item-title class="text-body-2">Đã nghỉ học</v-list-item-title>
+                  <v-list-item-title class="text-body-2 font-weight-bold grey--text text--darken-2">Đã nghỉ học</v-list-item-title>
                 </v-list-item>
               </v-list>
             </v-menu>
           </template>
 
-          <!-- GIỮ NGUYÊN HOÀN TOÀN TỪNG DÒNG THEO YÊU CẦU CỦA BẠN -->
+          <!-- CHỨC NĂNG -->
           <template #[`item.actions`]="{ item }">
-            <div class="d-flex align-center justify-center gap-1">
+            <div class="d-flex align-center gap-1 action-icons">
               <v-btn icon x-small color="cyan darken-1" @click="viewDetail(item)">
                 <v-icon size="24" color="blue">mdi-eye</v-icon>
               </v-btn>
@@ -144,81 +144,83 @@
 
       <!-- Footer & Phân trang chính -->
       <div class="bottom-fixed-bar d-flex align-center justify-space-between flex-wrap gap-2 py-3 px-1 bg-white border-top table-footer">
-      <v-btn
-        color="#2e7d32"
-        dark
-        elevation="0"
-        class="text-capitalize rounded px-4 font-weight-bold"
-        @click="exportToExcel"
-      >
-        <v-icon left small>mdi-export</v-icon> XUẤT FILE EXCEL
-      </v-btn>
-
-      <div class="d-flex align-center gap-2">
-        <!-- Ô Chọn Bản ghi -->
-        <v-select
-          v-model="itemsPerPage"
-          :items="[10, 20, 50, 100]"
-          label="Bản ghi"
-          dense
-          outlined
-          hide-details
-          :menu-props="{ attach: true, top: true, offsetY: true, zIndex: 999 }"
-          class="pagination-input"
-          style="width: 85px"
-          @change="onItemsPerPageChange"
-        ></v-select>
-
-        <!-- Ô Nhập Trang -->
-        <v-text-field
-          v-model.number="pageInput"
-          label="Trang"
-          dense
-          outlined
-          hide-details
-          class="pagination-input text-center"
-          style="width: 65px"
-          @keyup.enter="goToPage"
-        ></v-text-field>
-
-        <v-btn 
-          color="#a2212b" 
-          dark 
-          small 
-          class="text-capitalize px-3 rounded-sm elevation-0" 
-          style="height: 36px;" 
-          @click="goToPage"
-        >
-          Đi
-        </v-btn>
-
-        <v-btn icon small :disabled="page <= 1" @click="changePage(page - 1)">
-          <v-icon>mdi-chevron-left</v-icon>
-        </v-btn>
-        
         <v-btn
-          v-for="p in visiblePages"
-          :key="p"
-          small
-          :color="page === p ? '#a2212b' : ''"
-          :dark="page === p"
-          :outlined="page !== p"
-          class="min-w-0 pa-0 rounded-sm elevation-0"
-          style="width: 28px; height: 28px"
-          @click="changePage(p)"
+          color="#2e7d32"
+          dark
+          elevation="0"
+          class="text-capitalize rounded px-4 font-weight-bold"
+          @click="exportToExcel"
         >
-          {{ p }}
+          <v-icon left small>mdi-export</v-icon> XUẤT FILE EXCEL
         </v-btn>
 
-        <v-btn icon small :disabled="page >= totalPages" @click="changePage(page + 1)">
-          <v-icon>mdi-chevron-right</v-icon>
-        </v-btn>
+        <div class="d-flex align-center gap-2 flex-wrap justify-end flex-grow-1">
+          <!-- Ô Chọn Bản ghi -->
+          <v-select
+            v-model="itemsPerPage"
+            :items="[10, 20, 50, 100]"
+            label="Bản ghi"
+            dense
+            outlined
+            hide-details
+            :menu-props="{ attach: true, top: true, offsetY: true, zIndex: 999 }"
+            class="pagination-input"
+            style="width: 85px"
+            @change="onItemsPerPageChange"
+          ></v-select>
+
+          <!-- Ô Nhập Trang -->
+          <v-text-field
+            v-model.number="pageInput"
+            label="Trang"
+            dense
+            outlined
+            hide-details
+            class="pagination-input text-center"
+            style="width: 65px"
+            @keyup.enter="goToPage"
+          ></v-text-field>
+
+          <v-btn 
+            color="#a2212b" 
+            dark 
+            small 
+            class="text-capitalize px-3 rounded-sm elevation-0" 
+            style="height: 36px;" 
+            @click="goToPage"
+          >
+            Đi
+          </v-btn>
+
+          <div class="d-flex align-center">
+            <v-btn icon small :disabled="page <= 1" @click="changePage(page - 1)">
+              <v-icon>mdi-chevron-left</v-icon>
+            </v-btn>
+            
+            <v-btn
+              v-for="p in visiblePages"
+              :key="p"
+              small
+              :color="page === p ? '#a2212b' : ''"
+              :dark="page === p"
+              :outlined="page !== p"
+              class="min-w-0 pa-0 rounded-sm elevation-0 mx-1"
+              style="width: 28px; height: 28px"
+              @click="changePage(p)"
+            >
+              {{ p }}
+            </v-btn>
+
+            <v-btn icon small :disabled="page >= totalPages" @click="changePage(page + 1)">
+              <v-icon>mdi-chevron-right</v-icon>
+            </v-btn>
+          </div>
+        </div>
       </div>
-    </div>
     </v-card>
 
     <!-- ========================================================================= -->
-    <!-- DIALOG 1: THÔNG TIN SINH VIÊN CHI TIẾT (GIỮ ĐẦY ĐỦ 100% CODE CŨ) -->
+    <!-- DIALOG 1: THÔNG TIN SINH VIÊN CHI TIẾT -->
     <!-- ========================================================================= -->
     <v-dialog v-model="detailDialog" max-width="850px" scrollable>
       <v-card class="rounded-lg overflow-hidden">
@@ -422,7 +424,7 @@
     </v-dialog>
 
     <!-- ========================================================================= -->
-    <!-- DIALOG 2: LỊCH SỬ DỮ LIỆU SINH VIÊN (CẬP NHẬT TÊN CỘT "TÊN HỌC PHẦN" THEO ẢNH) -->
+    <!-- DIALOG 2: LỊCH SỬ DỮ LIỆU SINH VIÊN -->
     <!-- ========================================================================= -->
     <v-dialog v-model="historyDialog" max-width="900px">
       <v-card class="rounded-lg overflow-hidden">
@@ -488,7 +490,7 @@
             </template>
           </v-data-table>
 
-          <!-- Phân trang Popup Lịch sử (Chuẩn 100% theo ảnh) -->
+          <!-- Phân trang Popup Lịch sử -->
           <div class="d-flex align-center justify-end mt-4 gap-2">
             <div class="d-flex align-center">
               <v-select
@@ -549,7 +551,7 @@
       </v-card>
     </v-dialog>
 
-    <!-- DIALOG 3: BỘ LỌC NÂNG CAO (GIỮ NGUYÊN) -->
+    <!-- DIALOG 3: BỘ LỌC NÂNG CAO -->
     <v-dialog v-model="filterDialog" max-width="500px">
       <v-card class="rounded-lg overflow-hidden">
         <v-card-title class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center" style="background-color: #a2212b;">
@@ -603,7 +605,7 @@
       </v-card>
     </v-dialog>
 
-    <!-- DIALOG 4: XÁC NHẬN THAY ĐỔI TRẠNG THÁI (GIỮ NGUYÊN) -->
+    <!-- DIALOG 4: XÁC NHẬN THAY ĐỔI TRẠNG THÁI -->
     <v-dialog v-model="confirmStatusDialog" max-width="500px" persistent>
       <v-card class="rounded-lg overflow-hidden">
         <v-card-title class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center" style="background-color: #a2212b;">
@@ -621,7 +623,7 @@
       </v-card>
     </v-dialog>
 
-    <!-- Toast Notification (GIỮ NGUYÊN) -->
+    <!-- Toast Notification -->
     <v-snackbar
       v-model="toast.show"
       :color="toast.color"
@@ -747,14 +749,10 @@ export default {
         { id: 3, fullName: 'Trịnh Thanh Tâm', studentCode: '20210377P', schoolEmail: 'Tam.TT210377P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-QTKD2.2-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', status: 'STUDYING', major: 'Quản trị kinh doanh' },
         { id: 4, fullName: 'Nguyễn Khánh An', studentCode: '20210105P', schoolEmail: 'An.NK210105P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-CNTT1.1-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', status: 'STUDYING', major: 'Công nghệ thông tin' },
         { id: 5, fullName: 'Nguyễn Linh Anh', studentCode: '20210108P', schoolEmail: '', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-CNTT1.1-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', status: 'STUDYING', major: 'Công nghệ thông tin' },
-        { id: 2, fullName: 'Vũ Phương Linh', studentCode: '20210344P', schoolEmail: 'Linh.VP210344P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-QTKD2.2-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', status: 'STUDYING', major: 'Quản trị kinh doanh' },
-        { id: 3, fullName: 'Trịnh Thanh Tâm', studentCode: '20210377P', schoolEmail: 'Tam.TT210377P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-QTKD2.2-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', status: 'STUDYING', major: 'Quản trị kinh doanh' },
-        { id: 4, fullName: 'Nguyễn Khánh An', studentCode: '20210105P', schoolEmail: 'An.NK210105P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-CNTT1.1-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', status: 'STUDYING', major: 'Công nghệ thông tin' },
-        { id: 5, fullName: 'Nguyễn Linh Anh', studentCode: '20210108P', schoolEmail: '', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-CNTT1.1-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', status: 'STUDYING', major: 'Công nghệ thông tin' },
-        { id: 2, fullName: 'Vũ Phương Linh', studentCode: '20210344P', schoolEmail: 'Linh.VP210344P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-QTKD2.2-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', status: 'STUDYING', major: 'Quản trị kinh doanh' },
-        { id: 3, fullName: 'Trịnh Thanh Tâm', studentCode: '20210377P', schoolEmail: 'Tam.TT210377P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-QTKD2.2-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', status: 'STUDYING', major: 'Quản trị kinh doanh' },
-        { id: 4, fullName: 'Nguyễn Khánh An', studentCode: '20210105P', schoolEmail: 'An.NK210105P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-CNTT1.1-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', status: 'STUDYING', major: 'Công nghệ thông tin' },
-        { id: 5, fullName: 'Nguyễn Linh Anh', studentCode: '20210108P', schoolEmail: '', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-CNTT1.1-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', status: 'STUDYING', major: 'Công nghệ thông tin' }
+        { id: 6, fullName: 'Vũ Phương Linh', studentCode: '20210344P', schoolEmail: 'Linh.VP210344P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-QTKD2.2-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', status: 'STUDYING', major: 'Quản trị kinh doanh' },
+        { id: 7, fullName: 'Trịnh Thanh Tâm', studentCode: '20210377P', schoolEmail: 'Tam.TT210377P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-QTKD2.2-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', status: 'STUDYING', major: 'Quản trị kinh doanh' },
+        { id: 8, fullName: 'Nguyễn Khánh An', studentCode: '20210105P', schoolEmail: 'An.NK210105P@sis.hust.edu.vn', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-CNTT1.1-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', status: 'STUDYING', major: 'Công nghệ thông tin' },
+        { id: 9, fullName: 'Nguyễn Linh Anh', studentCode: '20210108P', schoolEmail: '', gender: 'Khác', course: 'Khóa 66', className: 'DH-BK-CNTT1.1-K66', trainingType: 'Vừa làm vừa học', degree: 'Cử nhân', location: 'Đại học Bách khoa Hà Nội', status: 'STUDYING', major: 'Công nghệ thông tin' }
       ],
     }
   },
@@ -980,7 +978,7 @@ export default {
 .custom-outlined-input >>> fieldset { border-color: #ccc !important; border-radius: 4px !important; }
 .custom-outlined-input.v-input--is-focused >>> fieldset { border-color: #a2212b !important; border-width: 1px !important; }
 
-/* 2. STYLE TIÊU ĐỀ SECTION DIALOG DETAIL (Thanh đỏ bên trái) */
+/* 2. STYLE TIÊU ĐỀ SECTION DIALOG DETAIL */
 .section-title-indicator {
   width: 4px;
   height: 18px;
@@ -991,11 +989,9 @@ export default {
 /* 3. BẢNG DỮ LIỆU */
 .table-responsive-wrapper {
   width: 100%;
-  overflow-x: auto;
 }
 
 .custom-table {
-  min-width: 1000px !important;
   background-color: transparent !important;
 }
 
@@ -1006,7 +1002,7 @@ export default {
   white-space: nowrap !important;
 }
 
-/* 4. EXPANSION PANELS (ACCORDION KHÔNG BỌC BORDER NGOÀI TRONG VIDEO) */
+/* 4. EXPANSION PANELS */
 .custom-panels >>> .v-expansion-panel::before {
   box-shadow: none !important;
 }
@@ -1023,149 +1019,148 @@ export default {
   display: inline-flex;
   align-items: center;
 }
+.status-studying { background-color: #a2212b !important; color: #ffffff !important; }
+.status-leave { background-color: #fbc02d !important; color: #000000 !important; }
+.status-dropout { background-color: #616161 !important; color: #ffffff !important; }
+.status-unknown { background-color: #e0e0e0 !important; color: #424242 !important; }
 
-.status-studying {
-  background-color: #a2212b !important;
-  color: #ffffff !important;
-}
+.border-top { border-top: 1px solid #e0e0e0; }
 
-.status-leave {
-  background-color: #fbc02d !important;
-  color: #000000 !important;
-}
 
-.status-dropout {
-  background-color: #616161 !important;
-  color: #ffffff !important;
-}
-
-.status-unknown {
-  background-color: #e0e0e0 !important;
-  color: #424242 !important;
-}
-
-.border-top {
-  border-top: 1px solid #e0e0e0;
-}
-
-.table-wrapper {
-  display: flex;
-  flex-direction: column;
-  height: 600px;
-}
-
-.table-scroll {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: auto;
-}
-
-.table-footer {
-  flex-shrink: 0;
-  background: #fff;
-  padding: 12px 16px;
-  border-top: 1px solid #ddd;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-/* Khung trang chiếm chiều cao màn hình, tránh thanh cố định che nội dung */
-.quan-ly-sinh-vien-container {
-  height: 100vh;
-  height: 100dvh;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  box-sizing: border-box;
-  padding-bottom: 88px !important;
-}
-
-/* Thanh tìm kiếm/bộ lọc luôn nằm trên cùng */
-.student-filter-bar {
-  position: sticky;
-  top: 0;
-  z-index: 30;
-  flex: 0 0 auto;
-  width: 100%;
-  padding: 8px 0;
-  background: #fff;
-}
-
-/* Khu vực bảng co giãn, phần dữ liệu cuộn bên trong */
-.student-table-card {
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden !important;
-}
-
-.table-responsive-wrapper {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-}
-
-/* Bảng có thể cuộn ngang trên màn hình nhỏ */
-.custom-table {
-  min-width: 1000px !important;
-  height: 100%;
-  background-color: transparent !important;
-}
-
-/* Vuetify fixed-header: giữ tiêu đề bảng và cột STT hiển thị */
-.custom-table >>> .v-data-table__wrapper {
-  height: 100%;
-  overflow-y: auto !important;
-  overflow-x: auto !important;
-}
-
-.custom-table >>> thead th {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  background-color: #f8f9fa !important;
-  font-weight: bold !important;
-  color: #333 !important;
-  white-space: nowrap !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-}
-
-/* Thanh Excel + phân trang luôn cố định ở đáy cửa sổ */
-.table-footer {
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 40;
-  flex-shrink: 0;
-  min-height: 72px;
-  background: #fff !important;
-  padding: 12px 16px !important;
-  border-top: 1px solid #ddd;
-  box-shadow: 0 -3px 12px rgba(0, 0, 0, 0.06);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  box-sizing: border-box;
-}
-
-/* Trên điện thoại, cho phép thanh chân trang xuống dòng và cuộn ngang */
-@media (max-width: 600px) {
+/* =========================================================
+   MEDIA QUERIES - MÁY TÍNH (DESKTOP)
+========================================================= */
+@media (min-width: 601px) {
   .quan-ly-sinh-vien-container {
-    padding-left: 8px !important;
-    padding-right: 8px !important;
-    padding-bottom: 120px !important;
+    height: calc(100vh - 64px); 
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  
+  .student-filter-bar {
+    flex: 0 0 auto;
+  }
+
+  .student-table-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden !important;
+  }
+
+  .table-responsive-wrapper {
+    flex: 1 1 auto;
+    overflow: auto;
+  }
+
+  .custom-table {
+    height: 100%;
+  }
+
+  .custom-table >>> .v-data-table__wrapper {
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow-y: auto !important;
+  }
+
+  .custom-table >>> thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
   }
 
   .table-footer {
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 8px !important;
+    flex-shrink: 0;
+    z-index: 4;
   }
 
+  .info-block {
+    text-align: left;
+  }
+
+  .action-icons {
+    justify-content: center;
+  }
+}
+
+/* =========================================================
+   MEDIA QUERIES - ĐIỆN THOẠI (MOBILE) (Dưới 600px)
+========================================================= */
+@media (max-width: 600px) {
+  .quan-ly-sinh-vien-container {
+    height: auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .student-filter-bar {
+    position: sticky;
+    top: 0;
+    z-index: 4; 
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  .student-table-card {
+    overflow: visible !important;
+  }
+
+  .table-responsive-wrapper {
+    overflow: visible !important;
+  }
+
+  .custom-table {
+    min-width: 100% !important;
+    height: auto !important;
+  }
+
+  .custom-table >>> .v-data-table__wrapper {
+    height: auto !important;
+    overflow: visible !important;
+  }
+  
+  /* Chỉnh lại giao diện hiển thị cho Card Mode trên Mobile thật */
+  .custom-table >>> .v-data-table__mobile-row {
+    align-items: flex-start !important;
+    padding: 12px 16px !important;
+    min-height: auto !important;
+  }
+  .custom-table >>> .v-data-table__mobile-row__header {
+    font-weight: 600 !important;
+    color: #222 !important;
+    min-width: 130px;
+    margin-right: 16px;
+  }
+  .custom-table >>> .v-data-table__mobile-row__cell {
+    text-align: right !important;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: flex-start;
+  }
+  .custom-table >>> .v-data-table__wrapper > table > tbody > tr {
+    border-bottom: 8px solid #f0f2f5 !important;
+  }
+  
+  /* Canh phải các nội dung và Icon ở Mobile view */
+  .info-block {
+    text-align: right !important;
+  }
+  .action-icons {
+    justify-content: flex-end;
+  }
+
+  /* Thanh Footer (Phân trang) chảy tự nhiên ở dưới cùng */
+  .table-footer {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 8px !important;
+  }
   .table-footer > .d-flex {
     flex-wrap: wrap;
   }

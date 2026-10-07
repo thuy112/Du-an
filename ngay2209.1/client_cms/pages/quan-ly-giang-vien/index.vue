@@ -1,7 +1,7 @@
 <template>
   <div class="teacher-page d-flex flex-column pa-2 pa-sm-4 bg-white">
     
-    <!-- 1. THANH TÌM KIẾM CỐ ĐỊNH PHÍA TRÊN -->
+    <!-- 1. THANH TÌM KIẾM -->
     <div class="top-filter-bar bg-white py-3 px-1">
       <div class="d-flex align-center justify-space-between flex-wrap gap-2 width-100">
         <div class="text-subtitle-1 font-weight-bold mr-2 text-no-wrap">
@@ -87,36 +87,34 @@
       </div>
     </div>
 
-    <!-- 2. BẢNG DỮ LIỆU KHÔNG VIỀN KHUNG -->
+    <!-- 2. BẢNG DỮ LIỆU CÓ PHẢN HỒI MOBILE -->
     <div class="table-container bg-white">
       <v-data-table
         :headers="headers"
         :items="paginatedTeachers"
         hide-default-footer
         disable-pagination
-        fixed-header
-        class="custom-table height-100"
+        mobile-breakpoint="960"
+        class="custom-table"
       >
       
         <template #[`item.stt`]="{ index }">
           <span class="font-weight-medium">{{ (page - 1) * itemsPerPage + index + 1 }}</span>
         </template>
 
+        <!-- SLOT THÔNG TIN CHUNG CĂN CHỈNH ĐỘNG -->
         <template #[`item.generalInfo`]="{ item }">
-          <div class="py-2">
-            <div class="font-weight-bold red--text text--darken-3 mb-1">
+          <div class="py-2 info-block">
+            <div class="font-weight-bold red--text text--darken-3 mb-1" style="font-size: 15px;">
               {{ item.fullName }}
             </div>
-            <div v-if="item.phone" class="caption text--secondary">
-              Số điện thoại: <span class="red--text text--darken-2 font-weight-medium">{{ item.phone }}</span>
+            <div v-if="item.phone" class="text-body-2 text--secondary mb-1">
+              Số điện thoại: <span class="red--text text--darken-2 font-weight-bold">{{ item.phone }}</span>
             </div>
-            <div v-if="item.dob" class="caption text--secondary">
-              Ngày sinh: <span class="red--text text--darken-2 font-weight-medium">{{ item.dob }}</span>
+            <div v-if="item.email" class="text-body-2 text--secondary mb-1">
+              Email: <span class="red--text text--darken-2 font-weight-bold">{{ item.email }}</span>
             </div>
-            <div v-if="item.email" class="caption text--secondary">
-              Email: <span class="red--text text--darken-2 font-weight-medium">{{ item.email }}</span>
-            </div>
-            <div v-if="item.gender" class="caption text--secondary">
+            <div v-if="item.gender" class="text-body-2 text--secondary">
               Giới tính: <span class="red--text text--darken-2 font-weight-bold">{{ item.gender }}</span>
             </div>
           </div>
@@ -170,8 +168,9 @@
           </v-menu>
         </template>
 
+        <!-- SLOT CHỨC NĂNG -->
         <template #[`item.actions`]="{ item }">
-          <div class="d-flex align-center justify-center gap-1">
+          <div class="d-flex align-center gap-1 action-icons">
             <v-btn icon x-small color="cyan darken-1" @click="viewDetail(item)">
               <v-icon size="24" color="blue">mdi-eye</v-icon>
             </v-btn>
@@ -184,8 +183,8 @@
       </v-data-table>
     </div>
 
-    <!-- 3. THANH PHÂN TRANG DƯỚI -->
-    <div class="bottom-fixed-bar d-flex align-center justify-space-between flex-wrap gap-2 py-3 px-1 bg-white">
+    <!-- 3. THANH PHÂN TRANG & EXCEL -->
+    <div class="bottom-bar d-flex align-center justify-space-between flex-wrap gap-2 py-3 px-1 mt-auto bg-white">
       <v-btn
         color="#2e7d32"
         dark
@@ -196,7 +195,7 @@
         <v-icon left small>mdi-export</v-icon> XUẤT FILE EXCEL
       </v-btn>
 
-      <div class="d-flex align-center gap-2">
+      <div class="d-flex align-center gap-2 flex-wrap justify-end">
         <!-- Ô Chọn Bản ghi -->
         <v-select
           v-model="itemsPerPage"
@@ -234,31 +233,33 @@
           Đi
         </v-btn>
 
-        <v-btn icon small :disabled="page <= 1" @click="changePage(page - 1)">
-          <v-icon>mdi-chevron-left</v-icon>
-        </v-btn>
-        
-        <v-btn
-          v-for="p in visiblePages"
-          :key="p"
-          small
-          :color="page === p ? '#a2212b' : ''"
-          :dark="page === p"
-          :outlined="page !== p"
-          class="min-w-0 pa-0 rounded-sm elevation-0"
-          style="width: 28px; height: 28px"
-          @click="changePage(p)"
-        >
-          {{ p }}
-        </v-btn>
+        <div class="d-flex align-center">
+          <v-btn icon small :disabled="page <= 1" @click="changePage(page - 1)">
+            <v-icon>mdi-chevron-left</v-icon>
+          </v-btn>
+          
+          <v-btn
+            v-for="p in visiblePages"
+            :key="p"
+            small
+            :color="page === p ? '#a2212b' : ''"
+            :dark="page === p"
+            :outlined="page !== p"
+            class="min-w-0 pa-0 rounded-sm elevation-0 mx-1"
+            style="width: 28px; height: 28px"
+            @click="changePage(p)"
+          >
+            {{ p }}
+          </v-btn>
 
-        <v-btn icon small :disabled="page >= totalPages" @click="changePage(page + 1)">
-          <v-icon>mdi-chevron-right</v-icon>
-        </v-btn>
+          <v-btn icon small :disabled="page >= totalPages" @click="changePage(page + 1)">
+            <v-icon>mdi-chevron-right</v-icon>
+          </v-btn>
+        </div>
       </div>
     </div>
 
-    <!-- DIALOGS & TOAST -->
+    <!-- CÁC DIALOGS -->
     <v-dialog v-model="confirmStatusDialog" max-width="500px" persistent>
       <v-card class="rounded-lg overflow-hidden">
         <v-card-title class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center" style="background-color: #a2212b;">
@@ -494,33 +495,6 @@ export default {
     }
   },
   methods: {
-    getStatusClass(status) {
-      if (!status) return 'status-inactive'
-      const val = status.toString().toUpperCase()
-      if (val === 'ACTIVE' || val === 'HOẠT ĐỘNG' || val === 'HOAT DONG') {
-        return 'status-active'
-      }
-      return 'status-inactive'
-    },
-
-    getStatusIconColor(status) {
-      if (!status) return '#5f6368'
-      const val = status.toString().toUpperCase()
-      if (val === 'ACTIVE' || val === 'HOẠT ĐỘNG' || val === 'HOAT DONG') {
-        return '#d93025'
-      }
-      return '#5f6368'
-    },
-
-    getTeacherTypeClass(type) {
-      if (!type) return 'type-visiting'
-      const val = type.toString().toUpperCase()
-      if (val === 'FULL_TIME' || val === 'ĐƯƠNG CHỨC' || val === 'DUONG CHUC') {
-        return 'type-fulltime'
-      }
-      return 'type-visiting'
-    },
-
     getCurrentDateTime() {
       const now = new Date()
       return `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
@@ -544,13 +518,11 @@ export default {
       if (item.hasUpdate) this.historyDialog = true
       else this.showToast('Không có dữ liệu cập nhật mới.', '#ffc107')
     },
-
     openConfirmStatusDialog(item, newStatus) {
       if (item.status === newStatus) return
       this.pendingStatusChange = { teacher: item, oldStatus: item.status, newStatus }
       this.confirmStatusDialog = true
     },
-
     confirmStatusUpdate() {
       if (this.pendingStatusChange.teacher) {
         const teacher = this.pendingStatusChange.teacher
@@ -562,7 +534,6 @@ export default {
         this.showToast(`Đã chuyển trạng thái sang thành công`, '#4caf50')
       }
     },
-
     exportToExcel() {
       const dataToExport = this.filteredTeachers.map((item, index) => ({
         'STT': index + 1,
@@ -583,13 +554,11 @@ export default {
         this.showToast('Không có dữ liệu để xuất file!', '#ffc107')
         return
       }
-
       const worksheet = XLSX.utils.json_to_sheet(dataToExport)
       const autoFitCols = Object.keys(dataToExport[0]).map(key => ({
         wch: Math.max(key.length + 5, 15)
       }))
       worksheet['!cols'] = autoFitCols
-
       const workbook = XLSX.utils.book_new()
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách giảng viên')
 
@@ -603,10 +572,8 @@ export default {
 
       const timeString = `${year}_${month}_${day}_${hours}${minutes}${seconds}`
       const randomSuffix = Math.random().toString(16).substring(2, 6)
-
       const fileName = `danh_sach_giang_vien_${timeString}_${randomSuffix}.xlsx`
       XLSX.writeFile(workbook, fileName)
-      
     },
     showToast(message, color) {
       this.toast.message = message; this.toast.color = color; this.toast.show = true
@@ -627,44 +594,22 @@ export default {
   white-space: nowrap;
 }
 
-/* --- TRẠNG THÁI (STATUS) --- */
-/* Hoạt động / ACTIVE: Màu đỏ */
-.status-active {
-  background-color: #a2212b!important;
-  color: #ffff !important;
-}
+.status-active { background-color: #a2212b!important; color: #ffff !important; }
+.status-inactive { background-color: #9e9e9e !important; color: #ffff !important; }
+.type-fulltime { background-color: #ffae1f !important; color: #ffff !important; }
+.type-visiting { background-color: #4caf50 !important; color: #ffff !important; }
 
-/* Nghỉ hưu / INACTIVE: Màu xám */
-.status-inactive {
-  background-color: #9e9e9e !important;
-  color: #ffff !important;
-}
-
-/* --- LOẠI GIẢNG VIÊN (TEACHER TYPE) --- */
-/* Đương chức / FULL_TIME: Màu vàng */
-.type-fulltime {
-  background-color: #ffae1f !important;
-  color: #ffff !important;
-}
-
-/* Mời giảng / VISITING: Màu xanh lá */
-.type-visiting {
-  background-color: #4caf50 !important;
-  color: #ffff !important;
-}
-
-.teacher-page {
-  height: calc(100vh - 64px); 
-  overflow: hidden;
-}
-
+/* 
+  CHUNG: Lớp bọc dùng chung.
+*/
 .gap-1 { gap: 4px; }
 .gap-2 { gap: 8px; }
 .border-btn { border: 1px solid #a2212b !important; }
 
-
-/* 1. THANH TÌM KIẾM CỐ ĐỊNH PHÍA TRÊN */
-.top-filter-bar { flex-shrink: 0; }
+/* 1. THANH TÌM KIẾM TRÊN CÙNG */
+.top-filter-bar { 
+  flex-shrink: 0; 
+}
 
 .filter-item { flex: 1 1 100%; }
 @media (min-width: 600px) {
@@ -675,206 +620,142 @@ export default {
   .select-lg { min-width: 140px; max-width: 180px; }
 }
 
-.custom-outlined-input >>> .v-input__control {
-  min-height: 40px !important;
-}
+.custom-outlined-input >>> .v-input__control { min-height: 40px !important; }
+.custom-outlined-input >>> fieldset { border-color: #ccc !important; border-radius: 4px !important; }
+.custom-outlined-input.v-input--is-focused >>> fieldset { border-color: #a2212b !important; border-width: 1px !important; }
+.custom-outlined-input >>> .v-label { top: 10px !important; font-size: 13px !important; color: #757575 !important; }
+.custom-outlined-input.v-input--is-label-active >>> .v-label { top: -10px !important; transform: translateY(0) scale(0.85) !important; background-color: white !important; padding: 0 4px !important; }
+.custom-outlined-input >>> .v-input__append-inner { margin-top: 8px !important; }
 
-.custom-outlined-input >>> fieldset {
-  border-color: #ccc !important;
-  border-radius: 4px !important;
-}
-
-.custom-outlined-input.v-input--is-focused >>> fieldset {
-  border-color: #a2212b !important;
-  border-width: 1px !important;
-}
-
-.custom-outlined-input >>> .v-label {
-  top: 10px !important;
-  font-size: 13px !important;
-  color: #757575 !important;
-}
-
-.custom-outlined-input.v-input--is-label-active >>> .v-label {
-  top: -10px !important;
-  transform: translateY(0) scale(0.85) !important;
-  background-color: white !important;
-  padding: 0 4px !important;
-}
-
-.custom-outlined-input >>> .v-input__append-inner {
-  margin-top: 8px !important;
-}
-
-/* 2. KHUNG CHỨA BẢNG VÀ HEADER CỐ ĐỊNH */
+/* 2. BẢNG */
 .table-container {
-  flex: 1 1 auto;
-  min-height: 0;
   position: relative;
-  overflow: hidden;
+  width: 100%;
 }
-
-.custom-table {
-  height: 100%;
-  min-width: 950px !important;
-  background-color: transparent !important;
-}
-
-.custom-table >>> .v-data-table__wrapper {
-  height: 100% !important;
-  max-height: 100% !important;
-  overflow-y: auto !important;
-  border: none !important;
-}
-
+.custom-table { background-color: transparent !important; }
 .custom-table >>> th {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 1 !important;
-  background-color: #f5f5f5 !important;
+  background-color: #f8f9fa !important;
   font-weight: bold !important;
   color: #333 !important;
   box-shadow: 0 1px 0 #e0e0e0 !important;
 }
 
-/* 3. ĐỌAN CSS SỬA DÀNH RIÊNG CHO CHỮ "BẢN GHI" VÀ "TRANG" Ở THANH PHÂN TRANG */
-.bottom-fixed-bar { flex-shrink: 0; }
+/* 3. THANH PHÂN TRANG DƯỚI */
+.bottom-bar { flex-shrink: 0; }
+.pagination-input >>> .v-input__control { min-height: 36px !important; }
+.pagination-input >>> .v-input__slot { min-height: 36px !important; padding: 0 8px !important; }
+.pagination-input >>> fieldset { border-color: #cccccc !important; border-radius: 4px !important; }
+.pagination-input >>> .v-label { top: 8px !important; font-size: 12px !important; color: #757575 !important; transform-origin: top left !important; }
+.pagination-input.v-input--is-label-active >>> .v-label { top: -10px !important; transform: translateY(0) scale(0.85) !important; background-color: #ffffff !important; padding: 0 4px !important; z-index: 2 !important; }
+.pagination-input.text-center >>> input { text-align: center !important; padding: 0 !important; }
+.pagination-input >>> .v-select__selection--comma { margin-top: 4px !important; font-size: 13px !important; }
+.pagination-input >>> .v-input__append-inner { margin-top: 6px !important; }
 
-.pagination-input >>> .v-input__control {
-  min-height: 36px !important;
+
+/* =========================================================
+   MEDIA QUERIES (XỬ LÝ SCROLL VÀ HIỂN THỊ TRÊN CÁC MÀN HÌNH)
+========================================================= */
+
+/* DÀNH CHO ĐIỆN THOẠI (Mobile) */
+@media (max-width: 959px) {
+  .teacher-page {
+    /* Mở khóa chiều cao cho Mobile cuộn trang tự nhiên */
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+  
+  .top-filter-bar {
+    /* ĐÃ BỎ LỆNH FIX: Thanh sẽ cuộn mất khi lướt tay xuống */
+    position: relative;
+    z-index: 10;
+  }
+
+  .table-container {
+    overflow: visible !important;
+  }
+  
+  .custom-table {
+    min-width: 100% !important; 
+  }
+  .custom-table >>> .v-data-table__wrapper {
+    overflow: visible !important;
+  }
+
+  .info-block { text-align: right !important; }
+  .action-icons { justify-content: flex-end; }
+
+  /* Định dạng hàng dạng thẻ trên mobile */
+  .custom-table >>> .v-data-table__mobile-row {
+    align-items: flex-start !important;
+    padding: 12px 16px !important;
+    min-height: auto !important;
+  }
+  .custom-table >>> .v-data-table__mobile-row__header {
+    font-weight: 600 !important;
+    color: #222 !important;
+    min-width: 130px;
+    margin-right: 16px;
+  }
+  .custom-table >>> .v-data-table__mobile-row__cell {
+    text-align: right !important;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: flex-start;
+  }
+  .custom-table >>> .v-data-table__wrapper > table > tbody > tr {
+    border-bottom: 8px solid #f0f2f5 !important;
+  }
 }
 
-.pagination-input >>> .v-input__slot {
-  min-height: 36px !important;
-  padding: 0 8px !important;
+/* DÀNH CHO MÁY TÍNH (Desktop) */
+@media (min-width: 960px) {
+  .teacher-page {
+    /* Ép khung cuộn ngang/dọc cho Desktop */
+    height: calc(100vh - 64px); 
+    overflow: hidden;
+  }
+  
+  .table-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: auto;
+  }
+
+  .custom-table {
+    min-width: 1000px !important;
+    height: 100%;
+  }
+
+  .custom-table >>> .v-data-table__wrapper {
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow-y: auto !important;
+  }
+
+  /* Cố định Header của bảng trên Desktop */
+  .custom-table >>> th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1 !important;
+  }
+
+  .info-block { text-align: left !important; }
+  .action-icons { justify-content: center; }
 }
 
-.pagination-input >>> fieldset {
-  border-color: #cccccc !important;
-  border-radius: 4px !important;
-}
-
-/* Vị trí Label khi ô trống */
-.pagination-input >>> .v-label {
-  top: 8px !important;
-  font-size: 12px !important;
-  color: #757575 !important;
-  transform-origin: top left !important;
-}
-
-/* KHẮC PHỤC CHÍNH: Ép Label nằm đè chính giữa viền khung trên khi đã chọn giá trị */
-.pagination-input.v-input--is-label-active >>> .v-label {
-  top: -10px !important;
-  transform: translateY(0) scale(0.85) !important;
-  background-color: #ffffff !important;
-  padding: 0 4px !important;
-  z-index: 2 !important;
-}
-
-.pagination-input.text-center >>> input {
-  text-align: center !important;
-  padding: 0 !important;
-}
-
-.pagination-input >>> .v-select__selection--comma {
-  margin-top: 4px !important;
-  font-size: 13px !important;
-}
-
-.pagination-input >>> .v-input__append-inner {
-  margin-top: 6px !important;
-}
-
-/* SELECT TRẠNG THÁI TRONG BẢNG */
-.status-select-btn >>> .v-input__slot {
-  background-color: #a2212b !important;
-  border-radius: 20px !important;
-  min-height: 28px !important;
-  padding: 0 10px !important;
-}
-.status-select-btn >>> .v-select__selection {
-  color: white !important;
-  font-size: 12px !important;
-  font-weight: bold !important;
-}
-.status-select-btn >>> .v-icon { color: white !important; }
+/* Scrollbar máy tính */
+.custom-table >>> .v-data-table__wrapper::-webkit-scrollbar,
+.table-container::-webkit-scrollbar { height: 6px; width: 6px; }
+.custom-table >>> .v-data-table__wrapper::-webkit-scrollbar-track,
+.table-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+.custom-table >>> .v-data-table__wrapper::-webkit-scrollbar-thumb,
+.table-container::-webkit-scrollbar-thumb { background: #a2212b; border-radius: 4px; }
+.custom-table >>> .v-data-table__wrapper::-webkit-scrollbar-thumb:hover,
+.table-container::-webkit-scrollbar-thumb:hover { background: #83161f; }
 
 .custom-toast >>> .v-snack__wrapper { border-radius: 8px !important; }
-
-/* Khối bọc cho phép kéo cuộn ngang khi thu nhỏ màn hình */
-.table-container {
-  width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.custom-table {
-  min-width: 1000px !important;
-}
-
-.custom-table >>> th { background-color: #f8f9fa !important; font-weight: bold !important; color: #333 !important; }
-
-.status-select-btn >>> .v-input__slot { background-color: #a2212b !important; border-radius: 20px !important; min-height: 28px !important; padding: 0 10px !important; }
-.status-select-btn >>> .v-select__selection { color: white !important; font-size: 12px !important; font-weight: bold !important; }
-.status-select-btn >>> .v-icon { color: white !important; }
-
-.history-record-select {
-  width: 75px;
-  max-width: 75px;
-}
-.history-record-select >>> .v-input__slot {
-  min-height: 36px !important;
-  border-radius: 4px !important;
-}
-.history-page-field >>> input {
-  text-align: center !important;
-}
-.history-pagination-arrow {
-  border: none !important;
-  border-radius: 4px !important;
-  background-color: #ffffff !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18) !important;
-  opacity: 1 !important;
-}
-.history-pagination-arrow >>> .v-icon {
-  color: #a2212b !important;
-}
-
-.border-left-title {
-  border-left: 4px solid #a2212b;
-  line-height: 1.2;
-}
-
-.custom-toast >>> .v-snack__wrapper {
-  border-radius: 8px !important;
-}
-
-.style-scroll::-webkit-scrollbar {
-  width: 6px;
-}
-.style-scroll::-webkit-scrollbar-thumb {
-  background-color: #ccc;
-  border-radius: 4px;
-}
-
-/* Thanh cuộn ngang màu đỏ Bách Khoa cho bảng */
-.table-container::-webkit-scrollbar {
-  height: 6px;
-}
-.table-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-.table-container::-webkit-scrollbar-thumb {
-  background: #a2212b;
-  border-radius: 4px;
-}
-.table-container::-webkit-scrollbar-thumb:hover {
-  background: #83161f;
-}
-
-/* Ép tất cả các Menu/Dropdown không bị trôi/văng lên đỉnh màn hình khi Zoom */
-.v-menu__content {
-  position: absolute !important;
-}
+.v-menu__content { position: absolute !important; }
 </style>

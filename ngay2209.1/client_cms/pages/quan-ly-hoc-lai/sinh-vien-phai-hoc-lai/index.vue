@@ -1,11 +1,11 @@
 <template>
-  <div class="must-retake-page pa-3 pa-md-4 bg-white">
+  <div class="must-retake-page pa-3 pa-md-4 bg-white" :class="{ 'is-mobile-device': isMobileDevice }">
     <!-- TIÊU ĐỀ TRANG -->
     <div class="text-h6 font-weight-bold black--text mb-3">
       Danh sách sinh viên phải học lại (<span class="text-red-bold">{{ filteredList.length }}</span>)
     </div>
 
-    <!-- 1. BỘ LỌC TÌM KIẾM VÀ CỤM NÚT ICON (NẰM THẲNG HÀNG TRÊN DESKTOP) -->
+    <!-- 1. BỘ LỌC TÌM KIẾM VÀ CỤM NÚT ICON -->
     <div class="d-flex align-center justify-space-between mb-3 gap-2 flex-wrap flex-md-nowrap">
       <!-- CÁC Ô LỌC DỮ LIỆU -->
       <div class="d-flex align-center gap-2 flex-grow-1 flex-wrap flex-md-nowrap">
@@ -71,7 +71,7 @@
         ></v-select>
       </div>
 
-      <!-- CỤM NÚT ICON THẲNG HÀNG VỚI CÁC Ô TÌM KIẾM -->
+      <!-- CỤM NÚT ICON -->
       <div class="d-flex align-center gap-2">
         <v-btn icon color="#A62229" class="btn-square-action" @click="refreshData">
           <v-icon size="22">mdi-refresh</v-icon>
@@ -108,8 +108,8 @@
       </div>
     </div>
 
-    <!-- 2. GIAO DIỆN DESKTOP: BẢNG DỮ LIỆU TABLE -->
-    <div class="d-none d-md-block table-responsive-wrapper">
+    <!-- 2. GIAO DIỆN DESKTOP: BẢNG DỮ LIỆU CUỘN TỰ NHIÊN -->
+    <div v-if="!isMobileDevice" class="table-responsive-wrapper">
       <v-simple-table class="flat-table">
         <template v-slot:default>
           <thead>
@@ -166,9 +166,12 @@
                 <td>{{ item.subjectName }}</td>
                 <td class="text-center font-weight-bold">{{ item.failedScore || '' }}</td>
                 <td class="text-center">
-                  <span :class="['status-badge', item.isRegistered ? 'bg-green' : 'bg-grey']">
-                    {{ item.isRegistered ? 'Đã đăng ký' : 'Chưa đăng ký' }}
-                  </span>
+                  <!-- Bọc trạng thái để không bị rớt chữ -->
+                  <div class="status-badge-wrapper">
+                    <span :class="['status-badge', item.isRegistered ? 'bg-green' : 'bg-grey']">
+                      {{ item.isRegistered ? 'Đã đăng ký' : 'Chưa đăng ký' }}
+                    </span>
+                  </div>
                 </td>
                 <td class="text-center">
                   <div class="d-flex align-center justify-center gap-1">
@@ -198,9 +201,8 @@
       </v-simple-table>
     </div>
 
-    <!-- 3. GIAO DIỆN MOBILE: TÍCH TỔNG BÊN TRÁI, TÍCH TỪNG CÁI BÊN PHẢI (BỎ KHUNG) -->
-    <div class="d-block d-md-none mobile-card-list">
-      <!-- THANH TÍCH TỔNG MOBILE (CĂN BÊN TRÁI - NỀN XÁM NHẠT - KHÔNG CHỮ) -->
+    <!-- 3. GIAO DIỆN MOBILE: TÍCH TỔNG BÊN TRÁI, TÍCH TỪNG CÁI BÊN PHẢI -->
+    <div v-else class="mobile-card-list">
       <div class="mobile-select-all-header mb-3 pa-3 bg-gray-head d-flex align-center justify-start">
         <v-checkbox
           v-model="selectAll"
@@ -215,9 +217,8 @@
         <div 
           v-for="(item, idx) in paginatedList" 
           :key="item.id || idx"
-          class="mobile-card-item mb-4 pa-2"
+          class="mobile-card-item mb-4 pa-3 border rounded shadow-sm"
         >
-          <!-- CHECKBOX TỪNG CÁI MOBILE (CĂN BÊN PHẢI) -->
           <div class="d-flex justify-end mb-2">
             <v-checkbox
               v-model="selectedItems"
@@ -267,7 +268,7 @@
 
           <div class="mobile-info-row d-flex justify-space-between py-1">
             <span class="info-label text-caption font-weight-bold">Tên học phần</span>
-            <span class="info-value text-caption text-right">{{ item.subjectName }}</span>
+            <span class="info-value text-caption text-right pl-4">{{ item.subjectName }}</span>
           </div>
 
           <div class="mobile-info-row d-flex justify-space-between py-1">
@@ -275,14 +276,14 @@
             <span class="info-value text-caption font-weight-bold">{{ item.failedScore || '' }}</span>
           </div>
 
-          <div class="mobile-info-row d-flex justify-space-between align-center py-1">
+          <div class="mobile-info-row d-flex justify-space-between align-center py-2">
             <span class="info-label text-caption font-weight-bold">Trạng thái</span>
             <span :class="['status-badge', item.isRegistered ? 'bg-green' : 'bg-grey']">
               {{ item.isRegistered ? 'Đã đăng ký' : 'Chưa đăng ký' }}
             </span>
           </div>
 
-          <div class="mobile-info-row d-flex justify-space-between align-center py-1">
+          <div class="mobile-info-row d-flex justify-space-between align-center py-2 border-none">
             <span class="info-label text-caption font-weight-bold">Chức năng</span>
             <div class="d-flex align-center gap-1">
               <v-btn icon small color="blue" @click="viewDetail(item)">
@@ -308,10 +309,10 @@
     </div>
 
     <!-- 4. BOTTOM BAR -->
-    <div class="pagination-bottom-container mt-4 pt-2">
-      <div class="d-flex align-center justify-space-between flex-wrap flex-md-nowrap gap-3">
+    <div class="pagination-bottom-container mt-4 pt-2 border-top">
+      <div class="d-flex align-center justify-space-between flex-wrap gap-3">
         <!-- CỤM NÚT XUẤT/NHẬP FILE -->
-        <div class="d-flex align-center gap-2 flex-wrap flex-md-nowrap">
+        <div class="d-flex align-center gap-2 flex-wrap">
           <input
             ref="fileInput"
             type="file"
@@ -346,7 +347,7 @@
         </div>
 
         <!-- CỤM BẢN GHI VÀ PHÂN TRANG -->
-        <div class="pagination-scroll-wrapper">
+        <div class="pagination-scroll-wrapper flex-grow-1 d-flex justify-end">
           <div class="d-flex align-center gap-2 flex-nowrap pb-1" style="min-width: max-content;">
             <span class="text-caption text-grey-color text-nowrap">Bản ghi</span>
             <v-select
@@ -478,6 +479,8 @@ export default {
   },
   data() {
     return {
+      isMobileDevice: false, // cờ nhận diện giao diện di động
+      
       filters: {
         keyword: '',
         termId: null,
@@ -558,6 +561,10 @@ export default {
   },
   mounted() {
     this.mockData()
+    // Nhận diện thiết bị di động bằng regex
+    if (typeof navigator !== 'undefined') {
+      this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    }
   },
   methods: {
     mockData() {
@@ -569,6 +576,9 @@ export default {
         { id: 5, fullName: 'Nguyễn Linh Anh', studentCode: '20210108P', className: 'ĐH-BK-CNTT1.1-K66', sessionCode: '20261-A-5', termCode: '20261', subjectCode: 'IT3080', subjectName: 'Mạng máy tính', failedScore: '', isRegistered: true },
         { id: 6, fullName: 'Nguyễn Quang Anh', studentCode: '20210107P', className: 'ĐH-BK-CNTT1.2-K66', sessionCode: '20261-A-5', termCode: '20261', subjectCode: 'IT3070', subjectName: 'Nguyên lý hệ điều hành', failedScore: '', isRegistered: true },
         { id: 7, fullName: 'Nguyễn Khánh An', studentCode: '20210105P', className: 'ĐH-BK-CNTT1.1-K66', sessionCode: '20261-A-5', termCode: '20261', subjectCode: 'IT3011', subjectName: 'Cấu trúc dữ liệu và thuật toán', failedScore: '', isRegistered: true },
+        { id: 8, fullName: 'Đỗ Tiến Tây Anh', studentCode: '20210112P', className: 'ĐH-BK-CNTT1.1-K66', sessionCode: '20261-A-4', termCode: '20261', subjectCode: 'IT3100', subjectName: 'Lập trình hướng đối tượng', failedScore: '', isRegistered: false },
+        { id: 9, fullName: 'Lê Tuấn Anh', studentCode: '20210110P', className: 'ĐH-BK-CNTT1.2-K66', sessionCode: '20261-A-4', termCode: '20261', subjectCode: 'IT3100', subjectName: 'Lập trình hướng đối tượng', failedScore: '', isRegistered: false },
+        { id: 10, fullName: 'Nguyễn Khánh An', studentCode: '20210105P', className: 'ĐH-BK-CNTT1.1-K66', sessionCode: '20261-A-5', termCode: '20261', subjectCode: 'IT3011', subjectName: 'Cấu trúc dữ liệu và thuật toán', failedScore: '', isRegistered: true },
       ]
       const savedStudents = this.getSavedTestStudents()
       this.studentList = [...savedStudents, ...originalStudents]
@@ -788,64 +798,45 @@ export default {
 </script>
 
 <style scoped>
+/* ==========================================================
+   CSS CƠ BẢN DÙNG CHUNG
+========================================================== */
 .bg-red-bk { background-color: #A62229 !important; }
 .text-red-bold { color: #A62229 !important; }
 .text-grey-color { color: #757575 !important; }
 .gray-head-text { color: #333333 !important; }
-
-/* NỀN XÁM CHO BẢNG CỦA MÁY TÍNH VÀ THANH CHỌN TẤT CẢ DI ĐỘNG */
 .bg-gray-head { background-color: #EEEEEE !important; }
 
-.mobile-card-item {
-  background-color: #FFFFFF;
-}
-
-.mobile-info-row {
-  border-bottom: 1px dashed #EEEEEE;
-}
-.mobile-info-row:last-child {
-  border-bottom: none;
-}
-.info-label {
-  color: #333333;
-}
-.info-value {
-  color: #555555;
-}
-
-.table-responsive-wrapper {
+/* FIX LỖI RỚT DÒNG CHO HUY HIỆU TRẠNG THÁI */
+.status-badge-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+}
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  white-space: nowrap !important; /* Quan trọng: Ngăn không cho rớt chữ */
+  display: inline-block;
+  text-align: center;
 }
 
-.pagination-scroll-wrapper {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  white-space: nowrap;
-}
+.bg-green { background-color: #4CAF50 !important; }
+.bg-grey { background-color: #9E9E9E !important; }
 
-.pagination-scroll-wrapper::-webkit-scrollbar {
-  height: 5px;
-}
+.gap-1 { gap: 4px; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
+.cursor-pointer { cursor: pointer; }
+.text-nowrap { white-space: nowrap !important; }
 
-.pagination-scroll-wrapper::-webkit-scrollbar-track {
-  background: #F1F1F1;
-  border-radius: 4px;
-}
-
-.pagination-scroll-wrapper::-webkit-scrollbar-thumb {
-  background: #A62229;
-  border-radius: 4px;
-}
-
-.pagination-scroll-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #8E1D23;
-}
-
-.pagination-scroll-wrapper {
-  scrollbar-width: thin;
-  scrollbar-color: #A62229 #F1F1F1;
+.border-btn {
+  border: 1px solid #E0E0E0 !important;
+  border-radius: 4px !important;
 }
 
 .filter-input >>> .v-input__slot {
@@ -863,90 +854,6 @@ export default {
   border-radius: 6px !important;
   height: 38px !important;
   min-width: 38px !important;
-}
-
-.flat-table {
-  background: transparent !important;
-  white-space: nowrap;
-}
-
-.border-btn {
-  border: 1px solid #E0E0E0 !important;
-  border-radius: 4px !important;
-}
-
-.status-badge {
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  color: white;
-}
-.bg-green { background-color: #4CAF50 !important; }
-.bg-grey { background-color: #9E9E9E !important; }
-
-.gap-1 { gap: 4px; }
-.gap-2 { gap: 8px; }
-.gap-3 { gap: 12px; }
-.cursor-pointer { cursor: pointer; }
-
-.text-nowrap {
-  white-space: nowrap !important;
-}
-
-.flex-nowrap {
-  flex-wrap: nowrap !important;
-}
-
-.toast-container {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  z-index: 99999;
-  width: 320px;
-  max-width: 90vw;
-  pointer-events: none;
-}
-
-.toast-item {
-  pointer-events: auto;
-  background-color: #4CB050 !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-}
-
-.opacity-80 { opacity: 0.8; }
-
-.toast-progress-bg {
-  height: 3px;
-  width: 100%;
-  background-color: rgba(255, 255, 255, 0.25);
-}
-
-.toast-progress-bar {
-  width: 100%;
-  height: 100%;
-  background-color: #35feb1;
-  animation: shrinkProgress linear forwards;
-}
-
-@keyframes shrinkProgress {
-  from { width: 100%; }
-  to { width: 0%; }
-}
-
-.btn-close-custom {
-  color: #A62229 !important;
-  font-weight: 500;
-  border-radius: 6px;
-}
-
-.btn-confirm-custom {
-  background-color: #A62229 !important;
-  color: #ffffff !important;
-  font-weight: 500;
-  border-radius: 8px !important;
-  padding: 0 16px !important;
-  height: 36px !important;
 }
 
 .btn-email-custom {
@@ -979,4 +886,121 @@ export default {
 .custom-pagination >>> .v-pagination__navigation {
   display: none !important;
 }
+
+/* ==========================================================
+   TOAST NOTIFICATION
+========================================================== */
+.toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 99999;
+  width: 320px;
+  max-width: 90vw;
+  pointer-events: none;
+}
+.toast-item {
+  pointer-events: auto;
+  background-color: #4CB050 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+.opacity-80 { opacity: 0.8; }
+.toast-progress-bg {
+  height: 3px;
+  width: 100%;
+  background-color: rgba(255, 255, 255, 0.25);
+}
+.toast-progress-bar {
+  width: 100%;
+  height: 100%;
+  background-color: #35feb1;
+  animation: shrinkProgress linear forwards;
+}
+@keyframes shrinkProgress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+.btn-close-custom { color: #A62229 !important; font-weight: 500; border-radius: 6px; }
+.btn-confirm-custom { background-color: #A62229 !important; color: #ffffff !important; font-weight: 500; border-radius: 8px !important; padding: 0 16px !important; height: 36px !important; }
+
+/* ==========================================================
+   GIAO DIỆN DESKTOP (Sử dụng Scroll tự nhiên, kéo mượt)
+========================================================== */
+.must-retake-page:not(.is-mobile-device) {
+  height: calc(100vh - 64px); 
+  display: flex;
+  flex-direction: column;
+}
+
+/* Cho phép bao bảng (wrapper) kéo thanh cuộn tự do ngang/dọc */
+.must-retake-page:not(.is-mobile-device) .table-responsive-wrapper {
+  flex: 1 1 auto;
+  min-height: 0; 
+  overflow: auto; /* Sinh scrollbar tự nhiên */
+}
+
+/* Ép width bảng bằng 1200px để không bao giờ bị bóp nhăn nhúm các cột */
+.must-retake-page:not(.is-mobile-device) .flat-table {
+  background: transparent !important;
+}
+
+.must-retake-page:not(.is-mobile-device) .flat-table >>> table {
+  min-width: 1200px !important;
+}
+
+/* Đóng đinh Header Bảng (Tiêu đề cột) không bị trượt mất khi kéo dọc */
+.must-retake-page:not(.is-mobile-device) .flat-table >>> thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background-color: #EEEEEE !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.must-retake-page:not(.is-mobile-device) .pagination-bottom-container {
+  flex-shrink: 0;
+}
+
+/* Custom lại thanh cuộn máy tính cho mượt và đẹp */
+.must-retake-page:not(.is-mobile-device) .table-responsive-wrapper::-webkit-scrollbar { 
+  height: 8px; width: 8px; 
+}
+.must-retake-page:not(.is-mobile-device) .table-responsive-wrapper::-webkit-scrollbar-track { 
+  background: #f1f1f1; border-radius: 4px; 
+}
+.must-retake-page:not(.is-mobile-device) .table-responsive-wrapper::-webkit-scrollbar-thumb { 
+  background: #c1c1c1; border-radius: 4px; 
+}
+.must-retake-page:not(.is-mobile-device) .table-responsive-wrapper::-webkit-scrollbar-thumb:hover { 
+  background: #A62229; 
+}
+
+
+/* ==========================================================
+   GIAO DIỆN ĐIỆN THOẠI THẬT SỰ (MOBILE)
+========================================================== */
+.is-mobile-device .mobile-card-item {
+  background-color: #FFFFFF;
+}
+.is-mobile-device .mobile-info-row {
+  border-bottom: 1px dashed #EEEEEE;
+}
+.is-mobile-device .mobile-info-row:last-child {
+  border-bottom: none;
+}
+.is-mobile-device .info-label {
+  color: #333333;
+}
+.is-mobile-device .info-value {
+  color: #555555;
+}
+.is-mobile-device .pagination-scroll-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
+}
+.is-mobile-device .pagination-scroll-wrapper::-webkit-scrollbar { height: 5px; }
+.is-mobile-device .pagination-scroll-wrapper::-webkit-scrollbar-track { background: #F1F1F1; border-radius: 4px; }
+.is-mobile-device .pagination-scroll-wrapper::-webkit-scrollbar-thumb { background: #A62229; border-radius: 4px; }
 </style>
