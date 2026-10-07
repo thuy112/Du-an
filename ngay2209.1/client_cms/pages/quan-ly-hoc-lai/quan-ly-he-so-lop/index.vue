@@ -1,72 +1,79 @@
 <template>
-  <div class="page-layout-wrapper d-flex flex-column pa-4">
-    <!-- 1. HEADER & BỘ LỌC CỐ ĐỊNH PHÍA TRÊN -->
-    <div class="top-section flex-shrink-0 mb-3">
-      <div class="d-flex align-center justify-space-between w-100">
-        <!-- Tiêu đề bên trái -->
-        <div class="text-h6 font-weight-bold d-flex align-center">
-          Danh sách hệ số lớp&nbsp;(<span style="color: #a2212b">{{ totalItems }}</span>)
-        </div>
+  <div class="page-layout-wrapper d-flex flex-column pa-2 pa-md-4 bg-white" :class="{ 'is-mobile-device': isMobileDevice }">
+    <!-- 1. HEADER & BỘ LỌC TÌM KIẾM -->
+    <div class="top-section flex-shrink-0 mb-4">
+      <v-row align="center" justify="space-between" no-gutters>
+        <!-- Tiêu đề (Chiếm full dòng trên mobile, co lại trên desktop) -->
+        <v-col cols="12" md="auto" class="mb-3 mb-md-0 pb-1 pb-md-0">
+          <div class="text-h6 font-weight-bold d-flex align-center">
+            Danh sách hệ số lớp&nbsp;(<span style="color: #a2212b">{{ totalItems }}</span>)
+          </div>
+        </v-col>
 
-        <!-- Bộ lọc và Các Nút Thao Tác bên phải -->
-        <div class="d-flex align-center gap-2">
-          <!-- Ô 1: Tìm kiếm -->
-          <v-text-field
-            v-model="filters.search"
-            label="Tìm kiếm"
-            dense
-            outlined
-            hide-details
-            clearable
-            class="filter-input-box"
-            @keyup.enter="handleExecuteSearch"
-          ></v-text-field>
+        <!-- Cụm bộ lọc (Tự động xuống hàng, tràn viền nếu không đủ chỗ) -->
+        <v-col cols="12" md="auto">
+          <div class="d-flex align-center justify-start justify-md-end flex-wrap gap-2">
+            <!-- Ô 1: Tìm kiếm -->
+            <v-text-field
+              v-model="filters.search"
+              label="Tìm kiếm"
+              dense
+              outlined
+              hide-details
+              clearable
+              class="filter-input-box flex-grow-1 flex-sm-grow-0"
+              @keyup.enter="handleExecuteSearch"
+            ></v-text-field>
 
-          <!-- Ô 2: Tìm theo hệ số -->
-          <v-text-field
-            v-model="filters.coefficient"
-            label="Tìm theo hệ số"
-            dense
-            outlined
-            hide-details
-            clearable
-            class="filter-input-box"
-            @keyup.enter="handleExecuteSearch"
-          ></v-text-field>
+            <!-- Ô 2: Tìm theo hệ số -->
+            <v-text-field
+              v-model="filters.coefficient"
+              label="Tìm theo hệ số"
+              dense
+              outlined
+              hide-details
+              clearable
+              class="filter-input-box flex-grow-1 flex-sm-grow-0"
+              @keyup.enter="handleExecuteSearch"
+            ></v-text-field>
 
-          <!-- Nút Refresh -->
-          <v-btn
-            icon
-            color="#a2212b"
-            class="flex-shrink-0 btn-action-icon"
-            @click="resetFilters"
-          >
-            <v-icon>mdi-refresh</v-icon>
-          </v-btn>
+            <!-- CỤM NÚT THAO TÁC -->
+            <div class="d-flex align-center gap-2 flex-nowrap mt-2 mt-sm-0">
+              <!-- Nút Refresh -->
+              <v-btn
+                icon
+                color="#a2212b"
+                class="flex-shrink-0 btn-action-icon border-action-btn"
+                @click="resetFilters"
+              >
+                <v-icon size="20">mdi-refresh</v-icon>
+              </v-btn>
 
-          <!-- Nút Kính Lúp -->
-          <v-btn
-            color="#a2212b"
-            dark
-            elevation="0"
-            class="btn-action-square flex-shrink-0"
-            @click="handleExecuteSearch"
-          >
-            <v-icon>mdi-magnify</v-icon>
-          </v-btn>
+              <!-- Nút Kính Lúp -->
+              <v-btn
+                color="#a2212b"
+                dark
+                elevation="0"
+                class="btn-action-square flex-shrink-0"
+                @click="handleExecuteSearch"
+              >
+                <v-icon size="20">mdi-magnify</v-icon>
+              </v-btn>
 
-          <!-- Nút Thêm Mới (+) -->
-          <v-btn
-            color="#a2212b"
-            dark
-            elevation="0"
-            class="btn-action-square flex-shrink-0"
-            @click="openCreateModal"
-          >
-            <v-icon>mdi-plus</v-icon>
-          </v-btn>
-        </div>
-      </div>
+              <!-- Nút Thêm Mới (+) -->
+              <v-btn
+                color="#a2212b"
+                dark
+                elevation="0"
+                class="btn-action-square flex-shrink-0"
+                @click="openCreateModal"
+              >
+                <v-icon size="20">mdi-plus</v-icon>
+              </v-btn>
+            </div>
+          </div>
+        </v-col>
+      </v-row>
     </div>
 
     <!-- 2. BẢNG DỮ LIỆU CÓ SCROLLBAR BÊN TRONG -->
@@ -79,11 +86,17 @@
         disable-pagination
         fixed-header
         height="100%"
+        :mobile-breakpoint="isMobileDevice ? 960 : 0"
         class="elevation-0 bg-transparent custom-table"
       >
+        <!-- GIAO DIỆN NO DATA -->
+        <template v-slot:no-data>
+          <div class="py-10 text-center grey--text">Không có dữ liệu</div>
+        </template>
+
         <!-- STT -->
         <template v-slot:[`item.stt`]="{ index }">
-          {{ (page - 1) * itemsPerPage + index + 1 }}
+          <span class="font-weight-medium">{{ (page - 1) * itemsPerPage + index + 1 }}</span>
         </template>
 
         <!-- Số lượng sinh viên -->
@@ -93,9 +106,9 @@
 
         <!-- Chức năng (2 Icon: Bút chì & Thùng rác) -->
         <template v-slot:[`item.actions`]="{ item }">
-          <div class="d-flex align-center justify-center gap-3">
+          <div class="d-flex align-center gap-3" :class="isMobileDevice ? 'justify-end' : 'justify-center'">
             <v-icon
-              small
+              size="22"
               color="#fa8c16"
               class="action-icon-btn"
               @click="openEditModal(item)"
@@ -103,7 +116,7 @@
               mdi-pencil
             </v-icon>
             <v-icon
-              small
+              size="22"
               color="#f5222d"
               class="action-icon-btn"
               @click="openDeleteModal(item)"
@@ -115,70 +128,76 @@
       </v-data-table>
     </div>
 
-    <!-- 3. THANH PHÂN TRANG CỐ ĐỊNH Ở ĐÁY -->
-    <div class="custom-pagination-bar flex-shrink-0 d-flex align-center justify-end gap-2 py-2 px-2 bg-white">
-      <v-select
-        v-model="itemsPerPage"
-        :items="[10, 20, 50, 100]"
-        label="Bản ghi"
-        outlined
-        dense
-        hide-details
-        class="outlined-pagination-control select-records"
-        @change="handleExecuteSearch"
-      ></v-select>
+    <!-- 3. THANH PHÂN TRANG -->
+    <div class="custom-pagination-bar flex-shrink-0 d-flex align-center justify-end flex-wrap gap-2 py-3 px-2 bg-white mt-auto border-top">
+      <div class="d-flex align-center flex-wrap justify-end gap-2 w-100">
+        <div class="d-flex align-center gap-2">
+          <v-select
+            v-model="itemsPerPage"
+            :items="[10, 20, 50, 100]"
+            label="Bản ghi"
+            outlined
+            dense
+            hide-details
+            class="outlined-pagination-control select-records"
+            @change="handleExecuteSearch"
+          ></v-select>
 
-      <v-text-field
-        v-model.number="pageInput"
-        label="Trang"
-        outlined
-        dense
-        hide-details
-        class="outlined-pagination-control input-page"
-        @keyup.enter="handleGoBtnClick"
-      ></v-text-field>
+          <v-text-field
+            v-model.number="pageInput"
+            label="Trang"
+            outlined
+            dense
+            hide-details
+            class="outlined-pagination-control input-page"
+            @keyup.enter="handleGoBtnClick"
+          ></v-text-field>
 
-      <v-btn
-        color="#a2212b"
-        dark
-        class="btn-go elevation-0 text-capitalize font-weight-regular"
-        @click="handleGoBtnClick"
-      >
-        Đi
-      </v-btn>
+          <v-btn
+            color="#a2212b"
+            dark
+            class="btn-go elevation-0 text-capitalize font-weight-regular px-3"
+            @click="handleGoBtnClick"
+          >
+            Đi
+          </v-btn>
+        </div>
 
-      <v-btn
-        outlined
-        class="btn-page-nav"
-        :disabled="page <= 1"
-        @click="changePage(page - 1)"
-      >
-        <v-icon small color="grey darken-1">mdi-chevron-left</v-icon>
-      </v-btn>
+        <div class="d-flex align-center gap-1 mt-2 mt-sm-0">
+          <v-btn
+            outlined
+            class="btn-page-nav mx-1"
+            :disabled="page <= 1"
+            @click="changePage(page - 1)"
+          >
+            <v-icon small color="grey darken-1">mdi-chevron-left</v-icon>
+          </v-btn>
 
-      <v-btn
-        v-for="p in visiblePages"
-        :key="p"
-        :color="page === p ? '#a2212b' : ''"
-        :dark="page === p"
-        :outlined="page !== p"
-        class="btn-page-nav font-weight-medium"
-        @click="changePage(p)"
-      >
-        {{ p }}
-      </v-btn>
+          <v-btn
+            v-for="p in visiblePages"
+            :key="p"
+            :color="page === p ? '#a2212b' : ''"
+            :dark="page === p"
+            :outlined="page !== p"
+            class="btn-page-nav font-weight-medium mx-1"
+            @click="changePage(p)"
+          >
+            {{ p }}
+          </v-btn>
 
-      <v-btn
-        outlined
-        class="btn-page-nav"
-        :disabled="page >= totalPages"
-        @click="changePage(page + 1)"
-      >
-        <v-icon small color="grey darken-1">mdi-chevron-right</v-icon>
-      </v-btn>
+          <v-btn
+            outlined
+            class="btn-page-nav mx-1"
+            :disabled="page >= totalPages"
+            @click="changePage(page + 1)"
+          >
+            <v-icon small color="grey darken-1">mdi-chevron-right</v-icon>
+          </v-btn>
+        </div>
+      </div>
     </div>
 
-    <!-- DIALOG THÊM MỚI / CHỈNH SỬA HỆ SỐ LỚP (CHUẨN THEO CÁC ĐIỀU KIỆN ẢNH) -->
+    <!-- DIALOG THÊM MỚI / CHỈNH SỬA HỆ SỐ LỚP -->
     <v-dialog v-model="formDialog" max-width="600px" persistent>
       <v-card class="rounded-lg overflow-hidden">
         <!-- Header đỏ BK -->
@@ -210,7 +229,7 @@
                 ></v-select>
               </v-col>
 
-              <!-- 1.1 Loại học phần (*) - CHỈ HIỆN KHI CHỌN "Lớp ghép" (Ảnh 3, 4) -->
+              <!-- 1.1 Loại học phần (*) - CHỈ HIỆN KHI CHỌN "Lớp ghép" -->
               <v-col v-if="formData.loaiLopBase === 'Lớp ghép'" cols="12" class="mt-3">
                 <v-select
                   v-model="formData.loaiHocPhan"
@@ -309,7 +328,7 @@
                 ></v-text-field>
               </v-col>
 
-              <!-- 7. Học phần thường (Switch Toggle) - CHỈ HIỆN KHI CHỌN "Đồ án môn học" (Ảnh 6) -->
+              <!-- 7. Học phần thường (Switch Toggle) - CHỈ HIỆN KHI CHỌN "Đồ án môn học" -->
               <v-col v-if="formData.loaiLopBase === 'Đồ án môn học'" cols="12" class="mt-2">
                 <v-switch
                   v-model="formData.isHocPhanThuong"
@@ -360,8 +379,8 @@
       </v-card>
     </v-dialog>
 
-    <!-- SNACKBAR THÔNG BÁO THÀNH CÔNG MÀU XANH BÊN PHẢI -->
-    <v-snackbar v-model="snackbar.show" :color="snackbar.color" top right timeout="3000" class="mt-2">
+    <!-- SNACKBAR THÔNG BÁO -->
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" top right timeout="3000" class="mt-2 custom-toast">
       <div class="d-flex align-center">
         <v-icon left color="white">{{ snackbar.icon }}</v-icon>
         <span class="white--text font-weight-medium">{{ snackbar.text }}</span>
@@ -380,6 +399,7 @@ export default {
   name: 'QuanLyHeSoLop',
   data() {
     return {
+      isMobileDevice: false, // Cờ nhận diện mobile
       loading: false,
       formDialog: false,
       deleteDialog: false,
@@ -463,6 +483,13 @@ export default {
 
   created() {
     this.appliedData = [...this.dataList]
+  },
+
+  mounted() {
+    // Nhận diện thiết bị di động
+    if (typeof navigator !== 'undefined') {
+      this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    }
   },
 
   methods: {
@@ -631,7 +658,7 @@ export default {
         : null
     },
 
-    // XỬ LÝ LƯU (GHÉP TÊN LOẠI LỚP THEO ĐÚNG NGUYÊN TẮC)
+    // XỬ LÝ LƯU
     saveData() {
       this.formData.thuHocPhiSv = this.normalizeNumberInput(this.formData.thuHocPhiSv)
       this.formData.thanhToanGiangDay = this.normalizeNumberInput(this.formData.thanhToanGiangDay)
@@ -709,7 +736,7 @@ export default {
 
     showNotification(msg, type = 'success') {
       this.snackbar.text = msg
-      this.snackbar.color = type === 'warning' ? '#ffc107' : '#52c41a'
+      this.snackbar.color = type === 'warning' ? '#ffc107' : '#4CAF50'
       this.snackbar.icon = type === 'warning' ? 'mdi-alert-circle' : 'mdi-check-circle'
       this.snackbar.show = true
     },
@@ -718,71 +745,26 @@ export default {
 </script>
 
 <style scoped>
-.page-layout-wrapper {
-  background-color: #fff;
-  height: calc(100vh - 64px);
-  overflow: hidden;
-}
+/* ==============================================
+   MÀU SẮC & TEXT CƠ BẢN
+============================================== */
+.border-top { border-top: 1px solid #e0e0e0; }
+.gap-1 { gap: 4px; }
+.gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
 
-.table-scroll-container {
-  overflow-y: auto;
-  min-height: 0;
-}
-
-/* Style Bảng Dữ Liệu */
-::v-deep .custom-table {
-  height: 100%;
-}
-
-::v-deep .custom-table .v-data-table__wrapper {
-  height: 100%;
-  overflow-y: auto;
-}
-
-::v-deep .custom-table table {
-  border-collapse: collapse !important;
-}
-
-::v-deep .custom-table thead tr th {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 4 !important;
-  background-color: #f2f2f2 !important;
-  color: #262626 !important;
-  font-size: 14px !important;
-  font-weight: 700 !important;
-  height: 48px !important;
-  border-bottom: 1px solid #e8e8e8 !important;
-  box-shadow: none !important;
-}
-
-::v-deep .custom-table tbody tr td {
-  font-size: 14px !important;
-  color: #262626 !important;
-  height: 52px !important;
-  border-bottom: 1px solid #f0f0f0 !important;
-}
-
-::v-deep .custom-table tbody tr:hover {
-  background-color: #fafafa !important;
-}
-
-.action-icon-btn {
-  cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease;
-  font-size: 24px !important;
-}
-
-.action-icon-btn:hover {
-  opacity: 0.8;
-  transform: scale(1.15);
-}
-
-/* Style Bộ Lọc Trên */
+/* ==============================================
+   1. BỘ LỌC TÌM KIẾM Ở TOP
+============================================== */
 .filter-input-box {
-  width: 160px !important;
-  min-width: 160px !important;
-  max-width: 160px !important;
+  min-width: 140px;
+  flex: 1 1 140px; 
+}
+
+@media (min-width: 960px) {
+  .filter-input-box {
+    max-width: 160px; 
+  }
 }
 
 ::v-deep .filter-input-box.v-text-field--outlined .v-input__control {
@@ -796,10 +778,13 @@ export default {
   padding: 0 10px !important;
 }
 
-::v-deep .filter-input-box input {
+::v-deep .filter-input-box input,
+::v-deep .filter-input-box .v-select__selections {
   font-size: 13px !important;
   padding: 0 !important;
   height: 40px !important;
+  display: flex;
+  align-items: center;
 }
 
 ::v-deep .filter-input-box input::placeholder {
@@ -823,6 +808,11 @@ export default {
   height: 40px !important;
 }
 
+.border-action-btn {
+  border: 1px solid #a2212b !important;
+  border-radius: 6px !important;
+}
+
 .btn-action-square {
   width: 48px !important;
   min-width: 48px !important;
@@ -831,18 +821,37 @@ export default {
   padding: 0 !important;
 }
 
+/* ==============================================
+   2. BẢNG DỮ LIỆU CHUNG
+============================================== */
+.custom-table {
+  background-color: transparent !important;
+}
+
+::v-deep .custom-table table {
+  border-collapse: collapse !important;
+}
+
+/* Các Icon Chức Năng */
+.action-icon-btn {
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.action-icon-btn:hover {
+  opacity: 0.8;
+  transform: scale(1.15);
+}
+
 /* Style Modal Input */
 .modal-input-box.v-text-field--outlined .v-input__control {
   min-height: 40px !important;
 }
 
-/* Ẩn mũi tên tăng/giảm ở ô số lượng */
 ::v-deep .modal-input-box input[type='number']::-webkit-inner-spin-button,
 ::v-deep .modal-input-box input[type='number']::-webkit-outer-spin-button {
   margin: 0;
   -webkit-appearance: none;
 }
-
 ::v-deep .modal-input-box input[type='number'] {
   appearance: textfield;
   -moz-appearance: textfield;
@@ -852,23 +861,18 @@ export default {
   border-color: #a0a0a0 !important;
   border-radius: 4px !important;
 }
-
 ::v-deep .modal-input-box.v-input--is-focused fieldset {
   border-color: #a2212b !important;
   border-width: 1.5px !important;
 }
-
 ::v-deep .modal-input-box.v-input--is-focused .v-label,
 ::v-deep .modal-input-box.v-input--is-label-active .v-label {
   color: #a2212b !important;
 }
 
-/* Style Thanh Phân Trang */
-.custom-pagination-bar {
-  border-top: 1px solid #e8e8e8;
-  z-index: 5;
-}
-
+/* ==============================================
+   3. THANH PHÂN TRANG
+============================================== */
 ::v-deep .outlined-pagination-control.v-text-field--outlined .v-input__control {
   min-height: 32px !important;
   height: 32px !important;
@@ -936,7 +940,130 @@ export default {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
 }
 
-.gap-2 { gap: 8px; }
-.gap-3 { gap: 12px; }
-.flex-shrink-0 { flex-shrink: 0; }
+/* ==========================================================
+   CSS MÁY TÍNH (DESKTOP)
+========================================================== */
+.page-layout-wrapper:not(.is-mobile-device) {
+  height: calc(100vh - 64px); 
+}
+
+.page-layout-wrapper:not(.is-mobile-device) .main-content-block {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Cho phép bao bảng kéo thanh cuộn tự do ngang/dọc */
+.page-layout-wrapper:not(.is-mobile-device) .table-responsive-wrapper {
+  flex: 1 1 auto;
+  min-height: 0; 
+  overflow: auto; 
+}
+
+/* Ép width bảng bằng 1000px để không bao giờ bị bóp nhăn nhúm các cột */
+.page-layout-wrapper:not(.is-mobile-device) .custom-table >>> table {
+  min-width: 1000px !important;
+}
+
+/* Đóng đinh Header Bảng (Tiêu đề cột) không bị trượt mất khi kéo dọc */
+.page-layout-wrapper:not(.is-mobile-device) .custom-table >>> thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background-color: #f2f2f2 !important;
+  color: #262626 !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  height: 48px !important;
+  border-bottom: 1px solid #e8e8e8 !important;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.05) !important;
+  white-space: nowrap !important;
+}
+
+.page-layout-wrapper:not(.is-mobile-device) .custom-table >>> tbody td {
+  font-size: 14px !important;
+  color: #262626 !important;
+  height: 52px !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+  white-space: nowrap !important; /* KHÔNG CHO XUỐNG DÒNG */
+}
+
+.page-layout-wrapper:not(.is-mobile-device) .custom-table >>> tbody tr:hover {
+  background-color: #fafafa !important;
+}
+
+/* Custom lại thanh cuộn máy tính cho mượt và đẹp */
+.page-layout-wrapper:not(.is-mobile-device) .table-responsive-wrapper::-webkit-scrollbar { 
+  height: 8px; width: 8px; 
+}
+.page-layout-wrapper:not(.is-mobile-device) .table-responsive-wrapper::-webkit-scrollbar-track { 
+  background: #f1f1f1; border-radius: 4px; 
+}
+.page-layout-wrapper:not(.is-mobile-device) .table-responsive-wrapper::-webkit-scrollbar-thumb { 
+  background: #c1c1c1; border-radius: 4px; 
+}
+.page-layout-wrapper:not(.is-mobile-device) .table-responsive-wrapper::-webkit-scrollbar-thumb:hover { 
+  background: #a2212b; 
+}
+
+/* ==========================================================
+   CSS ĐIỆN THOẠI THẬT SỰ (MOBILE)
+========================================================== */
+.is-mobile-device {
+  height: auto;
+  min-height: 100vh;
+}
+
+.is-mobile-device .top-section {
+  position: relative;
+  z-index: 4; 
+  background: #fff;
+}
+
+.is-mobile-device .main-content-block,
+.is-mobile-device .table-responsive-wrapper {
+  overflow: visible !important;
+}
+
+.is-mobile-device .custom-table {
+  min-width: 100% !important;
+  height: auto !important;
+}
+
+.is-mobile-device .custom-table >>> .v-data-table__wrapper {
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* Chỉnh lại giao diện hiển thị cho Card Mode trên Mobile thật */
+.is-mobile-device .custom-table >>> .v-data-table__mobile-row {
+  align-items: flex-start !important;
+  padding: 12px 16px !important;
+  min-height: auto !important;
+}
+.is-mobile-device .custom-table >>> .v-data-table__mobile-row__header {
+  font-weight: 600 !important;
+  color: #333 !important;
+  min-width: 120px;
+  margin-right: 16px;
+}
+.is-mobile-device .custom-table >>> .v-data-table__mobile-row__cell {
+  text-align: right !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+.is-mobile-device .custom-table >>> .v-data-table__wrapper > table > tbody > tr {
+  border-bottom: 8px solid #f0f2f5 !important;
+  background-color: #ffffff;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+
+.custom-toast >>> .v-snack__wrapper {
+  border-radius: 8px !important;
+}
 </style>

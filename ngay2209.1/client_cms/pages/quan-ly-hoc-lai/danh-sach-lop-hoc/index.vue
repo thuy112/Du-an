@@ -1245,7 +1245,6 @@ export default {
 /* 1. Thanh bộ lọc trên đỉnh cố định */
 .sticky-filter-bar {
   flex-shrink: 0;
-  z-index: 10;
   background-color: #ffffff;
   border-bottom: 1px solid #e5e7eb;
 }
@@ -1358,7 +1357,6 @@ export default {
 /* 3. Thanh Footer cố định dưới đáy (Đã bỏ kẻ đường màu đỏ) */
 .custom-footer-bar {
   flex-shrink: 0;
-  z-index: 10;
   background-color: #ffffff;
   border-top: 1px solid #e5e7eb !important; /* Thay viền đỏ 4px bằng đường kẻ xám nhẹ chuẩn UI */
 }
