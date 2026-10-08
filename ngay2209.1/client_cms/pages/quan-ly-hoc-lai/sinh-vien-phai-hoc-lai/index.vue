@@ -106,9 +106,9 @@
       </div>
     </div>
 
-    <!-- 2. GIAO DIỆN DESKTOP (Sử dụng BaseTable hoặc v-simple-table bọc ngoài) -->
+    <!-- 2. GIAO DIỆN DESKTOP: BẢNG DỮ LIỆU SỬ DỤNG V-SIMPLE-TABLE -->
     <div v-if="!isMobileDevice" class="table-responsive-wrapper">
-      <BaseTable class="flat-table" fixed-header height="100%">
+      <v-simple-table class="flat-table" fixed-header height="100%">
         <template v-slot:default>
           <thead>
             <tr class="bg-gray-head">
@@ -193,10 +193,10 @@
             </tr>
           </tbody>
         </template>
-      </BaseTable>
+      </v-simple-table>
     </div>
 
-    <!-- 3. GIAO DIỆN MOBILE (Dạng các thẻ card linh hoạt) -->
+    <!-- 3. GIAO DIỆN MOBILE -->
     <div v-else class="mobile-card-list">
       <div class="mobile-select-all-header mb-3 pa-3 bg-gray-head d-flex align-center justify-start">
         <v-checkbox
@@ -461,14 +461,12 @@
 
 <script>
 import * as XLSX from 'xlsx'
-import BaseTable from '@/components/Base/BaseTable.vue'
 import RetakeCourseDetailMustRetakeStudentModal from '~/components/RetakeCourse/DetailMustRetakeStudentModal.vue'
-import { MOCK_DATA_HOC_LAI } from '~/consts/danhsachhoclai.js' // Thay đường dẫn import thực tế vào đây
+import { MOCK_DATA_HOC_LAI } from '~/consts/danhsachhoclai.js'
 
 export default {
   name: 'MustRetakeStudentPage',
   components: {
-    BaseTable,
     RetakeCourseDetailMustRetakeStudentModal
   },
   data() {
