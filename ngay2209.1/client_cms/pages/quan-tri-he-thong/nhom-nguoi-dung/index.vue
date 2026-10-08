@@ -30,6 +30,7 @@
           outlined
           dense
           hide-details
+          clearable
           class="custom-input mb-3"
         ></v-text-field>
 
@@ -46,7 +47,7 @@
               >
                 <v-list-item-content>
                   <v-list-item-title class="font-weight-medium text-body-2">
-                    {{ role.name }}
+                    {{ role.groupName }}
                   </v-list-item-title>
                 </v-list-item-content>
               </v-list-item>
@@ -62,7 +63,7 @@
         lg="9"
         class="pa-4 d-flex flex-column right-panel overflow-hidden"
       >
-        <!-- Thanh Navigation Tab: Di chuột vào hiện màu đỏ nhạt -->
+        <!-- Thanh Navigation Tab -->
         <div
           class="d-flex align-center pb-0 mb-3 border-bottom detail-header px-0 justify-center"
         >
@@ -84,7 +85,7 @@
           </div>
         </div>
 
-        <!-- VÙNG HIỂN THỊ CHUYỂN SLIDE MƯỢT GIỮA 2 TAB -->
+        <!-- VÙNG SLIDE GIỮA 2 TAB -->
         <div
           class="tab-slider-wrapper flex-grow-1 overflow-hidden position-relative"
         >
@@ -94,7 +95,6 @@
           >
             <!-- TAB 1: THÔNG TIN NHÓM & PHÂN QUYỀN -->
             <div class="tab-pane w-100 flex-shrink-0 d-flex flex-column pr-1">
-              <!-- HÀNG NÚT XÓA VÀ LƯU Ở TRÊN CÙNG (GÓC PHẢI) NẰM TRÊN TÊN NHÓM -->
               <div class="d-flex justify-end gap-2 mb-2">
                 <v-btn
                   color="#f44336"
@@ -114,15 +114,13 @@
                   @click="saveRole"
                 >
                   Lưu
-                  <v-icon right small class="ml-1"
-                    >mdi-content-save-outline</v-icon
-                  >
+                  <v-icon right small class="ml-1">mdi-content-save-outline</v-icon>
                 </v-btn>
               </div>
 
               <v-form ref="roleForm" class="mb-3">
                 <v-text-field
-                  v-model="currentRole.name"
+                  v-model="currentRole.groupName"
                   label="Tên nhóm (*)"
                   outlined
                   dense
@@ -155,21 +153,14 @@
                       class="ma-0 pa-0 mr-3"
                       @change="toggleSelectAllPages"
                     ></v-checkbox>
-                    <span class="font-weight-bold text-caption text-uppercase"
-                      >TRANG</span
-                    >
+                    <span class="font-weight-bold text-caption text-uppercase">TRANG</span>
                   </div>
-                  <div
-                    class="page-list overflow-y-auto"
-                    style="max-height: 280px"
-                  >
+                  <div class="page-list overflow-y-auto" style="max-height: 280px">
                     <div
-                      v-for="page in pagesList"
+                      v-for="page in uniquePagesList"
                       :key="page.id"
                       class="page-item d-flex align-center px-3 py-2 border-bottom cursor-pointer"
-                      :class="{
-                        'selected-page-row': selectedPageId === page.id,
-                      }"
+                      :class="{ 'selected-page-row': selectedPageId === page.id }"
                       @click="selectedPageId = page.id"
                     >
                       <v-checkbox
@@ -180,7 +171,7 @@
                         class="ma-0 pa-0 mr-3"
                         @click.stop
                       ></v-checkbox>
-                      <span class="text-body-2">{{ page.name }}</span>
+                      <span class="text-body-2">{{ page.pageName }}</span>
                     </div>
                   </div>
                 </v-col>
@@ -198,14 +189,11 @@
                       class="ma-0 pa-0 mr-3"
                       @change="toggleSelectAllActions"
                     ></v-checkbox>
-                    <span class="font-weight-bold text-caption text-uppercase"
-                      >CHỨC NĂNG trang QUẢN LÝ ĐỢT ĐĂNG KÝ HỌC LẠI</span
-                    >
+                    <span class="font-weight-bold text-caption text-uppercase">
+                      CHỨC NĂNG TRANG {{ selectedPageName }}
+                    </span>
                   </div>
-                  <div
-                    class="action-list overflow-y-auto"
-                    style="max-height: 280px"
-                  >
+                  <div class="action-list overflow-y-auto" style="max-height: 280px">
                     <template v-if="selectedPageId">
                       <div
                         v-for="action in availableActions"
@@ -219,7 +207,7 @@
                           dense
                           class="ma-0 pa-0 mr-3"
                         ></v-checkbox>
-                        <span class="text-body-2">{{ action.name }}</span>
+                        <span class="text-body-2">{{ action.roleName }}</span>
                       </div>
                     </template>
                     <div
@@ -233,7 +221,7 @@
               </v-row>
             </div>
 
-            <!-- TAB 2: TÀI KHOẢN NHÓM -->
+            <!-- TAB 2: TÀI KHOẢN NHÓM (Hỗ trợ BaseTable Responsive Mobile) -->
             <div class="tab-pane w-100 flex-shrink-0 d-flex flex-column pl-1">
               <div class="d-flex align-center justify-space-between mb-4">
                 <span class="text-subtitle-1 font-weight-bold">
@@ -250,76 +238,52 @@
                 </v-btn>
               </div>
 
-              <!-- Bảng danh sách tài khoản thuộc nhóm -->
-              <v-simple-table class="border rounded">
-                <template #default>
-                  <thead>
-                    <tr class="bg-grey-light">
-                      <th class="text-left font-weight-bold">STT</th>
-                      <th class="text-left font-weight-bold">Họ tên</th>
-                      <th class="text-left font-weight-bold">Email</th>
-                      <th class="text-left font-weight-bold">Số điện thoại</th>
-                      <th class="text-left font-weight-bold">Chức vụ</th>
-                      <th class="text-center font-weight-bold">Trạng thái</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(user, idx) in assignedUsers" :key="user.id">
-                      <td>{{ idx + 1 }}</td>
-                      <td class="font-weight-medium">{{ user.fullName }}</td>
-                      <td>{{ user.email }}</td>
-                      <td>{{ user.phone }}</td>
-                      <td>{{ user.roleTitle }}</td>
-                      <td class="text-center">
-                        <span
-                          class="status-pill"
-                          :class="
-                            user.status === 'Kích hoạt'
-                              ? 'active-pill'
-                              : 'inactive-pill'
-                          "
-                        >
-                          {{ user.status }}
-                        </span>
-                      </td>
-                    </tr>
-                    <tr v-if="assignedUsers.length === 0">
-                      <td colspan="6" class="text-center py-6 grey--text">
-                        Chưa có tài khoản nào thuộc nhóm này
-                      </td>
-                    </tr>
-                  </tbody>
-                </template>
-              </v-simple-table>
+              <div class="table-scroll-panel flex-grow-1">
+                <BaseTable
+                  :headers="userHeaders"
+                  :items="assignedUsers"
+                  disable-pagination
+                  hide-default-footer
+                  class="custom-table full-table"
+                >
+                  <template #[`item.stt`]="{ index }">
+                    <span>{{ index + 1 }}</span>
+                  </template>
+                  <template #[`item.status`]="{ item }">
+                    <span
+                      class="status-pill"
+                      :class="item.status === 'ACTIVE' ? 'active-pill' : 'inactive-pill'"
+                    >
+                      {{ item.status === 'ACTIVE' ? 'Kích hoạt' : 'Chưa kích hoạt' }}
+                    </span>
+                  </template>
+                </BaseTable>
+              </div>
             </div>
           </div>
         </div>
       </v-col>
     </v-row>
 
-    <!-- MODAL THÊM MỚI NHÓM NGƯỜI DÙNG -->
+    <!-- MODAL THÊM MỚI NHÓM -->
     <v-dialog v-model="dialogAdd" max-width="500" persistent>
       <v-card class="rounded-lg overflow-hidden">
         <v-card-title
           class="bg-red-custom white--text py-3 px-4 d-flex align-center justify-space-between"
         >
-          <span class="text-h6 font-weight-bold">Thêm mới</span>
-          <v-btn icon dark small @click="dialogAdd = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
+          <span class="text-h6 font-weight-bold">Thêm mới nhóm</span>
+          <v-btn icon dark small @click="dialogAdd = false"><v-icon>mdi-close</v-icon></v-btn>
         </v-card-title>
-
         <v-card-text class="pt-6 pb-2 px-6">
           <v-form ref="addForm" v-model="validAdd">
             <v-text-field
-              v-model="newRoleForm.name"
+              v-model="newRoleForm.groupName"
               label="Tên nhóm (*)"
               outlined
               dense
               class="rounded-lg mb-2"
               :rules="[(v) => !!v || 'Bắt buộc nhập tên nhóm']"
             ></v-text-field>
-
             <v-textarea
               v-model="newRoleForm.description"
               label="Mô tả (*)"
@@ -331,22 +295,9 @@
             ></v-textarea>
           </v-form>
         </v-card-text>
-
         <v-card-actions class="px-6 pb-5 pt-0 d-flex justify-end gap-2">
-          <v-btn
-            outlined
-            class="text-capitalize rounded-sm px-4"
-            @click="dialogAdd = false"
-          >
-            Đóng X
-          </v-btn>
-          <v-btn
-            color="#a2212b"
-            dark
-            elevation="0"
-            class="text-capitalize rounded-sm px-4"
-            @click="submitCreateRole"
-          >
+          <v-btn outlined class="text-capitalize rounded-sm px-4" @click="dialogAdd = false">Đóng X</v-btn>
+          <v-btn color="#a2212b" dark elevation="0" class="text-capitalize rounded-sm px-4" @click="submitCreateRole">
             Lưu <v-icon right small class="ml-1">mdi-content-save</v-icon>
           </v-btn>
         </v-card-actions>
@@ -355,19 +306,13 @@
 
     <!-- MODAL CẬP NHẬT TÀI KHOẢN NHÓM -->
     <v-dialog v-model="dialogUsers" max-width="1000" persistent>
-      <v-card
-        class="rounded-lg overflow-hidden d-flex flex-column"
-        style="max-height: 90vh"
-      >
+      <v-card class="rounded-lg overflow-hidden d-flex flex-column" style="max-height: 90vh">
         <v-card-title
           class="bg-red-custom white--text py-3 px-4 d-flex align-center justify-space-between flex-shrink-0"
         >
           <span class="text-h6 font-weight-bold">Cập nhật tài khoản nhóm</span>
-          <v-btn icon dark small @click="dialogUsers = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
+          <v-btn icon dark small @click="dialogUsers = false"><v-icon>mdi-close</v-icon></v-btn>
         </v-card-title>
-
         <v-card-text class="pa-4 flex-grow-1 overflow-y-auto">
           <v-simple-table class="border rounded custom-modal-table">
             <template #default>
@@ -387,13 +332,11 @@
                   <th class="text-left font-weight-bold">Email</th>
                   <th class="text-left font-weight-bold">Số điện thoại</th>
                   <th class="text-left font-weight-bold">Chức vụ</th>
-                  <th class="text-center font-weight-bold" width="140">
-                    Trạng thái
-                  </th>
+                  <th class="text-center font-weight-bold" width="140">Trạng thái</th>
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="(user, idx) in paginatedModalUsers" :key="user.id">
+                <tr v-for="(user, idx) in allUsers" :key="user.id">
                   <td class="text-center">
                     <v-checkbox
                       v-model="tempSelectedUserIds"
@@ -403,114 +346,27 @@
                       class="ma-0 pa-0 inline-checkbox"
                     ></v-checkbox>
                   </td>
-                  <td>{{ (currentPage - 1) * itemsPerPage + idx + 1 }}</td>
+                  <td>{{ idx + 1 }}</td>
                   <td class="font-weight-medium">{{ user.fullName }}</td>
                   <td>{{ user.email }}</td>
                   <td>{{ user.phone }}</td>
-                  <td>{{ user.roleTitle }}</td>
+                  <td>{{ user.position }}</td>
                   <td class="text-center">
                     <span
                       class="status-pill"
-                      :class="
-                        user.status === 'Kích hoạt'
-                          ? 'active-pill'
-                          : 'inactive-pill'
-                      "
+                      :class="user.status === 'ACTIVE' ? 'active-pill' : 'inactive-pill'"
                     >
-                      {{ user.status }}
+                      {{ user.status === 'ACTIVE' ? 'Kích hoạt' : 'Chưa kích hoạt' }}
                     </span>
-                  </td>
-                </tr>
-                <tr v-if="paginatedModalUsers.length === 0">
-                  <td colspan="7" class="text-center py-6 grey--text">
-                    Không tìm thấy dữ liệu phù hợp
                   </td>
                 </tr>
               </tbody>
             </template>
           </v-simple-table>
-
-          <div
-            class="d-flex align-center justify-end py-3 border-top-only gap-2 bg-white mt-4"
-          >
-            <span class="body-2 grey--text text--darken-1">Bản ghi</span>
-            <v-select
-              v-model="itemsPerPage"
-              :items="[10, 20, 50, 100]"
-              dense
-              outlined
-              hide-details
-              style="max-width: 80px"
-              class="custom-input"
-              @change="currentPage = 1"
-            ></v-select>
-
-            <span class="body-2 grey--text text--darken-1 ml-2">Trang</span>
-            <v-text-field
-              v-model.number="inputPage"
-              dense
-              outlined
-              hide-details
-              style="max-width: 60px"
-              class="text-center custom-input"
-              @keyup.enter="goToPage"
-            ></v-text-field>
-
-            <v-btn
-              color="#a2212b"
-              dark
-              small
-              class="text-capitalize px-3 rounded-sm elevation-0 text-body-2"
-              @click="goToPage"
-            >
-              Đi
-            </v-btn>
-
-            <v-btn icon :disabled="currentPage <= 1" @click="currentPage--">
-              <v-icon>mdi-chevron-left</v-icon>
-            </v-btn>
-
-            <v-btn
-              v-for="p in totalPages"
-              :key="p"
-              small
-              :color="currentPage === p ? '#a2212b' : ''"
-              :dark="currentPage === p"
-              :outlined="currentPage !== p"
-              class="min-w-0 pa-0 rounded-sm elevation-0 text-body-2"
-              style="width: 32px; height: 32px"
-              @click="currentPage = p"
-            >
-              {{ p }}
-            </v-btn>
-
-            <v-btn
-              icon
-              :disabled="currentPage >= totalPages"
-              @click="currentPage++"
-            >
-              <v-icon>mdi-chevron-right</v-icon>
-            </v-btn>
-          </div>
         </v-card-text>
-
-        <v-card-actions
-          class="px-6 py-3 border-top d-flex justify-end gap-2 flex-shrink-0 bg-white"
-        >
-          <v-btn
-            outlined
-            class="text-capitalize rounded-sm px-4"
-            @click="dialogUsers = false"
-          >
-            Đóng X
-          </v-btn>
-          <v-btn
-            color="#a2212b"
-            dark
-            elevation="0"
-            class="text-capitalize rounded-sm px-4"
-            @click="saveGroupUsers"
-          >
+        <v-card-actions class="px-6 py-3 border-top d-flex justify-end gap-2 flex-shrink-0 bg-white">
+          <v-btn outlined class="text-capitalize rounded-sm px-4" @click="dialogUsers = false">Đóng X</v-btn>
+          <v-btn color="#a2212b" dark elevation="0" class="text-capitalize rounded-sm px-4" @click="saveGroupUsers">
             Lưu <v-icon right small class="ml-1">mdi-content-save</v-icon>
           </v-btn>
         </v-card-actions>
@@ -520,8 +376,32 @@
 </template>
 
 <script>
+import BaseTable from '@/components/Base/BaseTable.vue'
+import { MOCK_DATA_NGUOI_DUNG } from '~/consts/mockNguoiDung.js'
+
+// Dữ liệu cấu trúc nhóm và quyền trang
+const MOCK_GROUPS = [
+  { id: 42, groupName: "admin", description: "nhóm dành cho các tài khoản quản lý cấp bậc cao nhất", status: 1 },
+  { id: 1, groupName: "Quản trị hệ thống", description: "Quản trị hệ thống", status: 1 },
+  { id: 22, groupName: "Học lại", description: "test", status: 1 }
+];
+
+const MOCK_PAGES = [
+  { id: 33, pageName: "Danh sách lớp học lại", parentId: 29 },
+  { id: 39, pageName: "Quản lý bảo vệ lại", parentId: 0 },
+  { id: 28, pageName: "BC SV chưa đóng tiền", parentId: 29 }
+];
+
+const MOCK_ROLES = [
+  { id: 147, pageId: 33, roleName: "Danh sách lớp học" },
+  { id: 148, pageId: 33, roleName: "Chi tiết lớp học" },
+  { id: 173, pageId: 39, roleName: "Quản lý bảo vệ lại" },
+  { id: 131, pageId: 28, roleName: "Danh sách báo cáo SV chưa nộp tiền" }
+];
+
 export default {
   name: 'RoleManagement',
+  components: { BaseTable },
   data() {
     return {
       searchRole: '',
@@ -533,200 +413,33 @@ export default {
 
       dialogAdd: false,
       validAdd: true,
-      newRoleForm: { name: '', description: '' },
+      newRoleForm: { groupName: '', description: '' },
 
       dialogUsers: false,
       selectAllModalUsers: false,
       tempSelectedUserIds: [],
 
-      itemsPerPage: 50,
-      currentPage: 1,
-      inputPage: 1,
-
-      allUsers: [
-        {
-          id: 1,
-          fullName: 'test',
-          email: 'test@gmail.com',
-          phone: '0366827983',
-          roleTitle: 'cán bộ',
-          status: 'Kích hoạt',
-        },
-        {
-          id: 2,
-          fullName: 'user',
-          email: 'user@gmail.com',
-          phone: '0394199632',
-          roleTitle: 'newbie',
-          status: 'Kích hoạt',
-        },
-        {
-          id: 3,
-          fullName: 'Anh Tú',
-          email: 'anhtule578@gmail.com',
-          phone: '0987234222',
-          roleTitle: 'a',
-          status: 'Kích hoạt',
-        },
-        {
-          id: 4,
-          fullName: 'Lê Minh Chiến',
-          email: 'le0433348@gmail.com',
-          phone: '0862265204',
-          roleTitle: 'Admin',
-          status: 'Chưa kích hoạt',
-        },
-        {
-          id: 5,
-          fullName: 'Bùi Thị Mỹ',
-          email: 'buimy10102003@gmail.com',
-          phone: '0976081622',
-          roleTitle: 'Quản trị',
-          status: 'Kích hoạt',
-        },
-        {
-          id: 6,
-          fullName: 'OanhNP',
-          email: 'oanh.np.03@gmail.com',
-          phone: '0349631041',
-          roleTitle: 'quản trị',
-          status: 'Kích hoạt',
-        },
-        {
-          id: 7,
-          fullName: 'Phương Oanh',
-          email: 'oanh.np.2003@gmail.com',
-          phone: '0349752491',
-          roleTitle: 'quản trị',
-          status: 'Kích hoạt',
-        },
-        {
-          id: 8,
-          fullName: 'Đỗ Hồng Kiên',
-          email: 'dohongkien2003@gmail.com',
-          phone: '0987654321',
-          roleTitle: 'Developer',
-          status: 'Kích hoạt',
-        },
-        {
-          id: 9,
-          fullName: 'Lê Hồng Phong',
-          email: 'phong2552001@gmail.com',
-          phone: '0973725501',
-          roleTitle: 'dev',
-          status: 'Kích hoạt',
-        },
-        {
-          id: 10,
-          fullName: 'Nguyễn Thùy Ninh',
-          email: 'tester@mergames.io',
-          phone: '0347682664',
-          roleTitle: 'Quản Trị',
-          status: 'Kích hoạt',
-        },
-        {
-          id: 11,
-          fullName: 'Nguyễn Trọng Minh',
-          email: 'lkcminh@gmail.com',
-          phone: '0972894012',
-          roleTitle: 'Can bo',
-          status: 'Kích hoạt',
-        },
-        {
-          id: 12,
-          fullName: 'Bùi Thị Quỳnh Giang',
-          email: 'admin1@gmail.com',
-          phone: '0356762828',
-          roleTitle: 'Rang',
-          status: 'Kích hoạt',
-        },
-        {
-          id: 13,
-          fullName: 'Chu Hữu Nam',
-          email: 'namch@gmail.com',
-          phone: '0845999669',
-          roleTitle: 'nam_true',
-          status: 'Kích hoạt',
-        },
-        {
-          id: 14,
-          fullName: 'Admin',
-          email: 'admin@gmail.com',
-          phone: '0999999999',
-          roleTitle: 'Quản trị hệ thống',
-          status: 'Kích hoạt',
-        },
-      ],
-
-      roles: [
-        {
-          id: 1,
-          name: 'Học lại',
-          description: 'test',
-          selectedPages: [1, 2, 3, 4, 5, 6, 7],
-          permissions: { 1: ['view', 'add', 'edit', 'delete'] },
-          userIds: [6, 7, 8, 11],
-        },
-        {
-          id: 2,
-          name: 'haha hihi',
-          description: 'mô tả 2',
-          selectedPages: [],
-          permissions: {},
-          userIds: [],
-        },
-        {
-          id: 3,
-          name: 'Quản trị hệ thống',
-          description: 'Quản trị viên',
-          selectedPages: [1, 2],
-          permissions: {},
-          userIds: [1, 5],
-        },
-        {
-          id: 4,
-          name: 'admin',
-          description: 'Admin hệ thống',
-          selectedPages: [],
-          permissions: {},
-          userIds: [],
-        },
-        {
-          id: 5,
-          name: 'Tach nua',
-          description: 'Mô tả khác',
-          selectedPages: [],
-          permissions: {},
-          userIds: [],
-        },
-      ],
+      // Kết nối trực tiếp với MOCK_DATA_NGUOI_DUNG thực tế
+      allUsers: [...MOCK_DATA_NGUOI_DUNG],
+      roles: [...MOCK_GROUPS],
+      pagesList: [...MOCK_PAGES],
+      rolesList: [...MOCK_ROLES],
 
       currentRole: {
         id: null,
-        name: '',
+        groupName: '',
         description: '',
         selectedPages: [],
         permissions: {},
-        userIds: [],
       },
 
-      pagesList: [
-        { id: 1, name: 'Quản lý học lại' },
-        { id: 2, name: 'Quản lý đợt đăng ký học lại' },
-        { id: 3, name: 'Danh sách sinh viên phải học lại' },
-        { id: 4, name: 'Danh sách sinh viên đã đăng ký học lại' },
-        { id: 5, name: 'Danh sách lớp học lại' },
-        { id: 6, name: 'Kết quả học lại' },
-        { id: 7, name: 'Quản lý bảo vệ lại' },
-        { id: 8, name: 'BC SV chưa đóng tiền' },
-      ],
-
-      availableActions: [
-        { id: 'view', name: 'Danh sách kỳ học lại' },
-        { id: 'detail', name: 'Chi tiết kỳ học lại' },
-        { id: 'add', name: 'Thêm kỳ học lại' },
-        { id: 'edit', name: 'Sửa kỳ học lại' },
-        { id: 'delete', name: 'Xóa kỳ học lại' },
+      userHeaders: [
+        { text: 'STT', value: 'stt', sortable: false, width: '50px' },
+        { text: 'Họ tên', value: 'fullName', sortable: false },
+        { text: 'Email', value: 'email', sortable: false },
+        { text: 'Số điện thoại', value: 'phone', sortable: false },
+        { text: 'Chức vụ', value: 'position', sortable: false },
+        { text: 'Trạng thái', value: 'status', sortable: false, align: 'center' },
       ],
     }
   },
@@ -734,25 +447,32 @@ export default {
     filteredRoles() {
       if (!this.searchRole) return this.roles
       return this.roles.filter((r) =>
-        r.name.toLowerCase().includes(this.searchRole.toLowerCase())
+        r.groupName.toLowerCase().includes(this.searchRole.toLowerCase().trim())
       )
     },
-
+    uniquePagesList() {
+      const map = new Map();
+      return this.pagesList.filter(item => {
+        if (!map.has(item.id)) {
+          map.set(item.id, true);
+          return true;
+        }
+        return false;
+      });
+    },
+    selectedPageName() {
+      const p = this.uniquePagesList.find(x => x.id === this.selectedPageId)
+      return p ? p.pageName.toUpperCase() : ''
+    },
+    availableActions() {
+      if (!this.selectedPageId) return []
+      return this.rolesList.filter(r => r.pageId === this.selectedPageId)
+    },
     assignedUsers() {
-      if (!this.currentRole || !this.currentRole.userIds) return []
+      if (!this.currentRole || !this.currentRole.id) return []
       return this.allUsers.filter((u) =>
-        this.currentRole.userIds.includes(u.id)
+        u.groups && u.groups.some(g => g.id === this.currentRole.id)
       )
-    },
-
-    totalPages() {
-      return Math.ceil(this.allUsers.length / this.itemsPerPage) || 1
-    },
-
-    paginatedModalUsers() {
-      const start = (this.currentPage - 1) * this.itemsPerPage
-      const end = start + this.itemsPerPage
-      return this.allUsers.slice(start, end)
     },
   },
   watch: {
@@ -764,52 +484,39 @@ export default {
         }
       },
     },
-    currentPage(val) {
-      this.inputPage = val
-    },
   },
   methods: {
     selectRole(role, index) {
       this.selectedRoleIndex = index
       this.currentRole = JSON.parse(JSON.stringify(role))
-      if (!this.currentRole.permissions) {
-        this.$set(this.currentRole, 'permissions', {})
-      }
-      if (!this.currentRole.userIds) {
-        this.$set(this.currentRole, 'userIds', [])
-      }
-      this.selectedPageId = this.pagesList[0]?.id || null
+      if (!this.currentRole.permissions) this.$set(this.currentRole, 'permissions', {})
+      if (!this.currentRole.selectedPages) this.$set(this.currentRole, 'selectedPages', [])
+      this.selectedPageId = this.uniquePagesList[0]?.id || null
     },
 
     handleAddNewRole() {
-      this.newRoleForm = { name: '', description: '' }
+      this.newRoleForm = { groupName: '', description: '' }
       if (this.$refs.addForm) this.$refs.addForm.resetValidation()
       this.dialogAdd = true
     },
 
     submitCreateRole() {
       if (!this.$refs.addForm.validate()) return
-
       const createdRole = {
         id: Date.now(),
-        name: this.newRoleForm.name,
+        groupName: this.newRoleForm.groupName,
         description: this.newRoleForm.description,
+        status: 1,
         selectedPages: [],
         permissions: {},
-        userIds: [],
       }
-
       this.roles.unshift(createdRole)
       this.selectRole(createdRole, 0)
       this.dialogAdd = false
     },
 
     toggleSelectAllPages(val) {
-      if (val) {
-        this.currentRole.selectedPages = this.pagesList.map((p) => p.id)
-      } else {
-        this.currentRole.selectedPages = []
-      }
+      this.currentRole.selectedPages = val ? this.uniquePagesList.map((p) => p.id) : []
     },
 
     toggleSelectAllActions(val) {
@@ -817,46 +524,34 @@ export default {
       if (!this.currentRole.permissions[this.selectedPageId]) {
         this.$set(this.currentRole.permissions, this.selectedPageId, [])
       }
-      if (val) {
-        this.currentRole.permissions[this.selectedPageId] =
-          this.availableActions.map((a) => a.id)
-      } else {
-        this.currentRole.permissions[this.selectedPageId] = []
-      }
+      this.currentRole.permissions[this.selectedPageId] = val 
+        ? this.availableActions.map((a) => a.id) 
+        : []
     },
 
     openUserModal() {
-      this.tempSelectedUserIds = [...(this.currentRole.userIds || [])]
-      this.currentPage = 1
-      this.inputPage = 1
+      this.tempSelectedUserIds = this.allUsers
+        .filter(u => u.groups && u.groups.some(g => g.id === this.currentRole.id))
+        .map(u => u.id)
       this.dialogUsers = true
     },
 
-    goToPage() {
-      const pageNum = parseInt(this.inputPage, 10)
-      if (pageNum >= 1 && pageNum <= this.totalPages) {
-        this.currentPage = pageNum
-      } else {
-        this.inputPage = this.currentPage
-      }
-    },
-
     toggleSelectAllModalUsers(val) {
-      if (val) {
-        this.tempSelectedUserIds = this.allUsers.map((u) => u.id)
-      } else {
-        this.tempSelectedUserIds = []
-      }
+      this.tempSelectedUserIds = val ? this.allUsers.map((u) => u.id) : []
     },
 
     saveGroupUsers() {
-      this.currentRole.userIds = [...this.tempSelectedUserIds]
+      this.allUsers.forEach(u => {
+        if (!u.groups) u.groups = []
+        const existsIndex = u.groups.findIndex(g => g.id === this.currentRole.id)
+        const isSelected = this.tempSelectedUserIds.includes(u.id)
 
-      const idx = this.roles.findIndex((r) => r.id === this.currentRole.id)
-      if (idx !== -1) {
-        this.$set(this.roles, idx, { ...this.currentRole })
-      }
-
+        if (isSelected && existsIndex === -1) {
+          u.groups.push({ id: this.currentRole.id, groupName: this.currentRole.groupName })
+        } else if (!isSelected && existsIndex !== -1) {
+          u.groups.splice(existsIndex, 1)
+        }
+      })
       this.dialogUsers = false
     },
 
@@ -864,12 +559,12 @@ export default {
       const idx = this.roles.findIndex((r) => r.id === this.currentRole.id)
       if (idx !== -1) {
         this.$set(this.roles, idx, { ...this.currentRole })
-        alert('Lưu thông tin thành công!')
+        alert('Lưu thông tin nhóm thành công!')
       }
     },
 
     deleteRole() {
-      if (confirm(`Bạn có chắc muốn xóa nhóm "${this.currentRole.name}"?`)) {
+      if (confirm(`Bạn có chắc muốn xóa nhóm "${this.currentRole.groupName}"?`)) {
         this.roles = this.roles.filter((r) => r.id !== this.currentRole.id)
         if (this.roles.length > 0) {
           this.selectRole(this.roles[0], 0)
@@ -881,169 +576,50 @@ export default {
 </script>
 
 <style scoped>
-.role-management >>> .flex-grow-1 {
-  flex-grow: 21 !important;
-}
+/* Khôi phục lại bố cục CSS trên Desktop ban đầu */
+.role-management { min-height: 100%; width: 100%; }
+.role-panel { min-height: 600px; height: calc(100vh - 120px); width: 100%; }
+.left-panel, .right-panel { height: 100%; overflow: hidden; }
+.bg-red-custom { background-color: #a2212b !important; }
+.gap-2 { gap: 8px; }
+.gap-8 { gap: 32px; }
+.border-right { border-right: 1px solid #e0e0e0 !important; }
+.border-bottom { border-bottom: 1px solid #e0e0e0 !important; }
+.border-top-only { border-top: 1px solid #e5e5e5 !important; }
 
-.role-management {
-  min-height: calc(100vh - 100px);
-  width: 100%;
-}
-
-.role-panel {
-  min-height: 640px;
-  height: calc(100vh - 150px);
-  width: 100%;
-}
-
-.left-panel,
-.right-panel {
-  min-height: 100%;
-}
-
-.bg-red-custom {
-  background-color: #a2212b !important;
-}
-
-.gap-2 {
-  gap: 8px;
-}
-.gap-8 {
-  gap: 32px;
-}
-
-.border-right {
-  border-right: 1px solid #e0e0e0 !important;
-}
-
-.border-bottom {
-  border-bottom: 1px solid #e0e0e0 !important;
-}
-
-.border-top-only {
-  border-top: 1px solid #e5e5e5 !important;
-}
-
-/* HIỆU ỨNG TABS VA HOVER MÀU ĐỎ NHẠT */
 .tab-btn {
-  background: transparent;
-  border: none;
-  font-size: 15px;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.25s ease-in-out;
-  border-bottom: 2px solid transparent;
+  background: transparent; border: none; font-size: 15px; color: #666; cursor: pointer; transition: all 0.25s ease-in-out; border-bottom: 2px solid transparent;
+}
+.tab-btn:hover { background-color: #fdeae8 !important; color: #a2212b !important; }
+.active-tab { color: #a2212b !important; border-bottom: 2px solid #a2212b !important; background-color: #fcf0ee; }
+
+.tab-slider-wrapper { width: 100%; }
+.tab-slider-content { width: 100%; transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
+.tab-pane { min-width: 100%; box-sizing: border-box; }
+
+.table-scroll-panel {
+  max-height: calc(100vh - 280px);
+  overflow-y: auto !important;
+  overflow-x: auto;
+  border: 1px solid #f0f0f0;
 }
 
-/* Hover hiện màu đỏ nhạt */
-.tab-btn:hover {
-  background-color: #fdeae8 !important;
-  color: #a2212b !important;
-}
+.status-pill { display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; color: white; }
+.active-pill { background-color: #a2212b; }
+.inactive-pill { background-color: #8d9499; }
 
-/* Active tab có gạch dưới đỏ đậm */
-.active-tab {
-  color: #a2212b !important;
-  border-bottom: 2px solid #a2212b !important;
-  background-color: #fcf0ee;
-}
+.inline-checkbox >>> .v-input__control { display: flex; justify-content: center; }
+.custom-modal-table >>> table { border-collapse: collapse !important; width: 100% !important; }
+.custom-modal-table >>> th { background-color: #f8f9fa !important; color: #222 !important; font-weight: 700 !important; font-size: 14px !important; border-bottom: 2px solid #e0e0e0 !important; height: 44px !important; }
+.custom-modal-table >>> td { font-size: 14px !important; color: #333 !important; border-bottom: 1px solid #f0f0f0 !important; height: 48px !important; }
 
-/* HIỆU ỨNG SLIDE TRỢT SANG TRÁI/PHẢI */
-.tab-slider-wrapper {
-  width: 100%;
-}
+.role-item { cursor: pointer; background-color: #f8f9fa; transition: all 0.2s ease; }
+.role-item:hover { background-color: #eee; }
+.active-role { background-color: #a2212b !important; }
+.active-role .v-list-item__title { color: white !important; }
 
-.tab-slider-content {
-  width: 100%;
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.tab-pane {
-  min-width: 100%;
-  box-sizing: border-box;
-}
-
-/* Status Pill Style */
-.status-pill {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  color: white;
-}
-
-.active-pill {
-  background-color: #a2212b;
-}
-
-.inactive-pill {
-  background-color: #8d9499;
-}
-
-/* Checkbox căn giữa */
-.inline-checkbox >>> .v-input__control {
-  display: flex;
-  justify-content: center;
-}
-
-/* Bảng Modal Custom */
-.custom-modal-table >>> table {
-  border-collapse: collapse !important;
-  width: 100% !important;
-}
-
-.custom-modal-table >>> th {
-  background-color: #f8f9fa !important;
-  color: #222 !important;
-  font-weight: 700 !important;
-  font-size: 14px !important;
-  border-bottom: 2px solid #e0e0e0 !important;
-  height: 44px !important;
-}
-
-.custom-modal-table >>> td {
-  font-size: 14px !important;
-  color: #333 !important;
-  border-bottom: 1px solid #f0f0f0 !important;
-  height: 48px !important;
-}
-
-/* Custom Role Active Item */
-.role-item {
-  cursor: pointer;
-  background-color: #f8f9fa;
-  transition: all 0.2s ease;
-}
-
-.role-item:hover {
-  background-color: #eee;
-}
-
-.active-role {
-  background-color: #a2212b !important;
-}
-
-.active-role .v-list-item__title {
-  color: white !important;
-}
-
-.bg-grey-light {
-  background-color: #f2f2f2;
-}
-
-.selected-page-row {
-  background-color: #f5f5f5;
-  font-weight: bold;
-}
-
-.cursor-pointer {
-  cursor: pointer;
-}
-
-.custom-input >>> .v-input__slot {
-  margin-bottom: 0 !important;
-  min-height: 36px !important;
-  font-size: 14px !important;
-}
+.bg-grey-light { background-color: #f2f2f2; }
+.selected-page-row { background-color: #f5f5f5; font-weight: bold; }
+.cursor-pointer { cursor: pointer; }
+.custom-input >>> .v-input__slot { margin-bottom: 0 !important; min-height: 36px !important; font-size: 14px !important; }
 </style>

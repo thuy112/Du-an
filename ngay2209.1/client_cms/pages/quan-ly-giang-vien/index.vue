@@ -11,7 +11,7 @@
         <div class="d-flex align-center gap-2 flex-wrap flex-grow-1 justify-end">
           <v-text-field
             v-model="filters.search"
-            placeholder="Tìm kiếm"
+            placeholder="Tìm theo Tên, Mã GV"
             outlined
             dense
             hide-details
@@ -19,9 +19,10 @@
             @keyup.enter="search"
           ></v-text-field>
 
+          <!-- ĐÃ XÓA @change="search" ĐỂ KHÔNG TỰ ĐỘNG TÌM KIẾM NỮA -->
           <v-select
             v-model="filters.gender"
-            :items="['Nam', 'Nữ', 'Khác']"
+            :items="genderOptions"
             label="Giới tính"
             outlined
             dense
@@ -29,12 +30,11 @@
             clearable
             :menu-props="{ attach: true, offsetY: true, zIndex: 999 }"
             class="bg-white filter-item select-sm custom-outlined-input"
-            @change="search"
           ></v-select>
 
           <v-select
             v-model="filters.teacherType"
-            :items="['Đương chức', 'Mời giảng']"
+            :items="teacherTypeOptions"
             label="Loại giảng viên"
             placeholder="Loại giảng viên"
             outlined
@@ -43,12 +43,11 @@
             clearable
             :menu-props="{ attach: true, offsetY: true, zIndex: 999 }"
             class="bg-white filter-item select-md custom-outlined-input"
-            @change="search"
           ></v-select>
 
           <v-select
             v-model="filters.status"
-            :items="['Hoạt động', 'Nghỉ hưu']"
+            :items="statusOptions"
             label="Trạng thái"
             placeholder="Trạng thái"
             outlined
@@ -57,12 +56,11 @@
             clearable
             :menu-props="{ attach: true, offsetY: true, zIndex: 999 }"
             class="bg-white filter-item select-md custom-outlined-input"
-            @change="search"
           ></v-select>
 
           <v-select
             v-model="filters.department"
-            :items="['Đại học Bách khoa Hà Nội', 'Khoa CNTT']"
+            :items="departmentOptions"
             label="Khoa/ Trường"
             placeholder="Khoa/ Trường"
             outlined
@@ -71,7 +69,6 @@
             clearable
             :menu-props="{ attach: true, offsetY: true, zIndex: 999 }"
             class="bg-white filter-item select-lg custom-outlined-input"
-            @change="search"
           ></v-select>
 
           <div class="d-flex gap-2 align-center">
@@ -79,6 +76,7 @@
               <v-icon color="#a2212b" size="24">mdi-refresh</v-icon>
             </v-btn>
 
+            <!-- NÚT TÌM KIẾM CHÍNH -->
             <v-btn color="#a2212b" dark elevation="0" class="min-w-0 px-3 rounded-sm" style="height: 40px;" @click="search">
               <v-icon size="24">mdi-magnify</v-icon>
             </v-btn>
@@ -87,116 +85,91 @@
       </div>
     </div>
 
-    <!-- 2. BẢNG DỮ LIỆU CÓ PHẢN HỒI MOBILE -->
-    <div class="table-container bg-white">
-      <v-data-table
-        :headers="headers"
-        :items="paginatedTeachers"
-        hide-default-footer
-        disable-pagination
-        mobile-breakpoint="960"
-        class="custom-table"
-      >
-      
-        <template #[`item.stt`]="{ index }">
-          <span class="font-weight-medium">{{ (page - 1) * itemsPerPage + index + 1 }}</span>
-        </template>
+    <!-- 2. BẢNG DỮ LIỆU DÙNG BASETABLE -->
+    <BaseTable
+      :headers="headers"
+      :items="paginatedTeachers"
+      hide-default-footer
+      disable-pagination
+    >
+      <template #[`item.stt`]="{ index }">
+        <span class="font-weight-medium">{{ (page - 1) * itemsPerPage + index + 1 }}</span>
+      </template>
 
-        <!-- SLOT THÔNG TIN CHUNG CĂN CHỈNH ĐỘNG -->
-        <template #[`item.generalInfo`]="{ item }">
-          <div class="py-2 info-block">
-            <div class="font-weight-bold red--text text--darken-3 mb-1" style="font-size: 15px;">
-              {{ item.fullName }}
-            </div>
-            <div v-if="item.phone" class="text-body-2 text--secondary mb-1">
-              Số điện thoại: <span class="red--text text--darken-2 font-weight-bold">{{ item.phone }}</span>
-            </div>
-            <div v-if="item.email" class="text-body-2 text--secondary mb-1">
-              Email: <span class="red--text text--darken-2 font-weight-bold">{{ item.email }}</span>
-            </div>
-            <div v-if="item.gender" class="text-body-2 text--secondary">
-              Giới tính: <span class="red--text text--darken-2 font-weight-bold">{{ item.gender }}</span>
-            </div>
+      <!-- SLOT THÔNG TIN CHUNG -->
+      <template #[`item.generalInfo`]="{ item }">
+        <div class="py-2 info-block">
+          <div class="font-weight-bold red--text text--darken-3 mb-1" style="font-size: 15px;">
+            {{ item.fullName }}
           </div>
-        </template>
-
-        <!-- SLOT HIỂN THỊ LOẠI GIẢNG VIÊN -->
-        <template #[`item.teacherType`]="{ item }">
-          <span
-            class="status-badge"
-            :class="(item.teacherType === 'Đương chức' || item.teacherType === 'FULL_TIME') ? 'type-fulltime' : 'type-visiting'"
-          >
-            {{ item.teacherType }}
-          </span>
-        </template>
-
-        <!-- SLOT HIỂN THỊ & CHUYỂN ĐỔI TRẠNG THÁI -->
-        <template #[`item.status`]="{ item }">
-          <v-menu 
-            offset-y 
-            bottom 
-            left 
-            :z-index="999"
-          >
-            <template #activator="{ on, attrs }">
-              <div
-                v-bind="attrs"
-                v-on="on"
-                class="status-badge style-pointer d-flex align-center justify-space-between"
-                :class="(item.status === 'Hoạt động' || item.status === 'ACTIVE') ? 'status-active' : 'status-inactive'"
-                style="cursor: pointer; min-width: 110px;"
-              >
-                <span>{{ item.status }}</span>
-                <v-icon size="20" color="white">
-                  mdi-menu-down
-                </v-icon>
-              </div>
-            </template>
-
-            <v-list dense class="py-1">
-              <v-list-item @click="openConfirmStatusDialog(item, 'Hoạt động')">
-                <v-list-item-title class="red--text text--darken-1 font-weight-bold">
-                  Hoạt động
-                </v-list-item-title>
-              </v-list-item>
-              <v-list-item @click="openConfirmStatusDialog(item, 'Nghỉ hưu')">
-                <v-list-item-title class="grey--text text--darken-2 font-weight-bold">
-                  Nghỉ hưu
-                </v-list-item-title>
-              </v-list-item>
-            </v-list>
-          </v-menu>
-        </template>
-
-        <!-- SLOT CHỨC NĂNG -->
-        <template #[`item.actions`]="{ item }">
-          <div class="d-flex align-center gap-1 action-icons">
-            <v-btn icon x-small color="cyan darken-1" @click="viewDetail(item)">
-              <v-icon size="24" color="blue">mdi-eye</v-icon>
-            </v-btn>
-
-            <v-btn icon x-small color="teal" @click="checkHistory(item)">
-              <v-icon size="24" color="green">mdi-table-account</v-icon>
-            </v-btn>
+          <div v-if="item.phone && item.phone !== '---'" class="text-body-2 text--secondary mb-1">
+            Số điện thoại: <span class="red--text text--darken-2 font-weight-bold">{{ item.phone }}</span>
           </div>
-        </template>
-      </v-data-table>
-    </div>
+          <div v-if="item.email && item.email !== '---'" class="text-body-2 text--secondary mb-1">
+            Email: <span class="red--text text--darken-2 font-weight-bold">{{ item.email }}</span>
+          </div>
+          <div v-if="item.gender && item.gender !== '---'" class="text-body-2 text--secondary">
+            Giới tính: <span class="red--text text--darken-2 font-weight-bold">{{ item.gender }}</span>
+          </div>
+        </div>
+      </template>
+
+      <!-- SLOT HIỂN THỊ LOẠI GIẢNG VIÊN -->
+      <template #[`item.teacherType`]="{ item }">
+        <span
+          class="status-badge"
+          :class="(item.teacherType === 'Đương chức' || item.teacherType === 'FULL_TIME') ? 'type-fulltime' : 'type-visiting'"
+        >
+          {{ item.teacherType }}
+        </span>
+      </template>
+
+      <!-- SLOT HIỂN THỊ & CHUYỂN ĐỔI TRẠNG THÁI -->
+      <template #[`item.status`]="{ item }">
+        <v-menu offset-y bottom left :z-index="999">
+          <template #activator="{ on, attrs }">
+            <div
+              v-bind="attrs"
+              v-on="on"
+              class="status-badge style-pointer d-flex align-center justify-space-between"
+              :class="(item.status === 'Hoạt động' || item.status === 'ACTIVE') ? 'status-active' : 'status-inactive'"
+              style="cursor: pointer; min-width: 110px;"
+            >
+              <span>{{ item.status }}</span>
+              <v-icon size="20" color="white">mdi-menu-down</v-icon>
+            </div>
+          </template>
+          <v-list dense class="py-1">
+            <v-list-item @click="openConfirmStatusDialog(item, 'Hoạt động')">
+              <v-list-item-title class="red--text text--darken-1 font-weight-bold">Hoạt động</v-list-item-title>
+            </v-list-item>
+            <v-list-item @click="openConfirmStatusDialog(item, 'Nghỉ hưu')">
+              <v-list-item-title class="grey--text text--darken-2 font-weight-bold">Nghỉ hưu</v-list-item-title>
+            </v-list-item>
+          </v-list>
+        </v-menu>
+      </template>
+
+      <!-- SLOT CHỨC NĂNG -->
+      <template #[`item.actions`]="{ item }">
+        <div class="d-flex align-center gap-1 action-icons">
+          <v-btn icon x-small color="cyan darken-1" @click="viewDetail(item)">
+            <v-icon size="24" color="blue">mdi-eye</v-icon>
+          </v-btn>
+          <v-btn icon x-small color="teal" @click="checkHistory(item)">
+            <v-icon size="24" color="green">mdi-table-account</v-icon>
+          </v-btn>
+        </div>
+      </template>
+    </BaseTable>
 
     <!-- 3. THANH PHÂN TRANG & EXCEL -->
     <div class="bottom-bar d-flex align-center justify-space-between flex-wrap gap-2 py-3 px-1 mt-auto bg-white">
-      <v-btn
-        color="#2e7d32"
-        dark
-        elevation="0"
-        class="text-capitalize rounded px-4 font-weight-bold"
-        @click="exportToExcel"
-      >
+      <v-btn color="#2e7d32" dark elevation="0" class="text-capitalize rounded px-4 font-weight-bold" @click="exportToExcel">
         <v-icon left small>mdi-export</v-icon> XUẤT FILE EXCEL
       </v-btn>
 
       <div class="d-flex align-center gap-2 flex-wrap justify-end">
-        <!-- Ô Chọn Bản ghi -->
         <v-select
           v-model="itemsPerPage"
           :items="[10, 20, 50, 100]"
@@ -210,7 +183,6 @@
           @change="onItemsPerPageChange"
         ></v-select>
 
-        <!-- Ô Nhập Trang -->
         <v-text-field
           v-model.number="pageInput"
           label="Trang"
@@ -222,14 +194,7 @@
           @keyup.enter="goToPage"
         ></v-text-field>
 
-        <v-btn 
-          color="#a2212b" 
-          dark 
-          small 
-          class="text-capitalize px-3 rounded-sm elevation-0" 
-          style="height: 36px;" 
-          @click="goToPage"
-        >
+        <v-btn color="#a2212b" dark small class="text-capitalize px-3 rounded-sm elevation-0" style="height: 36px;" @click="goToPage">
           Đi
         </v-btn>
 
@@ -237,7 +202,6 @@
           <v-btn icon small :disabled="page <= 1" @click="changePage(page - 1)">
             <v-icon>mdi-chevron-left</v-icon>
           </v-btn>
-          
           <v-btn
             v-for="p in visiblePages"
             :key="p"
@@ -251,7 +215,6 @@
           >
             {{ p }}
           </v-btn>
-
           <v-btn icon small :disabled="page >= totalPages" @click="changePage(page + 1)">
             <v-icon>mdi-chevron-right</v-icon>
           </v-btn>
@@ -273,12 +236,8 @@
             Bạn có chắc chắn muốn đổi trạng thái từ <span class="font-weight-bold red--text text--darken-2">{{ pendingStatusChange.oldStatus }}</span> sang <span class="font-weight-bold red--text text--darken-2">{{ pendingStatusChange.newStatus }}</span> không?
           </div>
           <div class="d-flex justify-end gap-2 mt-6">
-            <v-btn outlined class="text-capitalize border-btn font-weight-bold" color="#a2212b" @click="confirmStatusDialog = false">
-              Đóng X
-            </v-btn>
-            <v-btn color="#a2212b" dark elevation="0" class="text-capitalize font-weight-bold" @click="confirmStatusUpdate">
-              Xác nhận
-            </v-btn>
+            <v-btn outlined class="text-capitalize border-btn font-weight-bold" color="#a2212b" @click="confirmStatusDialog = false">Đóng X</v-btn>
+            <v-btn color="#a2212b" dark elevation="0" class="text-capitalize font-weight-bold" @click="confirmStatusUpdate">Xác nhận</v-btn>
           </div>
         </v-card-text>
       </v-card>
@@ -294,38 +253,24 @@
         </v-card-title>
         <v-card-text class="pa-5 black--text">
           <v-row dense>
-            <v-col cols="6" class="py-2">
-              <div class="grey--text text--darken-1 body-2">Họ tên: <span class="font-weight-bold text--primary">{{ selectedTeacher.fullName }}</span></div>
-            </v-col>
-            <v-col cols="6" class="py-2">
-              <div class="grey--text text--darken-1 body-2">Mã giảng viên: <span class="font-weight-bold red--text text--darken-3">{{ selectedTeacher.code || '---' }}</span></div>
-            </v-col>
-            <v-col cols="6" class="py-2">
-              <div class="grey--text text--darken-1 body-2">SĐT: <span class="font-weight-bold red--text text--darken-3">{{ selectedTeacher.phone || '---' }}</span></div>
-            </v-col>
-            <v-col cols="6" class="py-2">
-              <div class="grey--text text--darken-1 body-2">Ngày sinh: <span class="font-weight-bold text--primary">{{ selectedTeacher.dob || '---' }}</span></div>
-            </v-col>
-            <v-col cols="6" class="py-2">
-              <div class="grey--text text--darken-1 body-2">Mã số thuế: <span class="font-weight-bold text--primary">{{ selectedTeacher.taxCode || '---' }}</span></div>
-            </v-col>
+            <v-col cols="6" class="py-2"><div class="grey--text text--darken-1 body-2">Họ tên: <span class="font-weight-bold text--primary">{{ selectedTeacher.fullName }}</span></div></v-col>
+            <v-col cols="6" class="py-2"><div class="grey--text text--darken-1 body-2">Mã giảng viên: <span class="font-weight-bold red--text text--darken-3">{{ selectedTeacher.code }}</span></div></v-col>
+            <v-col cols="6" class="py-2"><div class="grey--text text--darken-1 body-2">SĐT: <span class="font-weight-bold red--text text--darken-3">{{ selectedTeacher.phone }}</span></div></v-col>
+            <v-col cols="6" class="py-2"><div class="grey--text text--darken-1 body-2">Ngày sinh: <span class="font-weight-bold text--primary">{{ selectedTeacher.dob }}</span></div></v-col>
+            <v-col cols="6" class="py-2"><div class="grey--text text--darken-1 body-2">Mã số thuế: <span class="font-weight-bold text--primary">{{ selectedTeacher.taxCode }}</span></div></v-col>
             <v-col cols="6" class="py-2 d-flex align-center">
               <span class="grey--text text--darken-1 body-2 mr-2">Loại giảng viên:</span>
-              <v-chip v-if="selectedTeacher.teacherType" x-small dark :color="selectedTeacher.teacherType === 'Đương chức' ? '#ffb100' : '#4caf50'" class="font-weight-bold">
+              <v-chip v-if="selectedTeacher.teacherType && selectedTeacher.teacherType !== '---'" x-small dark :color="selectedTeacher.teacherType === 'Đương chức' ? '#ffb100' : '#4caf50'" class="font-weight-bold">
                 {{ selectedTeacher.teacherType }}
               </v-chip>
             </v-col>
             <v-col cols="12" class="py-2 d-flex align-center">
               <span class="grey--text text--darken-1 body-2 mr-2">Trạng thái:</span>
-              <v-chip x-small dark color="#a2212b" class="font-weight-bold">
-                {{ selectedTeacher.status }}
-              </v-chip>
+              <v-chip x-small dark color="#a2212b" class="font-weight-bold">{{ selectedTeacher.status }}</v-chip>
             </v-col>
           </v-row>
           <div class="d-flex justify-center mt-6">
-            <v-btn outlined class="text-capitalize px-6 border-btn font-weight-bold" color="#a2212b" @click="detailDialog = false">
-              Đóng X
-            </v-btn>
+            <v-btn outlined class="text-capitalize px-6 border-btn font-weight-bold" color="#a2212b" @click="detailDialog = false">Đóng X</v-btn>
           </div>
         </v-card-text>
       </v-card>
@@ -341,61 +286,33 @@
         </v-card-title>
         <v-card-text class="pa-5 black--text">
           <v-card flat class="pa-3 mb-4 rounded-lg" style="background-color: #fff0f1; border: 1px solid #ffe0e3;">
-            <div class="text-subtitle-1">
-              Thời gian mới nhất: <span class="font-weight-bold">{{ selectedTeacher.lastUpdated }}</span>
-            </div>
+            <div class="text-subtitle-1">Thời gian mới nhất: <span class="font-weight-bold">{{ selectedTeacher.lastUpdated }}</span></div>
           </v-card>
           <v-row dense class="text-body-2">
-            <v-col cols="12" class="pb-2">
-              <span class="red--text text--darken-2">Người cập nhật:</span> <span class="red--text text--darken-2 font-weight-medium">Admin</span>
-            </v-col>
-            <v-col cols="6" class="py-1">
-              <span class="red--text text--darken-2">Họ tên:</span> <span class="red--text text--darken-3 font-weight-bold">{{ selectedTeacher.fullName }}</span>
-            </v-col>
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-2">Email:</span> <span class="red--text text--darken-3 font-weight-medium">{{ selectedTeacher.email || 'baoien121124@gmail.com' }}</span>
-            </v-col>
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-2">Giới tính:</span> <span class="red--text text--darken-3 font-weight-bold">{{ selectedTeacher.gender || 'Nữ' }}</span>
-            </v-col>
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-2">Mã đối tượng:</span>
-            </v-col>
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-2">Mã giảng viên:</span> <span class="red--text text--darken-3 font-weight-bold">{{ selectedTeacher.code }}</span>
-            </v-col>
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-2">SĐT:</span> <span class="red--text text--darken-3 font-weight-bold">{{ selectedTeacher.phone || '0856146936' }}</span>
-            </v-col>
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-2">Ngày sinh:</span> <span class="font-weight-medium">{{ selectedTeacher.dob || '' }}</span>
-            </v-col>
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-2">Số tài khoản NH:</span>
-            </v-col>
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-2">Mã số thuế:</span> <span class="font-weight-medium">{{ selectedTeacher.taxCode || '' }}</span>
-            </v-col>
-            <v-col cols="6" class="py-1">
-              <span class="grey--text text--darken-2">Đơn vị:</span>
-            </v-col>
+            <v-col cols="12" class="pb-2"><span class="red--text text--darken-2">Người cập nhật:</span> <span class="red--text text--darken-2 font-weight-medium">Admin</span></v-col>
+            <v-col cols="6" class="py-1"><span class="red--text text--darken-2">Họ tên:</span> <span class="red--text text--darken-3 font-weight-bold">{{ selectedTeacher.fullName }}</span></v-col>
+            <v-col cols="6" class="py-1"><span class="grey--text text--darken-2">Email:</span> <span class="red--text text--darken-3 font-weight-medium">{{ selectedTeacher.email }}</span></v-col>
+            <v-col cols="6" class="py-1"><span class="grey--text text--darken-2">Giới tính:</span> <span class="red--text text--darken-3 font-weight-bold">{{ selectedTeacher.gender }}</span></v-col>
+            <v-col cols="6" class="py-1"><span class="grey--text text--darken-2">Mã đối tượng:</span></v-col>
+            <v-col cols="6" class="py-1"><span class="grey--text text--darken-2">Mã giảng viên:</span> <span class="red--text text--darken-3 font-weight-bold">{{ selectedTeacher.code }}</span></v-col>
+            <v-col cols="6" class="py-1"><span class="grey--text text--darken-2">SĐT:</span> <span class="red--text text--darken-3 font-weight-bold">{{ selectedTeacher.phone }}</span></v-col>
+            <v-col cols="6" class="py-1"><span class="grey--text text--darken-2">Ngày sinh:</span> <span class="font-weight-medium">{{ selectedTeacher.dob }}</span></v-col>
+            <v-col cols="6" class="py-1"><span class="grey--text text--darken-2">Số tài khoản NH:</span></v-col>
+            <v-col cols="6" class="py-1"><span class="grey--text text--darken-2">Mã số thuế:</span> <span class="font-weight-medium">{{ selectedTeacher.taxCode }}</span></v-col>
+            <v-col cols="6" class="py-1"><span class="grey--text text--darken-2">Đơn vị:</span> <span class="font-weight-medium">{{ selectedTeacher.department }}</span></v-col>
             <v-col cols="6" class="py-1 d-flex align-center">
               <span class="grey--text text--darken-2 mr-2">Trạng thái:</span>
-              <v-chip x-small dark color="#a2212b" class="font-weight-bold">
-                {{ selectedTeacher.status }}
-              </v-chip>
+              <v-chip x-small dark color="#a2212b" class="font-weight-bold">{{ selectedTeacher.status }}</v-chip>
             </v-col>
             <v-col cols="6" class="py-1 d-flex align-center">
               <span class="grey--text text--darken-2 mr-2">Loại giảng viên:</span>
-              <v-chip x-small dark :color="selectedTeacher.teacherType === 'Đương chức' ? '#ffb100' : '#4caf50'" class="font-weight-bold">
+              <v-chip v-if="selectedTeacher.teacherType && selectedTeacher.teacherType !== '---'" x-small dark :color="selectedTeacher.teacherType === 'Đương chức' ? '#ffb100' : '#4caf50'" class="font-weight-bold">
                 {{ selectedTeacher.teacherType }}
               </v-chip>
             </v-col>
           </v-row>
           <div class="d-flex justify-end mt-6">
-            <v-btn outlined class="text-capitalize px-6 border-btn font-weight-bold" color="#a2212b" @click="historyDialog = false">
-              Đóng X
-            </v-btn>
+            <v-btn outlined class="text-capitalize px-6 border-btn font-weight-bold" color="#a2212b" @click="historyDialog = false">Đóng X</v-btn>
           </div>
         </v-card-text>
       </v-card>
@@ -414,12 +331,41 @@
         </v-btn>
       </template>
     </v-snackbar>
-
   </div>
 </template>
 
 <script>
 import * as XLSX from 'xlsx'
+import { MOCK_DATA_GIANG_VIEN } from "~/consts/mockGiangVien.js";
+
+const parseTeacherData = (apiData) => {
+  return apiData.map(item => {
+    let genderVN = 'Khác';
+    if (item.gender === 'MALE') genderVN = 'Nam';
+    else if (item.gender === 'FEMALE') genderVN = 'Nữ';
+
+    const statusVN = item.status === 'ACTIVE' ? 'Hoạt động' : 'Nghỉ hưu';
+    const typeVN = item.lecturerStatus === 'FULL_TIME' ? 'Đương chức' : 'Mời giảng';
+    const dobStr = item.birthday ? item.birthday.split(' ')[0] : '---';
+
+    return {
+      id: item.id,
+      fullName: item.fullName || '---',
+      phone: item.phone || '---',
+      email: item.email || '---',
+      gender: genderVN,
+      code: item.code || '---',
+      unit: item.officerCode || '---', 
+      department: item.workUnit && item.workUnit.name ? item.workUnit.name.trim() : '---',
+      taxCode: item.taxCode || '---',
+      teacherType: typeVN,
+      status: statusVN,
+      dob: dobStr,
+      hasUpdate: false,
+      lastUpdated: ''
+    };
+  });
+};
 
 export default {
   name: 'QuanLyGiangVienPage',
@@ -434,7 +380,12 @@ export default {
       page: 1,
       pageInput: 1,
       itemsPerPage: 50,
+      
+      // Biến lưu trữ giá trị đang chọn trên UI
       filters: { search: '', gender: null, teacherType: null, status: null, department: null },
+      
+      // Biến thực sự dùng để lọc dữ liệu (Chỉ cập nhật khi bấm Kính lúp/Enter)
+      appliedFilters: { search: '', gender: null, teacherType: null, status: null, department: null },
 
       detailDialog: false,
       historyDialog: false,
@@ -456,28 +407,38 @@ export default {
         { text: 'Trạng thái', value: 'status', sortable: false, width: '143px' },
         { text: 'Chức năng', value: 'actions', sortable: false, align: 'center', width: '90px' },
       ],
-      teachers: [
-        { id: 1, fullName: 'Trần Bảo Yến', phone: '0856146936', email: 'baoien121124@gmail.com', gender: 'Nữ', code: 'TTBY01', unit: '', department: '', taxCode: '', teacherType: 'Đương chức', status: 'Hoạt động', dob: '', hasUpdate: false, lastUpdated: '' },
-        { id: 2, fullName: 'Trần Mạnh Dũng', phone: '0327699521', dob: '29/12/2004', email: 'dungtm@gmail.com', gender: 'Nam', code: 'GV_271204', unit: '', department: '', taxCode: '', teacherType: 'Đương chức', status: 'Hoạt động', hasUpdate: false, lastUpdated: '' },
-        { id: 3, fullName: 'Trần Mạnh Hải', phone: '0988096338', dob: '28/12/2004', email: 'haitm@gmail.com', gender: 'Nam', code: 'GV_260520_002', unit: '', department: '', taxCode: '8075678901', teacherType: 'Đương chức', status: 'Hoạt động', hasUpdate: false, lastUpdated: '' },
-        { id: 4, fullName: 'Trần Ngọc Anh', phone: '0965336221', dob: '01/10/2000', email: 'test06@onebs.vn', gender: 'Nam', code: 'GV_260520_001', unit: '', department: '', taxCode: '4502320054', teacherType: 'Mời giảng', status: 'Hoạt động', hasUpdate: false, lastUpdated: '' },
-        { id: 5, fullName: 'Lưu Thị Oanh', dob: '03/05/1961', code: '002 014 00046', unit: '', department: '', taxCode: '', teacherType: 'Đương chức', status: 'Hoạt động', hasUpdate: false, lastUpdated: '' },
-        { id: 6, fullName: 'Trần Bảo Yến', phone: '0856146936', email: 'baoien121124@gmail.com', gender: 'Nữ', code: 'TTBY01', unit: '', department: '', taxCode: '', teacherType: 'Đương chức', status: 'Hoạt động', dob: '', hasUpdate: false, lastUpdated: '' },
-        { id: 7, fullName: 'Trần Mạnh Dũng', phone: '0327699521', dob: '29/12/2004', email: 'dungtm@gmail.com', gender: 'Nam', code: 'GV_271204', unit: '', department: '', taxCode: '', teacherType: 'Đương chức', status: 'Hoạt động', hasUpdate: false, lastUpdated: '' },
-        { id: 8, fullName: 'Trần Mạnh Hải', phone: '0988096338', dob: '28/12/2004', email: 'haitm@gmail.com', gender: 'Nam', code: 'GV_260520_002', unit: '', department: '', taxCode: '8075678901', teacherType: 'Đương chức', status: 'Hoạt động', hasUpdate: false, lastUpdated: '' },
-        { id: 9, fullName: 'Trần Ngọc Anh', phone: '0965336221', dob: '01/10/2000', email: 'test06@onebs.vn', gender: 'Nam', code: 'GV_260520_001', unit: '', department: '', taxCode: '4502320054', teacherType: 'Mời giảng', status: 'Hoạt động', hasUpdate: false, lastUpdated: '' },
-        { id: 10, fullName: 'Lưu Thị Oanh', dob: '03/05/1961', code: '002 014 00046', unit: '', department: '', taxCode: '', teacherType: 'Đương chức', status: 'Hoạt động', hasUpdate: false, lastUpdated: '' },
-      ],
+      
+      teachers: parseTeacherData(MOCK_DATA_GIANG_VIEN),
     }
   },
   computed: {
+    genderOptions() {
+      return [...new Set(this.teachers.map(t => t.gender).filter(v => v && v !== '---'))].sort();
+    },
+    teacherTypeOptions() {
+      return [...new Set(this.teachers.map(t => t.teacherType).filter(v => v && v !== '---'))].sort();
+    },
+    statusOptions() {
+      return [...new Set(this.teachers.map(t => t.status).filter(v => v && v !== '---'))].sort();
+    },
+    departmentOptions() {
+      return [...new Set(this.teachers.map(t => t.department).filter(v => v && v !== '---'))].sort();
+    },
+
+    // Bảng chỉ lọc dựa trên `appliedFilters` thay vì `filters`
     filteredTeachers() {
       return this.teachers.filter(t => {
-        const matchSearch = !this.filters.search || t.fullName.toLowerCase().includes(this.filters.search.toLowerCase()) || t.code.toLowerCase().includes(this.filters.search.toLowerCase())
-        const matchGender = !this.filters.gender || t.gender === this.filters.gender
-        const matchType = !this.filters.teacherType || t.teacherType === this.filters.teacherType
-        const matchStatus = !this.filters.status || t.status === this.filters.status
-        return matchSearch && matchGender && matchType && matchStatus
+        const searchKeyword = this.appliedFilters.search ? this.appliedFilters.search.toLowerCase() : '';
+        const matchSearch = !searchKeyword || 
+                            t.fullName.toLowerCase().includes(searchKeyword) || 
+                            t.code.toLowerCase().includes(searchKeyword);
+                            
+        const matchGender = !this.appliedFilters.gender || t.gender === this.appliedFilters.gender;
+        const matchType = !this.appliedFilters.teacherType || t.teacherType === this.appliedFilters.teacherType;
+        const matchStatus = !this.appliedFilters.status || t.status === this.appliedFilters.status;
+        const matchDepartment = !this.appliedFilters.department || t.department === this.appliedFilters.department;
+
+        return matchSearch && matchGender && matchType && matchStatus && matchDepartment;
       })
     },
     paginatedTeachers() {
@@ -499,10 +460,17 @@ export default {
       const now = new Date()
       return `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
     },
-    search() { this.page = 1; this.pageInput = 1 },
+    // Hàm này chạy khi bấm Kính lúp hoặc bấm Enter/Đi
+    search() { 
+      this.appliedFilters = { ...this.filters }; // Lưu cấu hình lọc hiện tại
+      this.page = 1; 
+      this.pageInput = 1;
+    },
     resetFilters() {
-      this.filters = { search: '', gender: null, teacherType: null, status: null, department: null }
-      this.page = 1; this.pageInput = 1
+      this.filters = { search: '', gender: null, teacherType: null, status: null, department: null };
+      this.appliedFilters = { ...this.filters }; // Reset bảng về mặc định
+      this.page = 1; 
+      this.pageInput = 1;
     },
     changePage(p) { if (p >= 1 && p <= this.totalPages) { this.page = p; this.pageInput = p } },
     goToPage() {
@@ -539,13 +507,13 @@ export default {
         'STT': index + 1,
         'Họ và Tên': item.fullName,
         'Mã Giảng Viên': item.code,
-        'Số điện thoại': item.phone || '---',
-        'Email': item.email || '---',
-        'Giới tính': item.gender || '---',
-        'Ngày sinh': item.dob || '---',
-        'Đơn vị': item.unit || '---',
-        'Khoa/ Trường': item.department || '---',
-        'Mã số thuế': item.taxCode || '---',
+        'Số điện thoại': item.phone,
+        'Email': item.email,
+        'Giới tính': item.gender,
+        'Ngày sinh': item.dob,
+        'Đơn vị': item.unit,
+        'Khoa/ Trường': item.department,
+        'Mã số thuế': item.taxCode,
         'Loại giảng viên': item.teacherType,
         'Trạng thái': item.status,
       }))
@@ -584,33 +552,18 @@ export default {
 
 <style scoped>
 /* --- BASE BADGE --- */
-.status-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  text-align: center;
-  white-space: nowrap;
-}
-
+.status-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; text-align: center; white-space: nowrap; }
 .status-active { background-color: #a2212b!important; color: #ffff !important; }
 .status-inactive { background-color: #9e9e9e !important; color: #ffff !important; }
 .type-fulltime { background-color: #ffae1f !important; color: #ffff !important; }
 .type-visiting { background-color: #4caf50 !important; color: #ffff !important; }
 
-/* 
-  CHUNG: Lớp bọc dùng chung.
-*/
 .gap-1 { gap: 4px; }
 .gap-2 { gap: 8px; }
 .border-btn { border: 1px solid #a2212b !important; }
 
 /* 1. THANH TÌM KIẾM TRÊN CÙNG */
-.top-filter-bar { 
-  flex-shrink: 0; 
-}
-
+.top-filter-bar { flex-shrink: 0; position: relative; z-index: 10; }
 .filter-item { flex: 1 1 100%; }
 @media (min-width: 600px) {
   .filter-item { flex: 1 1 auto; }
@@ -619,26 +572,12 @@ export default {
   .select-md { min-width: 120px; max-width: 150px; }
   .select-lg { min-width: 140px; max-width: 180px; }
 }
-
 .custom-outlined-input >>> .v-input__control { min-height: 40px !important; }
 .custom-outlined-input >>> fieldset { border-color: #ccc !important; border-radius: 4px !important; }
 .custom-outlined-input.v-input--is-focused >>> fieldset { border-color: #a2212b !important; border-width: 1px !important; }
 .custom-outlined-input >>> .v-label { top: 10px !important; font-size: 13px !important; color: #757575 !important; }
 .custom-outlined-input.v-input--is-label-active >>> .v-label { top: -10px !important; transform: translateY(0) scale(0.85) !important; background-color: white !important; padding: 0 4px !important; }
 .custom-outlined-input >>> .v-input__append-inner { margin-top: 8px !important; }
-
-/* 2. BẢNG */
-.table-container {
-  position: relative;
-  width: 100%;
-}
-.custom-table { background-color: transparent !important; }
-.custom-table >>> th {
-  background-color: #f8f9fa !important;
-  font-weight: bold !important;
-  color: #333 !important;
-  box-shadow: 0 1px 0 #e0e0e0 !important;
-}
 
 /* 3. THANH PHÂN TRANG DƯỚI */
 .bottom-bar { flex-shrink: 0; }
@@ -651,111 +590,17 @@ export default {
 .pagination-input >>> .v-select__selection--comma { margin-top: 4px !important; font-size: 13px !important; }
 .pagination-input >>> .v-input__append-inner { margin-top: 6px !important; }
 
-
-/* =========================================================
-   MEDIA QUERIES (XỬ LÝ SCROLL VÀ HIỂN THỊ TRÊN CÁC MÀN HÌNH)
-========================================================= */
-
-/* DÀNH CHO ĐIỆN THOẠI (Mobile) */
-@media (max-width: 959px) {
-  .teacher-page {
-    /* Mở khóa chiều cao cho Mobile cuộn trang tự nhiên */
-    height: auto;
-    min-height: 100vh;
-    overflow: visible;
-  }
-  
-  .top-filter-bar {
-    /* ĐÃ BỎ LỆNH FIX: Thanh sẽ cuộn mất khi lướt tay xuống */
-    position: relative;
-    z-index: 10;
-  }
-
-  .table-container {
-    overflow: visible !important;
-  }
-  
-  .custom-table {
-    min-width: 100% !important; 
-  }
-  .custom-table >>> .v-data-table__wrapper {
-    overflow: visible !important;
-  }
-
+/* ĐIỀU CHỈNH LAYOUT TỔNG & NỘI DUNG SLOT (Mobile vs Desktop) */
+@media (max-width: 599px) {
+  .teacher-page { height: auto; min-height: 100vh; overflow: visible; }
   .info-block { text-align: right !important; }
   .action-icons { justify-content: flex-end; }
-
-  /* Định dạng hàng dạng thẻ trên mobile */
-  .custom-table >>> .v-data-table__mobile-row {
-    align-items: flex-start !important;
-    padding: 12px 16px !important;
-    min-height: auto !important;
-  }
-  .custom-table >>> .v-data-table__mobile-row__header {
-    font-weight: 600 !important;
-    color: #222 !important;
-    min-width: 130px;
-    margin-right: 16px;
-  }
-  .custom-table >>> .v-data-table__mobile-row__cell {
-    text-align: right !important;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    justify-content: flex-start;
-  }
-  .custom-table >>> .v-data-table__wrapper > table > tbody > tr {
-    border-bottom: 8px solid #f0f2f5 !important;
-  }
 }
-
-/* DÀNH CHO MÁY TÍNH (Desktop) */
-@media (min-width: 960px) {
-  .teacher-page {
-    /* Ép khung cuộn ngang/dọc cho Desktop */
-    height: calc(100vh - 64px); 
-    overflow: hidden;
-  }
-  
-  .table-container {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-x: auto;
-  }
-
-  .custom-table {
-    min-width: 1000px !important;
-    height: 100%;
-  }
-
-  .custom-table >>> .v-data-table__wrapper {
-    height: 100% !important;
-    max-height: 100% !important;
-    overflow-y: auto !important;
-  }
-
-  /* Cố định Header của bảng trên Desktop */
-  .custom-table >>> th {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 1 !important;
-  }
-
+@media (min-width: 600px) {
+  .teacher-page { height: calc(100vh - 64px); overflow: hidden; display: flex; flex-direction: column; }
   .info-block { text-align: left !important; }
   .action-icons { justify-content: center; }
 }
-
-/* Scrollbar máy tính */
-.custom-table >>> .v-data-table__wrapper::-webkit-scrollbar,
-.table-container::-webkit-scrollbar { height: 6px; width: 6px; }
-.custom-table >>> .v-data-table__wrapper::-webkit-scrollbar-track,
-.table-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
-.custom-table >>> .v-data-table__wrapper::-webkit-scrollbar-thumb,
-.table-container::-webkit-scrollbar-thumb { background: #a2212b; border-radius: 4px; }
-.custom-table >>> .v-data-table__wrapper::-webkit-scrollbar-thumb:hover,
-.table-container::-webkit-scrollbar-thumb:hover { background: #83161f; }
-
 .custom-toast >>> .v-snack__wrapper { border-radius: 8px !important; }
 .v-menu__content { position: absolute !important; }
 </style>

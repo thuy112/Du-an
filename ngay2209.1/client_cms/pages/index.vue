@@ -42,6 +42,7 @@
 </template>
 
 <script>
+
 export default {
   name: 'IndexPage',
   // Khóa trang chủ, bắt buộc phải đăng nhập mới truy cập được

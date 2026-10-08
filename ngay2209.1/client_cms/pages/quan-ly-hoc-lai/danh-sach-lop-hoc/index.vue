@@ -1,12 +1,12 @@
 <template>
-  <v-container fluid class="pa-0 bg-white fill-height align-stretch flex-column overflow-hidden">
-    <!-- Layout tổng thể Flexbox cố định full chiều cao viewport làm việc -->
+  <v-container fluid class="pa-0 bg-white fill-height align-stretch flex-column overflow-hidden" :class="{ 'is-mobile-device': isMobileDevice }">
+    <!-- Layout tổng thể Flexbox cố định full chiều cao viewport làm việc (Sẽ chuyển thành auto trên mobile) -->
     <div class="main-page-layout">
       
       <!-- 1. THANH BỘ LỌC TÌM KIẾM (CỐ ĐỊNH PHÍA TRÊN) -->
       <div class="sticky-filter-bar filter-bar-container px-4 py-3 bg-white">
-        <div class="d-flex align-center justify-space-between flex-wrap gap-3">
-          <div class="filter-title text-body-1 font-weight-medium text-gray-900">
+        <div class="d-flex align-md-center justify-space-between flex-wrap gap-3 flex-column flex-md-row">
+          <div class="filter-title text-body-1 font-weight-medium text-gray-900 pb-1 pb-md-0">
             Danh sách lớp học lại <span class="count-number">({{ totalItems }})</span>
           </div>
 
@@ -18,7 +18,7 @@
               dense
               clearable
               hide-details
-              class="custom-filter-input input-text-name"
+              class="custom-filter-input input-text-name flex-grow-1 flex-md-grow-0"
               @keyup.enter="handleSearch"
               @click:clear="handleSearch"
             ></v-text-field>
@@ -33,7 +33,7 @@
               dense
               clearable
               hide-details
-              class="custom-filter-input input-select-session"
+              class="custom-filter-input input-select-session flex-grow-1 flex-md-grow-0"
               @change="handleSearch"
             ></v-select>
 
@@ -45,7 +45,7 @@
               dense
               clearable
               hide-details
-              class="custom-filter-input input-select-course"
+              class="custom-filter-input input-select-course flex-grow-1 flex-md-grow-0"
               @change="handleSearch"
             ></v-select>
 
@@ -57,18 +57,18 @@
               dense
               clearable
               hide-details
-              class="custom-filter-input input-select-coeff"
+              class="custom-filter-input input-select-coeff flex-grow-1 flex-md-grow-0"
               @change="handleSearch"
             ></v-select>
 
-            <div class="d-flex align-center filter-action-buttons">
+            <div class="d-flex align-center filter-action-buttons gap-2 mt-2 mt-md-0 w-100 w-md-auto">
               <RetakeCourseRetakeSessionFilter
                 ref="retakeSessionFilterModal"
                 @apply-filter="handleAdvancedFilter"
               />
 
-              <v-btn icon small class="btn-icon-red ma-0" aria-label="Làm mới" @click="resetFilters">
-                <v-icon size="24" color="#9e1c24">mdi-refresh</v-icon>
+              <v-btn icon small class="btn-icon-red ma-0 border-btn" aria-label="Làm mới" @click="resetFilters">
+                <v-icon size="20" color="#9e1c24">mdi-refresh</v-icon>
               </v-btn>
 
               <v-btn
@@ -79,14 +79,14 @@
                 aria-label="Tìm kiếm"
                 @click="handleSearch"
               >
-                <v-icon size="24">mdi-magnify</v-icon>
+                <v-icon size="20">mdi-magnify</v-icon>
               </v-btn>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 2. KHU VỰC BẢNG DỮ LIỆU (CUỘN TRỘI Ở GIỮA, FIXED HEADER CỐ ĐỊNH TRÊN CÙNG BẢNG) -->
+      <!-- 2. KHU VỰC BẢNG DỮ LIỆU -->
       <div class="scrollable-table-area">
         <v-data-table
           :headers="headers"
@@ -94,8 +94,14 @@
           :loading="loading"
           hide-default-footer
           fixed-header
+          :mobile-breakpoint="isMobileDevice ? 960 : 0"
           class="custom-table border-0"
         >
+          <!-- GIAO DIỆN NO DATA -->
+          <template v-slot:no-data>
+            <div class="py-10 text-center grey--text">Không có dữ liệu</div>
+          </template>
+
           <!-- STT -->
           <template v-slot:[`item.stt`]="{ index }">
             {{ (page - 1) * itemsPerPage + index + 1 }}
@@ -103,7 +109,7 @@
 
           <!-- Mã lớp -->
           <template v-slot:[`item.maLop`]="{ item }">
-            <span class="font-weight-medium text-gray-700">{{ item.maLop }}</span>
+            <span class="font-weight-medium" :class="isMobileDevice ? 'text-red-bk' : 'text-gray-700'">{{ item.maLop }}</span>
           </template>
 
           <!-- Loại lớp -->
@@ -120,7 +126,7 @@
 
           <!-- Học phần -->
           <template v-slot:[`item.hocPhan`]="{ item }">
-            <div class="py-1 text-left">
+            <div class="py-1" :class="isMobileDevice ? 'text-right' : 'text-left'">
               <div class="font-weight-bold text-caption text-gray-800">{{ item.hocPhanCode }} -</div>
               <div class="text-caption text-gray-600 line-clamp-2">{{ item.hocPhanName }}</div>
             </div>
@@ -141,98 +147,104 @@
 
           <!-- Trạng thái duyệt danh sách -->
           <template v-slot:[`item.trangThaiDuyet`]="{ item }">
-            <v-select
-              :value="item.trangThaiDuyet"
-              :items="approvalOptions"
-              item-text="text"
-              item-value="value"
-              dense
-              outlined
-              hide-details
-              :append-icon="isRowLocked(item) ? '' : 'mdi-menu-down'"
-              :disabled="isRowLocked(item) || updatingClassIds.includes(item.id)"
-              :class="[
-                'status-pill-select',
-                item.trangThaiDuyet === 'Đã duyệt danh sách' ? 'pill-green-solid' : 'pill-orange-solid',
-                { 'is-disabled-select': isRowLocked(item) },
-              ]"
-              @change="onApprovalStatusChange(item, $event)"
-            ></v-select>
+            <div :class="isMobileDevice ? 'd-flex justify-end' : ''">
+              <v-select
+                :value="item.trangThaiDuyet"
+                :items="approvalOptions"
+                item-text="text"
+                item-value="value"
+                dense
+                outlined
+                hide-details
+                :append-icon="isRowLocked(item) ? '' : 'mdi-menu-down'"
+                :disabled="isRowLocked(item) || updatingClassIds.includes(item.id)"
+                :class="[
+                  'status-pill-select',
+                  item.trangThaiDuyet === 'Đã duyệt danh sách' ? 'pill-green-solid' : 'pill-orange-solid',
+                  { 'is-disabled-select': isRowLocked(item) },
+                ]"
+                @change="onApprovalStatusChange(item, $event)"
+              ></v-select>
+            </div>
           </template>
 
           <!-- Trạng thái bảng điểm -->
           <template v-slot:[`item.trangThaiBangDiem`]="{ item }">
-            <v-select
-              :value="item.examStatus"
-              :items="gradeOptions"
-              item-text="text"
-              item-value="value"
-              dense
-              outlined
-              hide-details
-              :append-icon="isRowLocked(item) ? '' : 'mdi-menu-down'"
-              :disabled="isRowLocked(item) || updatingClassIds.includes(item.id)"
-              :class="[
-                'status-pill-select',
-                item.examStatus === 'ANNOUNCED' ? 'pill-blue-grade' : 'pill-orange-solid',
-                { 'is-disabled-select': isRowLocked(item) },
-              ]"
-              @change="onGradeStatusChange(item, $event)"
-            ></v-select>
+            <div :class="isMobileDevice ? 'd-flex justify-end' : ''">
+              <v-select
+                :value="item.examStatus"
+                :items="gradeOptions"
+                item-text="text"
+                item-value="value"
+                dense
+                outlined
+                hide-details
+                :append-icon="isRowLocked(item) ? '' : 'mdi-menu-down'"
+                :disabled="isRowLocked(item) || updatingClassIds.includes(item.id)"
+                :class="[
+                  'status-pill-select',
+                  item.examStatus === 'ANNOUNCED' ? 'pill-blue-grade' : 'pill-orange-solid',
+                  { 'is-disabled-select': isRowLocked(item) },
+                ]"
+                @change="onGradeStatusChange(item, $event)"
+              ></v-select>
+            </div>
           </template>
 
           <!-- Chức năng -->
           <template v-slot:[`item.chucNang`]="{ item }">
-            <v-menu offset-y left transition="scale-transition">
-              <template v-slot:activator="{ on, attrs }">
-                <v-btn icon small v-bind="attrs" class="action-dots-btn" v-on="on">
-                  <v-icon>mdi-dots-vertical</v-icon>
-                </v-btn>
-              </template>
+            <div :class="isMobileDevice ? 'd-flex justify-end border-none' : ''">
+              <v-menu offset-y left transition="scale-transition">
+                <template v-slot:activator="{ on, attrs }">
+                  <v-btn icon small v-bind="attrs" class="action-dots-btn" v-on="on">
+                    <v-icon>mdi-dots-vertical</v-icon>
+                  </v-btn>
+                </template>
 
-              <v-list dense class="py-1 popup-action-menu">
-                <v-list-item v-if="getPermissions(item).showDetail" @click="handleViewDetail(item)">
-                  <v-list-item-icon class="mr-2 my-auto">
-                    <v-icon size="20" small color="#1890ff">mdi-eye</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-title class="text-caption">Chi tiết</v-list-item-title>
-                </v-list-item>
+                <v-list dense class="py-1 popup-action-menu">
+                  <v-list-item v-if="getPermissions(item).showDetail" @click="handleViewDetail(item)">
+                    <v-list-item-icon class="mr-2 my-auto">
+                      <v-icon size="20" small color="#1890ff">mdi-eye</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-title class="text-caption">Chi tiết</v-list-item-title>
+                  </v-list-item>
 
-                <v-list-item v-if="canExportApprovedClass(item)" @click="handleExportDSSV(item)">
-                  <v-list-item-icon class="mr-2 my-auto">
-                    <v-icon size="20" small color="#52c41a">mdi-export</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-title class="text-caption">Xuất danh sách SV</v-list-item-title>
-                </v-list-item>
+                  <v-list-item v-if="canExportApprovedClass(item)" @click="handleExportDSSV(item)">
+                    <v-list-item-icon class="mr-2 my-auto">
+                      <v-icon size="20" small color="#52c41a">mdi-export</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-title class="text-caption">Xuất danh sách SV</v-list-item-title>
+                  </v-list-item>
 
-                <v-list-item v-if="canExportApprovedClass(item)" @click="navigateToGradeSheet(item)">
-                  <v-list-item-icon class="mr-2 my-auto">
-                    <v-icon size="20" small color="#722ed1">mdi-table</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-title class="text-caption">Bảng điểm</v-list-item-title>
-                </v-list-item>
+                  <v-list-item v-if="canExportApprovedClass(item)" @click="navigateToGradeSheet(item)">
+                    <v-list-item-icon class="mr-2 my-auto">
+                      <v-icon size="20" small color="#722ed1">mdi-table</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-title class="text-caption">Bảng điểm</v-list-item-title>
+                  </v-list-item>
 
-                <v-list-item v-if="getPermissions(item).showAssignTeacher" @click="handleAssignTeacher(item)">
-                  <v-list-item-icon class="mr-2 my-auto">
-                    <v-icon size="20" small color="#13c2c2">mdi-account-tie-hat-outline</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-title class="text-caption">Gán giảng viên</v-list-item-title>
-                </v-list-item>
-              </v-list>
-            </v-menu>
+                  <v-list-item v-if="getPermissions(item).showAssignTeacher" @click="handleAssignTeacher(item)">
+                    <v-list-item-icon class="mr-2 my-auto">
+                      <v-icon size="20" small color="#13c2c2">mdi-account-tie-hat-outline</v-icon>
+                    </v-list-item-icon>
+                    <v-list-item-title class="text-caption">Gán giảng viên</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
+            </div>
           </template>
         </v-data-table>
       </div>
 
-      <!-- 3. THANH FOOTER PHÂN TRANG (CỐ ĐỊNH DƯỚI ĐÁY, ĐÃ BỎ VIỀN ĐỎ) -->
-      <div class="custom-footer-bar pa-3 bg-white d-flex align-center justify-space-between">
-        <div class="d-flex align-center">
+      <!-- 3. THANH FOOTER PHÂN TRANG -->
+      <div class="custom-footer-bar pa-3 bg-white d-flex align-center justify-space-between flex-wrap gap-3">
+        <div class="d-flex align-center w-mobile-100">
           <!-- Nút Xuất bảng điểm tổng hợp -->
           <v-btn
             color="#42b858"
             dark
             elevation="0"
-            class="btn-export-green text-none font-weight-bold"
+            class="btn-export-green text-none font-weight-bold w-mobile-100"
             @click="exportSummaryToExcel"
           >
             <v-icon left size="18">mdi-export</v-icon>
@@ -241,80 +253,85 @@
         </div>
 
         <!-- Khối Phân trang bên phải -->
-        <div class="d-flex align-center gap-3">
-          <!-- Ô Chọn Bản ghi -->
-          <v-select
-            v-model="itemsPerPage"
-            :items="[10, 20, 50, 100]"
-            label="Bản ghi"
-            outlined
-            dense
-            hide-details
-            class="custom-outlined-input record-select"
-            @change="onChangeItemsPerPage"
-          ></v-select>
+        <div class="d-flex align-center flex-wrap justify-end gap-2 w-mobile-100">
+          <div class="d-flex align-center gap-2">
+            <!-- Ô Chọn Bản ghi -->
+            <v-select
+              v-model="itemsPerPage"
+              :items="[10, 20, 50, 100]"
+              label="Bản ghi"
+              outlined
+              dense
+              hide-details
+              class="custom-outlined-input record-select"
+              @change="onChangeItemsPerPage"
+            ></v-select>
 
-          <!-- Ô Nhập Trang -->
-          <v-text-field
-            v-model.number="pageInput"
-            label="Trang"
-            outlined
-            dense
-            hide-details
-            class="custom-outlined-input page-input"
-            @keyup.enter="goToPage"
-          ></v-text-field>
+            <!-- Ô Nhập Trang -->
+            <v-text-field
+              v-model.number="pageInput"
+              label="Trang"
+              outlined
+              dense
+              hide-details
+              class="custom-outlined-input page-input"
+              @keyup.enter="goToPage"
+            ></v-text-field>
 
-          <!-- Nút Đi -->
-          <v-btn
-            color="#a2212b"
-            dark
-            elevation="0"
-            class="btn-go-red text-none"
-            @click="goToPage"
-          >
-            Đi
-          </v-btn>
+            <!-- Nút Đi -->
+            <v-btn
+              color="#a2212b"
+              dark
+              elevation="0"
+              class="btn-go-red text-none"
+              @click="goToPage"
+            >
+              Đi
+            </v-btn>
+          </div>
 
-          <!-- Nút Lùi trang (<) -->
-          <v-btn
-            outlined
-            small
-            class="btn-nav-arrow"
-            :disabled="page <= 1"
-            @click="changePage(page - 1)"
-          >
-            <v-icon small color="#666">mdi-chevron-left</v-icon>
-          </v-btn>
+          <div class="d-flex align-center gap-1 mt-2 mt-sm-0">
+            <!-- Nút Lùi trang (<) -->
+            <v-btn
+              outlined
+              small
+              class="btn-nav-arrow"
+              :disabled="page <= 1"
+              @click="changePage(page - 1)"
+            >
+              <v-icon small color="#666">mdi-chevron-left</v-icon>
+            </v-btn>
 
-          <!-- Các nút số Trang -->
-          <v-btn
-            v-for="p in totalPages"
-            :key="p"
-            small
-            elevation="2"
-            :color="page === p ? '#a2212b' : 'white'"
-            :class="page === p ? 'white--text font-weight-bold btn-page-number active' : 'black--text btn-page-number'"
-            @click="changePage(p)"
-          >
-            {{ p }}
-          </v-btn>
+            <!-- Các nút số Trang -->
+            <v-btn
+              v-for="p in totalPages"
+              :key="p"
+              small
+              elevation="2"
+              :color="page === p ? '#a2212b' : 'white'"
+              :class="page === p ? 'white--text font-weight-bold btn-page-number active' : 'black--text btn-page-number'"
+              @click="changePage(p)"
+            >
+              {{ p }}
+            </v-btn>
 
-          <!-- Nút Tiến trang (>) -->
-          <v-btn
-            outlined
-            small
-            class="btn-nav-arrow"
-            :disabled="page >= totalPages"
-            @click="changePage(page + 1)"
-          >
-            <v-icon small color="#666">mdi-chevron-right</v-icon>
-          </v-btn>
+            <!-- Nút Tiến trang (>) -->
+            <v-btn
+              outlined
+              small
+              class="btn-nav-arrow"
+              :disabled="page >= totalPages"
+              @click="changePage(page + 1)"
+            >
+              <v-icon small color="#666">mdi-chevron-right</v-icon>
+            </v-btn>
+          </div>
         </div>
       </div>
 
     </div>
 
+    <!-- DIALOGS VÀ TOAST GIỮ NGUYÊN HOẠT ĐỘNG LOGIC CŨ -->
     <div class="toast-queue-container">
       <transition-group name="toast-list" tag="div">
         <div
@@ -443,6 +460,7 @@ export default {
   },
   data() {
     return {
+      isMobileDevice: false, // cờ nhận diện mobile thật
       loading: false,
       page: 1,
       pageInput: 1,
@@ -539,186 +557,6 @@ export default {
           teacherId: null,
           examSessionStatus: 'NOT_FINALIZED'
         },
-        {
-          id: 2,
-          maLop: 'G_20261_5_045',
-          loaiLop: 'Lớp ghép (Đại cương)',
-          thuHocPhi: 1.5,
-          thanhToan: '',
-          dotHocLai: '20261-A-5',
-          hocPhanCode: 'ET2031',
-          hocPhanName: 'Kỹ thuật lập trình C/C++',
-          minSv: 10,
-          maxSv: 20,
-          svDangKy: 10,
-          tuNgay: '01/09/2026',
-          denNgay: '31/12/2026',
-          trangThaiDuyet: 'Chưa duyệt danh sách',
-          registerStudentStatus: 'PENDING',
-          examStatus: 'NOT_ANNOUNCED',
-          teacherId: null,
-          examSessionStatus: 'NOT_FINALIZED'
-        },
-        {
-          id: 3,
-          maLop: 'M_20261_4_044',
-          loaiLop: 'Lớp mở',
-          thuHocPhi: 1.3,
-          thanhToan: '',
-          dotHocLai: '20261-A-4',
-          hocPhanCode: 'MHPO2',
-          hocPhanName: 'Pháp luật đại cương Q',
-          minSv: 0,
-          maxSv: 20,
-          svDangKy: 0,
-          tuNgay: '31/08/2026',
-          denNgay: '31/12/2026',
-          trangThaiDuyet: 'Chưa duyệt danh sách',
-          registerStudentStatus: 'PENDING',
-          examStatus: 'NOT_ANNOUNCED',
-          teacherId: null,
-          examSessionStatus: 'NOT_FINALIZED'
-        },
-        {
-          id: 4,
-          maLop: 'G_20261_4_043',
-          loaiLop: 'Lớp ghép (Đại cương)',
-          thuHocPhi: 1.5,
-          thanhToan: '',
-          dotHocLai: '20261-A-4',
-          hocPhanCode: 'MHPO1',
-          hocPhanName: 'Pháp luật đại cương H',
-          minSv: 0,
-          maxSv: 50,
-          svDangKy: 0,
-          tuNgay: '01/08/2026',
-          denNgay: '01/12/2026',
-          trangThaiDuyet: 'Chưa duyệt danh sách',
-          registerStudentStatus: 'PENDING',
-          examStatus: 'NOT_ANNOUNCED',
-          teacherId: null,
-          examSessionStatus: 'NOT_FINALIZED'
-        },
-        {
-          id: 5,
-          maLop: 'D_20261_4_042',
-          loaiLop: 'Đồ án môn học (HP.DAMH)',
-          thuHocPhi: 2.0,
-          thanhToan: '',
-          dotHocLai: '20261-A-4',
-          hocPhanCode: 'IT4995',
-          hocPhanName: 'Đồ án tốt nghiệp cử nhân',
-          minSv: 0,
-          maxSv: 15,
-          svDangKy: 0,
-          tuNgay: '13/08/2026',
-          denNgay: '30/12/2026',
-          trangThaiDuyet: 'Chưa duyệt danh sách',
-          registerStudentStatus: 'PENDING',
-          examStatus: 'NOT_ANNOUNCED',
-          teacherId: null,
-          examSessionStatus: 'NOT_FINALIZED'
-        },
-        {
-          id: 6,
-          maLop: 'G_20252_1_041',
-          loaiLop: 'Lớp ghép (Chuyên ngành)',
-          thuHocPhi: 1.7,
-          thanhToan: '',
-          dotHocLai: '20252-A-1',
-          hocPhanCode: 'ET4235',
-          hocPhanName: 'IoT trong y tế',
-          minSv: 1,
-          maxSv: 10,
-          svDangKy: 1,
-          tuNgay: '01/06/2026',
-          denNgay: '09/06/2026',
-          trangThaiDuyet: 'Chưa duyệt danh sách',
-          registerStudentStatus: 'PENDING',
-          examStatus: 'NOT_ANNOUNCED',
-          teacherId: 101,
-          examSessionStatus: 'NOT_FINALIZED'
-        },
-        {
-          id: 7,
-          maLop: 'G_20261_4_040',
-          loaiLop: 'Lớp ghép (Chuyên ngành)',
-          thuHocPhi: 1.7,
-          thanhToan: '',
-          dotHocLai: '20261-A-4',
-          hocPhanCode: 'JAVA',
-          hocPhanName: 'Lập trình Java',
-          minSv: 0,
-          maxSv: 30,
-          svDangKy: 0,
-          tuNgay: '31/05/2026',
-          denNgay: '01/06/2026',
-          trangThaiDuyet: 'Đã duyệt danh sách',
-          registerStudentStatus: 'CONFIRMED',
-          examStatus: 'NOT_ANNOUNCED',
-          teacherId: null,
-          examSessionStatus: 'NOT_FINALIZED'
-        },
-        {
-          id: 8,
-          maLop: 'G_20261_4_039',
-          loaiLop: 'Lớp ghép (Chuyên ngành)',
-          thuHocPhi: 1.7,
-          thanhToan: '',
-          dotHocLai: '20261-A-4',
-          hocPhanCode: 'ME3123',
-          hocPhanName: 'Thiết kế mỹ thuật công nghiệp',
-          minSv: 1,
-          maxSv: 20,
-          svDangKy: 1,
-          tuNgay: '01/06/2026',
-          denNgay: '31/07/2026',
-          trangThaiDuyet: 'Đã duyệt danh sách',
-          registerStudentStatus: 'CONFIRMED',
-          examStatus: 'NOT_ANNOUNCED',
-          teacherId: null,
-          examSessionStatus: 'NOT_FINALIZED'
-        },
-        {
-          id: 9,
-          maLop: 'RC001',
-          loaiLop: 'Lớp ghép (Chuyên ngành)',
-          thuHocPhi: 1.7,
-          thanhToan: '',
-          dotHocLai: '20252-A-3',
-          hocPhanCode: 'IT2001',
-          hocPhanName: 'Lập trình Web',
-          minSv: 0,
-          maxSv: 30,
-          svDangKy: 0,
-          tuNgay: '42/0019',
-          denNgay: '42/0022',
-          trangThaiDuyet: 'Chưa duyệt danh sách',
-          registerStudentStatus: 'PENDING',
-          examStatus: 'NOT_ANNOUNCED',
-          teacherId: null,
-          examSessionStatus: 'NOT_FINALIZED'
-        },
-        {
-          id: 10,
-          maLop: 'G_20252_3_027',
-          loaiLop: 'Lớp ghép (Chuyên ngành)',
-          thuHocPhi: 1.7,
-          thanhToan: '',
-          dotHocLai: '20252-A-3',
-          hocPhanCode: 'CSHARP',
-          hocPhanName: 'Lập trình C#',
-          minSv: 1,
-          maxSv: 20,
-          svDangKy: 1,
-          tuNgay: '18/05/2026',
-          denNgay: '19/06/2026',
-          trangThaiDuyet: 'Đã duyệt danh sách',
-          registerStudentStatus: 'CONFIRMED',
-          examStatus: 'ANNOUNCED',
-          teacherId: 102,
-          examSessionStatus: 'NOT_FINALIZED'
-        }
       ],
       appliedData: [],
     }
@@ -731,6 +569,11 @@ export default {
   },
 
   async mounted() {
+    // Nhận diện thiết bị di động bằng Regex
+    if (typeof navigator !== 'undefined') {
+      this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    }
+
     this.dataList = this.dataList.map((item) => ({
       ...item,
       hasBeenApproved: item.trangThaiDuyet === 'Đã duyệt danh sách',
@@ -807,15 +650,6 @@ export default {
       if (!year) return false;
       const endDate = new Date(year, month - 1, day, 23, 59, 59);
       return new Date() > endDate;
-    },
-
-    checkIsTooOverdue(denNgayStr) {
-      if (!denNgayStr) return false;
-      const [day, month, year] = denNgayStr.split('/');
-      if (!year) return false;
-      const endDate = new Date(year, month - 1, day);
-      const diffDays = Math.ceil((new Date() - endDate) / (1000 * 60 * 60 * 24));
-      return diffDays > 30;
     },
 
     async getRetakeSessions() {
@@ -1233,22 +1067,14 @@ export default {
 </script>
 
 <style scoped>
-/* Khóa layout vừa vặn 100% viewport làm việc */
+/* Khóa layout vừa vặn 100% viewport làm việc trên máy tính */
 .main-page-layout {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: calc(100vh - 80px);
-  overflow: hidden;
 }
 
 /* 1. Thanh bộ lọc trên đỉnh cố định */
-.sticky-filter-bar {
-  flex-shrink: 0;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
-}
-
 .filter-bar-container {
   border-bottom: 1px solid #e5e7eb;
 }
@@ -1298,47 +1124,14 @@ export default {
   font-size: 20px !important;
 }
 
-.input-text-name {
-  width: 200px;
-}
-
-.input-select-session {
-  width: 160px;
-}
-
-.input-select-course {
-  width: 180px;
-}
-
-.input-select-coeff {
-  width: 130px;
-}
-
 .filter-controls {
   gap: 8px;
 }
 
-
-/* 2. Khu vực chứa Bảng & Fixed Header */
-.scrollable-table-area {
-  flex: 1 1 0%;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-}
-
+/* 2. Khu vực chứa Bảng */
 .custom-table {
-  height: 100%;
   display: flex;
   flex-direction: column;
-}
-
-/* Bật cuộn tại chính wrapper của Vuetify để fixed-header hoạt động cố định đúng chuẩn */
-.custom-table >>> .v-data-table__wrapper {
-  flex: 1 1 0%;
-  overflow-y: auto !important;
-  max-height: 100% !important;
 }
 
 /* Định dạng Cố định Tiêu đề Cột (Header) màu xám nhạt như trong hình ảnh */
@@ -1356,9 +1149,7 @@ export default {
 
 /* 3. Thanh Footer cố định dưới đáy (Đã bỏ kẻ đường màu đỏ) */
 .custom-footer-bar {
-  flex-shrink: 0;
   background-color: #ffffff;
-  border-top: 1px solid #e5e7eb !important; /* Thay viền đỏ 4px bằng đường kẻ xám nhẹ chuẩn UI */
 }
 
 /* Stylings chi tiết khác */
@@ -1383,14 +1174,6 @@ export default {
   color: #555555 !important;
   background-color: #ffffff;
   padding: 0 4px;
-}
-
-.record-select {
-  width: 90px;
-}
-
-.page-input {
-  width: 70px;
 }
 
 .page-input >>> input {
@@ -1457,6 +1240,7 @@ export default {
 
 .status-pill-select {
   min-width: 0;
+  max-width: 170px;
 }
 
 .status-pill-select >>> .v-input__control,
@@ -1544,6 +1328,10 @@ export default {
 
 .custom-table >>> td {
   font-size: 12px !important;
+}
+
+.border-btn {
+  border: 1px solid #a2212b !important;
 }
 
 .gap-3 {
@@ -1653,11 +1441,6 @@ export default {
   border-radius: 8px !important;
   height: 40px !important;
 }
-</style>
 
-<style>
-.v-menu__content {
-  z-index: 9999 !important;
-  max-height: 300px !important;
-}
+
 </style>
