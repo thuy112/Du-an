@@ -169,12 +169,13 @@
     </BaseTable>
 
     <!-- THANH PHÂN TRANG & EXCEL (CỐ ĐỊNH PHÍA DƯỚI) -->
-    <div class="bottom-bar d-flex align-center justify-space-between flex-wrap gap-2 py-3 px-1 mt-auto bg-white border-top">
+    <!-- THANH PHÂN TRANG & EXCEL (CỐ ĐỊNH PHÍA DƯỚI) -->
+    <div class="bottom-bar d-flex align-center justify-space-between flex-nowrap py-2 px-3 mt-auto bg-white border-top">
       <v-btn color="#2e7d32" dark elevation="0" class="text-capitalize rounded px-4 font-weight-bold" @click="exportToExcel">
         <v-icon left small>mdi-export</v-icon> XUẤT FILE EXCEL
       </v-btn>
 
-      <div class="d-flex align-center gap-2 flex-wrap justify-end">
+      <div class="d-flex align-center gap-2 flex-nowrap">
         <v-select
           v-model="itemsPerPage"
           :items="[10, 20, 50, 100]"
@@ -197,16 +198,20 @@
 
         <v-btn color="#a2212b" dark small class="text-capitalize px-3 rounded-sm elevation-0" style="height: 36px;" @click="goToPage">Đi</v-btn>
 
-        <div class="d-flex align-center">
+        <div class="d-flex align-center gap-1">
           <v-btn icon small :disabled="page <= 1" @click="changePage(page - 1)"><v-icon>mdi-chevron-left</v-icon></v-btn>
-          <v-btn
-            v-for="p in visiblePages" :key="p" small
-            :color="page === p ? '#a2212b' : ''" :dark="page === p" :outlined="page !== p"
-            class="min-w-0 pa-0 rounded-sm elevation-0 mx-1" style="width: 28px; height: 28px"
-            @click="changePage(p)"
-          >
-            {{ p }}
-          </v-btn>
+          <template v-for="p in visiblePages">
+            <v-btn
+              v-if="p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)"
+              :key="p" small
+              :color="page === p ? '#a2212b' : ''" :dark="page === p" :outlined="page !== p"
+              class="min-w-0 pa-0 rounded-sm elevation-0 mx-1" style="width: 28px; height: 28px"
+              @click="changePage(p)"
+            >
+              {{ p }}
+            </v-btn>
+            <span v-else-if="p === page - 2 || p === page + 2" :key="'dots-' + p">...</span>
+          </template>
           <v-btn icon small :disabled="page >= totalPages" @click="changePage(page + 1)"><v-icon>mdi-chevron-right</v-icon></v-btn>
         </div>
       </div>
@@ -467,8 +472,6 @@ export default {
 .custom-outlined-input >>> fieldset { border-color: #ccc !important; border-radius: 4px !important; }
 
 .section-title-indicator { width: 4px; height: 18px; background-color: #a2212b; border-radius: 2px; }
-.custom-panels >>> .v-expansion-panel::before { box-shadow: none !important; }
-.custom-panels >>> .v-expansion-panel-header { border-bottom: 1px solid #f0f0f0; }
 
 .status-badge { border-radius: 16px !important; display: inline-flex; align-items: center; }
 .status-studying { background-color: #a2212b !important; color: #ffffff !important; }
@@ -476,7 +479,11 @@ export default {
 .status-unknown { background-color: #9e9e9e !important; color: #ffffff !important; }
 
 .border-top { border-top: 1px solid #e0e0e0; }
-.bottom-bar { flex-shrink: 0; }
+.bottom-bar { 
+  flex-shrink: 0; 
+  background-color: #ffffff;
+  overflow-x: auto;
+}
 .pagination-input >>> .v-input__control { min-height: 36px !important; }
 
 @media (max-width: 599px) {

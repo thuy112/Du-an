@@ -1,10 +1,10 @@
 <template>
   <v-container fluid class="pa-0 bg-white fill-height align-stretch flex-column overflow-hidden" :class="{ 'is-mobile-device': isMobileDevice }">
-    <!-- Layout tổng thể Flexbox cố định full chiều cao viewport làm việc (Sẽ chuyển thành auto trên mobile) -->
+    <!-- Layout tổng thể Flexbox cố định full chiều cao viewport làm việc -->
     <div class="main-page-layout">
       
       <!-- 1. THANH BỘ LỌC TÌM KIẾM (CỐ ĐỊNH PHÍA TRÊN) -->
-      <div class="sticky-filter-bar filter-bar-container px-4 py-3 bg-white">
+      <div class="sticky-filter-bar filter-bar-container px-4 py-3 bg-white shrink-0">
         <div class="d-flex align-md-center justify-space-between flex-wrap gap-3 flex-column flex-md-row">
           <div class="filter-title text-body-1 font-weight-medium text-gray-900 pb-1 pb-md-0">
             Danh sách lớp học lại <span class="count-number">({{ totalItems }})</span>
@@ -86,9 +86,9 @@
         </div>
       </div>
 
-      <!-- 2. KHU VỰC BẢNG DỮ LIỆU -->
-      <div class="scrollable-table-area">
-        <v-data-table
+      <!-- 2. KHU VỰC BẢNG DỮ LIỆU (CÓ THANH CUỘN LƯỚT XEM DANH SÁCH) -->
+      <div class="scrollable-table-area flex-grow-1 overflow-y-auto">
+        <BaseTable
           :headers="headers"
           :items="appliedData"
           :loading="loading"
@@ -141,7 +141,7 @@
           <template v-slot:[`item.thoiGian`]="{ item }">
             <div class="text-caption whitespace-nowrap">
               <div>{{ item.tuNgay }}</div>
-              <div class="text-gray-400">- {{ item.denNgay }}</div>
+              <div class="text-gray-400">{{ item.denNgay }}</div>
             </div>
           </template>
 
@@ -233,13 +233,12 @@
               </v-menu>
             </div>
           </template>
-        </v-data-table>
+        </BaseTable>
       </div>
 
-      <!-- 3. THANH FOOTER PHÂN TRANG -->
-      <div class="custom-footer-bar pa-3 bg-white d-flex align-center justify-space-between flex-wrap gap-3">
+      <!-- 3. THANH FOOTER PHÂN TRANG (CỐ ĐỊNH PHÍA DƯỚI) -->
+      <div class="custom-footer-bar pa-3 bg-white d-flex align-center justify-space-between flex-wrap gap-3 shrink-0">
         <div class="d-flex align-center w-mobile-100">
-          <!-- Nút Xuất bảng điểm tổng hợp -->
           <v-btn
             color="#42b858"
             dark
@@ -252,10 +251,8 @@
           </v-btn>
         </div>
 
-        <!-- Khối Phân trang bên phải -->
         <div class="d-flex align-center flex-wrap justify-end gap-2 w-mobile-100">
           <div class="d-flex align-center gap-2">
-            <!-- Ô Chọn Bản ghi -->
             <v-select
               v-model="itemsPerPage"
               :items="[10, 20, 50, 100]"
@@ -267,7 +264,6 @@
               @change="onChangeItemsPerPage"
             ></v-select>
 
-            <!-- Ô Nhập Trang -->
             <v-text-field
               v-model.number="pageInput"
               label="Trang"
@@ -278,7 +274,6 @@
               @keyup.enter="goToPage"
             ></v-text-field>
 
-            <!-- Nút Đi -->
             <v-btn
               color="#a2212b"
               dark
@@ -291,7 +286,6 @@
           </div>
 
           <div class="d-flex align-center gap-1 mt-2 mt-sm-0">
-            <!-- Nút Lùi trang (<) -->
             <v-btn
               outlined
               small
@@ -302,7 +296,6 @@
               <v-icon small color="#666">mdi-chevron-left</v-icon>
             </v-btn>
 
-            <!-- Các nút số Trang -->
             <v-btn
               v-for="p in totalPages"
               :key="p"
@@ -315,7 +308,6 @@
               {{ p }}
             </v-btn>
 
-            <!-- Nút Tiến trang (>) -->
             <v-btn
               outlined
               small
@@ -328,10 +320,9 @@
           </div>
         </div>
       </div>
-
     </div>
 
-    <!-- DIALOGS VÀ TOAST GIỮ NGUYÊN HOẠT ĐỘNG LOGIC CŨ -->
+    <!-- DIALOGS VÀ TOAST -->
     <div class="toast-queue-container">
       <transition-group name="toast-list" tag="div">
         <div
@@ -444,28 +435,30 @@
 
 <script>
 import * as XLSX from 'xlsx'
+import BaseTable from '~/components/Base/BaseTable.vue'
 import AssignTeacherModal from '~/components/RetakeCourse/AssignTeacherModal.vue'
 import RetakeCourseDetailModal from '~/components/RetakeCourse/RetakeCourseDetailModal.vue'
 import RetakeSessionFilterModal from '~/components/RetakeCourse/RetakeSessionFilterModal.vue'
 import retakeClassServices from '~/services/retakeCourseServices'
 import retakeSessionServices from '~/services/retakeSessionServices'
 import classCoefficientServices from '~/services/coefficientServices'
-
+import { MOCK_DATA_LOP_HOC_LAI } from '~/consts/dslophoclai.js'
 export default {
   name: 'DanhSachLopHocLai',
   components: {
+    BaseTable,
     RetakeCourseAssignTeacherModal: AssignTeacherModal,
     RetakeCourseDetailModal,
     RetakeCourseRetakeSessionFilter: RetakeSessionFilterModal,
   },
   data() {
     return {
-      isMobileDevice: false, // cờ nhận diện mobile thật
+      isMobileDevice: false,
       loading: false,
       page: 1,
       pageInput: 1,
       itemsPerPage: 50,
-      totalItems: 10,
+      totalItems: 0,
 
       toastList: [],
       toastDuration: 3000,
@@ -516,48 +509,25 @@ export default {
         )
       },
 
-      retakeSessionOptions: ['20261-A-5', '20261-A-4', '20252-A-1', '20252-A-3'],
-      courseOptions: ['CH2021', 'ET2031', 'MHPO2', 'MHPO1', 'IT4995', 'ET4235', 'JAVA', 'ME3123'],
+      retakeSessionOptions: [],
+      courseOptions: [],
       coefficientOptions: ['1.5', '1.3', '1.7', '2.0'],
 
       headers: [
         { text: 'STT', value: 'stt', width: '45px', align: 'center', sortable: false },
-        { text: 'Mã lớp', value: 'maLop', width: '130px', sortable: false },
+        { text: 'Mã lớp', value: 'code', width: '130px', sortable: false },
         { text: 'Loại lớp', value: 'loaiLop', width: '160px', sortable: false },
-        { text: 'Thu học phí SV', value: 'thuHocPhi', width: '80px', align: 'center', sortable: false },
+        { text: 'Thu học phí SV', value: 'classCoefficient', width: '80px', align: 'center', sortable: false },
         { text: 'Thanh toán giảng dạy', value: 'thanhToan', width: '80px', align: 'center', sortable: false },
         { text: 'Đợt học lại', value: 'dotHocLai', width: '90px', align: 'center', sortable: false },
         { text: 'Học phần', value: 'hocPhan', width: '170px', sortable: false },
-        { text: 'Số lượng sinh viên', value: 'soLuongSv', width: '80px', align: 'center', sortable: false },
-        { text: 'Số lượng SV đăng ký', value: 'svDangKy', width: '80px', align: 'center', sortable: false },
         { text: 'Thời gian', value: 'thoiGian', width: '110px', align: 'center', sortable: false },
-        { text: 'Trạng thái duyệt danh sách', value: 'trangThaiDuyet', width: '210px', align: 'center', sortable: false },
-        { text: 'Trạng thái bảng điểm', value: 'trangThaiBangDiem', width: '190px', align: 'center', sortable: false },
+        { text: 'Trạng thái duyệt danh sách', value: 'approvalStatus', width: '210px', align: 'center', sortable: false },
+        { text: 'Trạng thái bảng điểm', value: 'examStatus', width: '190px', align: 'center', sortable: false },
         { text: 'Chức năng', value: 'chucNang', width: '70px', align: 'center', sortable: false },
       ],
 
-      dataList: [
-        {
-          id: 1,
-          maLop: 'G_20261_5_046',
-          loaiLop: 'Lớp ghép (Đại cương)',
-          thuHocPhi: 1.5,
-          thanhToan: '',
-          dotHocLai: '20261-A-5',
-          hocPhanCode: 'CH2021',
-          hocPhanName: 'Đổi mới sáng tạo và khởi nghiệp',
-          minSv: 10,
-          maxSv: 20,
-          svDangKy: 10,
-          tuNgay: '01/09/2026',
-          denNgay: '31/12/2026',
-          trangThaiDuyet: 'Chưa duyệt danh sách',
-          registerStudentStatus: 'PENDING',
-          examStatus: 'NOT_ANNOUNCED',
-          teacherId: null,
-          examSessionStatus: 'NOT_FINALIZED'
-        },
-      ],
+      dataList: [],
       appliedData: [],
     }
   },
@@ -569,16 +539,19 @@ export default {
   },
 
   async mounted() {
-    // Nhận diện thiết bị di động bằng Regex
     if (typeof navigator !== 'undefined') {
       this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     }
 
-    this.dataList = this.dataList.map((item) => ({
+    const mockLoaded = (MOCK_DATA_LOP_HOC_LAI || []).map((item) => ({
       ...item,
       hasBeenApproved: item.trangThaiDuyet === 'Đã duyệt danh sách',
     }))
+
+    this.dataList = mockLoaded
     this.appliedData = [...this.dataList]
+    this.totalItems = this.appliedData.length
+
     await Promise.all([
       this.getRetakeSessions(),
       this.getCoefficients(),
@@ -622,34 +595,34 @@ export default {
     },
 
     getPermissions(item) {
-      const isApproved = item.trangThaiDuyet === 'Đã duyệt danh sách';
-      const hasTeacher = item.teacherId !== null && item.teacherId !== undefined;
-      const isOverCapacity = (item.svDangKy ?? 0) > (item.maxSv ?? 0);
-      const isExpired = this.checkIsExpired(item.denNgay);
+      const isApproved = item.trangThaiDuyet === 'Đã duyệt danh sách'
+      const hasTeacher = item.teacherId !== null && item.teacherId !== undefined
+      const isOverCapacity = (item.svDangKy ?? 0) > (item.maxSv ?? 0)
+      const isExpired = this.checkIsExpired(item.denNgay)
 
       if (isOverCapacity && !isApproved) {
         return {
           showDetail: true,
           showExportExcel: false,
           showGrades: false,
-          showAssignTeacher: false
-        };
+          showAssignTeacher: false,
+        }
       }
 
       return {
         showDetail: true,
         showExportExcel: isApproved || (isExpired && hasTeacher),
         showGrades: isApproved || hasTeacher,
-        showAssignTeacher: !hasTeacher
-      };
+        showAssignTeacher: !hasTeacher,
+      }
     },
 
     checkIsExpired(denNgayStr) {
-      if (!denNgayStr) return false;
-      const [day, month, year] = denNgayStr.split('/');
-      if (!year) return false;
-      const endDate = new Date(year, month - 1, day, 23, 59, 59);
-      return new Date() > endDate;
+      if (!denNgayStr) return false
+      const [day, month, year] = denNgayStr.split('/')
+      if (!year) return false
+      const endDate = new Date(year, month - 1, day, 23, 59, 59)
+      return new Date() > endDate
     },
 
     async getRetakeSessions() {
@@ -691,44 +664,61 @@ export default {
       this.loading = true
       try {
         const params = {
-          page: this.page,
+          pageIndex: this.page,
           pageSize: this.itemsPerPage,
-          className: this.filters.className,
-          retakeSessionId: this.filters.retakeSession,
-          courseId: this.filters.course,
-          coefficient: this.filters.coefficient,
+          keyword: this.filters.className,
+          examId: this.filters.retakeSession,
+          termId: this.filters.course,
+          classCoefficient: this.filters.coefficient,
         }
-        const res = await retakeClassServices.getList(params)
-        const payload = res?.data || {}
-        const items = Array.isArray(payload) ? payload : payload.items || []
-        if (items.length) {
-          const knownItems = [...this.appliedData, ...this.dataList]
-          this.appliedData = items.map((item) => {
-            const knownItem = knownItems.find((known) => known.id === item.id)
-            const currentlyApproved =
-              item.trangThaiDuyet === 'Đã duyệt danh sách' ||
-              item.approvalStatus === 'ACTIVE'
+        
+        let rawItems = []
+        try {
+          const res = await retakeClassServices.getList(params)
+          const responseWrapper = res?.data || {}
+          rawItems = Array.isArray(responseWrapper.data) 
+            ? responseWrapper.data 
+            : (Array.isArray(responseWrapper) ? responseWrapper : (Array.isArray(res) ? res : []))
+        } catch (apiErr) {
+          console.warn('API lỗi, chuyển sang dùng MOCK_DATA_LOP_HOC_LAI:', apiErr)
+        }
 
-            return {
-              ...item,
-              hasBeenApproved:
-                item.hasBeenApproved === true ||
-                knownItem?.hasBeenApproved === true ||
-                currentlyApproved,
-            }
-          })
-          this.totalItems = Array.isArray(payload) ? payload.length : payload.total ?? items.length
-        } else {
-          this.applyLocalSearch()
+        // Nếu API không trả về dữ liệu, tự động nạp 41 dòng dữ liệu mock để test giao diện ngay lập tức
+        if (!rawItems || rawItems.length === 0) {
+          rawItems = MOCK_DATA_LOP_HOC_LAI
         }
+
+        this.appliedData = rawItems.map((item, index) => {
+          const termObj = item.term || {}
+          const examObj = item.exam || {}
+          
+          return {
+            id: item.id || (index + 1),
+            stt: (this.page - 1) * this.itemsPerPage + (index + 1),
+            maLop: item.code || '',
+            loaiLop: item.retakeCourseStatus === 'COMBINE_CLASS' ? 'Lớp ghép' : 'Lớp mở',
+            thuHocPhi: item.classCoefficient || 1.0,
+            thanhToan: item.feePaidStatus === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán',
+            dotHocLai: examObj.code || '20261-A-5',
+            hocPhan: termObj.code && termObj.name ? `${termObj.code} - ${termObj.name}` : (termObj.name || 'CH2021 - Đổi mới sáng tạo và khởi nghiệp'),
+            thoiGian: item.fromTime && item.toTime ? `${item.fromTime.slice(0, 10)} - ${item.toTime.slice(0, 10)}` : '01/09/2026 - 31/12/2026',
+            trangThaiDuyet: item.approvalStatus === 'ACTIVE' ? 'Đã duyệt danh sách' : 'Chưa duyệt danh sách',
+            examStatus: item.examStatus || 'UNANNOUNCED',
+            original: item
+          }
+        })
+        this.totalItems = this.appliedData.length
       } catch (err) {
-        this.applyLocalSearch()
+        console.error('Lỗi xử lý dữ liệu:', err)
+        this.appliedData = []
+        this.totalItems = 0
       } finally {
         this.loading = false
       }
     },
 
     getLoaiLopColor(loaiLop) {
+      if (!loaiLop || typeof loaiLop !== 'string') return '#1890ff'
       if (loaiLop.includes('Lớp ghép')) return '#8c8c8c'
       if (loaiLop.includes('Lớp mở')) return '#52c41a'
       if (loaiLop.includes('Đồ án môn học')) return '#f5222d'
@@ -871,6 +861,7 @@ export default {
         this.detailModal.loading = false
       }
     },
+
     handleExportDSSV(item) {
       const students = Array.isArray(item.students) ? item.students : []
       if (!students.length) {
@@ -906,6 +897,7 @@ export default {
         this.showNotification(`Lỗi khi xuất DSSV lớp ${item.maLop || item.classCode}.`, '#C62828')
       }
     },
+
     navigateToGradeSheet(item) {
       const classCode = item && (item.maLop || item.classCode)
       if (!classCode) {
@@ -920,10 +912,12 @@ export default {
         },
       })
     },
+
     handleAssignTeacher(item) {
       this.assignTeacherModal.item = item
       this.assignTeacherModal.show = true
     },
+
     async saveTeacherAssignment(assignment) {
       const item = this.assignTeacherModal.item
       if (!item || !assignment.primaryTeacher || this.assignTeacherModal.saving) return
@@ -1030,23 +1024,35 @@ export default {
     },
 
     applyLocalSearch() {
+      if (!Array.isArray(this.dataList)) {
+        this.appliedData = []
+        this.totalItems = 0
+        return
+      }
+
       const filtered = this.dataList.filter((item) => {
+        if (!item) return false
+
+        const keyword = this.filters.className ? this.filters.className.toLowerCase() : ''
         const matchName =
-          !this.filters.className ||
-          item.maLop.toLowerCase().includes(this.filters.className.toLowerCase()) ||
-          item.hocPhanName.toLowerCase().includes(this.filters.className.toLowerCase())
+          !keyword ||
+          (item.maLop && item.maLop.toLowerCase().includes(keyword)) ||
+          (item.hocPhanName && item.hocPhanName.toLowerCase().includes(keyword))
 
         const matchSession =
           !this.filters.retakeSession || item.dotHocLai === this.filters.retakeSession
 
         const matchCourse =
-          !this.filters.course || item.hocPhanCode.includes(this.filters.course) || item.hocPhanName.includes(this.filters.course)
+          !this.filters.course || 
+          (item.hocPhanCode && String(item.hocPhanCode).includes(this.filters.course)) || 
+          (item.hocPhanName && String(item.hocPhanName).includes(this.filters.course))
 
         const matchCoeff =
-          !this.filters.coefficient || String(item.thuHocPhi) === this.filters.coefficient
+          !this.filters.coefficient || String(item.thuHocPhi) === String(this.filters.coefficient)
 
         return matchName && matchSession && matchCourse && matchCoeff
       })
+
       this.appliedData = filtered
       this.totalItems = filtered.length
     },
@@ -1067,14 +1073,22 @@ export default {
 </script>
 
 <style scoped>
-/* Khóa layout vừa vặn 100% viewport làm việc trên máy tính */
+/* Cố định layout chiều cao full màn hình, phần bảng tự động co giãn và sinh thanh cuộn */
 .main-page-layout {
   display: flex;
   flex-direction: column;
   width: 100%;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
 }
 
-/* 1. Thanh bộ lọc trên đỉnh cố định */
+.scrollable-table-area {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+}
+
 .filter-bar-container {
   border-bottom: 1px solid #e5e7eb;
 }
@@ -1128,13 +1142,11 @@ export default {
   gap: 8px;
 }
 
-/* 2. Khu vực chứa Bảng */
 .custom-table {
   display: flex;
   flex-direction: column;
 }
 
-/* Định dạng Cố định Tiêu đề Cột (Header) màu xám nhạt như trong hình ảnh */
 .custom-table >>> th {
   position: sticky !important;
   top: 0 !important;
@@ -1147,12 +1159,11 @@ export default {
   box-shadow: inset 0 -1px 0 #d9d9d9;
 }
 
-/* 3. Thanh Footer cố định dưới đáy (Đã bỏ kẻ đường màu đỏ) */
 .custom-footer-bar {
   background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
 }
 
-/* Stylings chi tiết khác */
 .btn-export-green {
   background-color: #42b858 !important;
   color: #ffffff !important;
@@ -1320,7 +1331,8 @@ export default {
 }
 
 .action-dots-btn {
-  color: #555;}
+  color: #555;
+}
 
 .popup-action-menu {
   min-width: 150px;
@@ -1441,6 +1453,5 @@ export default {
   border-radius: 8px !important;
   height: 40px !important;
 }
-
-
 </style>
+

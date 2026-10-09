@@ -48,7 +48,7 @@
                 <v-autocomplete
                   v-model="selectedStudent"
                   :items="studentOptions"
-                  item-text="fullName"
+                  item-text="displayText"
                   item-value="studentCode"
                   placeholder="Sinh viên"
                   outlined
@@ -95,7 +95,7 @@
                   </v-col>
 
                   <v-col cols="12" class="py-1">
-                    Email cá nhân: <span class="font-weight-bold text-red-bold">{{ selectedStudent.personalEmail || 'demo.baovelai.20210110p@example.com' }}</span>
+                    Email cá nhân: <span class="font-weight-bold text-red-bold">{{ selectedStudent.personalEmail || 'demo.baovelai@example.com' }}</span>
                   </v-col>
 
                   <v-col cols="6" class="py-1">
@@ -257,8 +257,11 @@
 </template>
 
 <script>
-// IMPORT FILE SERVICE DẠNG DEFAULT EXPORT
+// IMPORT TRỰC TIẾP CÁC FILE MOCK DATA VÀ SERVICE
 import retakeCourseServices from '~/services/retakeCourseServices'
+import { MOCK_DATA_SINH_VIEN_HOC_LAI } from '@/consts/sinhviendk.js' // Hoặc '@/consts/mockSinhVien.js' tùy tên file thực tế của bạn
+import { MOCK_DATA_DOT_HOC_LAI } from '@/consts/mockDotHocLai.js'
+import { MOCK_DATA_DANH_SACH_MON_HOC } from '@/consts/mockDanhSachMonHoc.js'
 
 export default {
   name: 'RegisterRetakeCourseModal',
@@ -266,10 +269,6 @@ export default {
     value: {
       type: Boolean,
       default: false
-    },
-    studentsList: {
-      type: Array,
-      default: () => []
     },
     registeredClassesList: {
       type: Array,
@@ -282,7 +281,6 @@ export default {
       submitting: false,
       selectedStudent: null,
       searchSubject: '',
-      sessionOptions: [],
       selectedSubjects: [],
       selectAllSubjects: false,
       form: {
@@ -296,7 +294,23 @@ export default {
       set(val) { this.$emit('input', val) }
     },
     studentOptions() {
-      return this.studentsList || []
+      const rawData = Array.isArray(MOCK_DATA_SINH_VIEN_HOC_LAI) 
+        ? MOCK_DATA_SINH_VIEN_HOC_LAI 
+        : (MOCK_DATA_SINH_VIEN_HOC_LAI?.data || [])
+
+      return rawData.map(item => ({
+        id: item.id,
+        studentCode: item.code || '',
+        fullName: item.fullName || '',
+        email: item.email || '',
+        gender: item.gender || 'Khác',
+        personalEmail: item.personalEmail || `demo.${item.code?.toLowerCase()}@example.com`,
+        academicYear: item.course?.name || 'Khóa 66',
+        className: item.clazz?.name || '',
+        majorName: item.clazz?.majorName || 'Công nghệ thông tin',
+        trainingType: item.clazz?.trainingUnitName || 'Vừa làm vừa học',
+        displayText: `${item.code || ''} - ${item.fullName || ''}`
+      }))
     },
     canSave() {
       return this.currentStep === 2 &&
@@ -305,27 +319,47 @@ export default {
         this.selectedSubjects.length > 0 &&
         !this.submitting
     },
+    sessionOptions() {
+      if (Array.isArray(MOCK_DATA_DOT_HOC_LAI)) {
+        return MOCK_DATA_DOT_HOC_LAI.map(item => item.code || item.sessionCode || item)
+      }
+      if (MOCK_DATA_DOT_HOC_LAI && Array.isArray(MOCK_DATA_DOT_HOC_LAI.data)) {
+        return MOCK_DATA_DOT_HOC_LAI.data.map(item => item.code || item.sessionCode)
+      }
+      return ['20261-A-5', '20261-A-4', '20252-A-4']
+    },
     dueSubjectList() {
-      const selectedStudentCode = String(this.selectedStudent?.studentCode || '').trim().toLowerCase()
       const selectedSession = String(this.form.sessionId || '').trim()
-      if (!selectedStudentCode || !selectedSession) return []
+      if (!selectedSession) return []
 
-      return this.registeredClassesList
-        .filter(item =>
-          String(item.studentCode || '').trim().toLowerCase() === selectedStudentCode &&
-          String(item.sessionCode || item.sessionId || '').trim() === selectedSession &&
-          this.isFeeDue(item.tuitionStatus || item.paymentStatus)
-        )
-        .map((item, index) => ({
-          id: item.id || item.subjectCode || `subject_${index}`,
-          code: item.subjectCode || item.code || '',
-          name: item.subjectName || item.name || '',
-          teacherCode: item.teacherCode || item.maGV || '',
-          teacherName: item.teacherName || item.tenGV || '',
-          ratePrice: Number(item.ratePrice || item.feeRate || 0),
-          credits: Number(item.credits || item.soTinChi || 0),
-          totalPrice: Number(item.totalFee || item.totalPrice || item.fee || 0)
-        }))
+      let rawSubjects = []
+      const dataSrc = MOCK_DATA_DANH_SACH_MON_HOC
+
+      if (Array.isArray(dataSrc)) {
+        const found = dataSrc.find(d => {
+          const sId = String(d.sessionId || d.code || d.sessionCode || d.dot || '').trim()
+          return sId === selectedSession
+        })
+        
+        if (found && (found.subjects || found.list || found.danhSachMonHoc || found.items)) {
+          rawSubjects = found.subjects || found.list || found.danhSachMonHoc || found.items
+        } else {
+          rawSubjects = dataSrc
+        }
+      } else if (dataSrc && typeof dataSrc === 'object') {
+        rawSubjects = dataSrc[selectedSession] || dataSrc.data || dataSrc.subjects || Object.values(dataSrc)[0] || []
+      }
+
+      return rawSubjects.map((item, index) => ({
+        id: item.id || item.subjectCode || item.code || `subject_${index}`,
+        code: item.subjectCode || item.code || '',
+        name: item.subjectName || item.name || '',
+        teacherCode: item.teacherCode || item.maGV || '',
+        teacherName: item.teacherName || item.tenGV || '',
+        ratePrice: Number(item.ratePrice || item.feeRate || item.dinhMuc || 350000),
+        credits: Number(item.credits || item.soTinChi || 2),
+        totalPrice: Number(item.totalPrice || item.totalFee || item.fee || 700000)
+      }))
     },
     filteredSubjectList() {
       if (!this.searchSubject) return this.dueSubjectList
@@ -357,37 +391,22 @@ export default {
       this.form.sessionId = null
       this.selectedSubjects = []
       this.selectAllSubjects = false
-      this.sessionOptions = this.getStudentRecords()
-        .filter(item => this.isFeeDue(item.tuitionStatus || item.paymentStatus))
-        .map(item => item.sessionCode || item.sessionId)
-        .filter((session, index, sessions) => session && sessions.indexOf(session) === index)
-
-      if (std?.studentCode && retakeCourseServices.checkStudentAuth) {
-        try {
-          await retakeCourseServices.checkStudentAuth(std.studentCode)
-        } catch (err) {
-          console.error('Lỗi kiểm tra sinh viên:', err)
-        }
-      }
     },
     goToStep2() {
       if (!this.selectedStudent) return
       this.currentStep = 2
     },
+    // HÀM NÀY PHẢI NẰM TRONG METHODS, KHÔNG PHẢI COMPUTED
     onSessionChange(val) {
+      this.form.sessionId = val
       this.selectedSubjects = []
       this.selectAllSubjects = false
       this.searchSubject = ''
-    },
-    isFeeDue(status) {
-      const normalizedStatus = String(status || '').trim().toLowerCase()
-      return ['chưa trả học phí', 'not_paid', 'unpaid', 'cần thu'].includes(normalizedStatus)
-    },
-    getStudentRecords() {
-      const studentCode = String(this.selectedStudent?.studentCode || '').trim().toLowerCase()
-      return this.registeredClassesList.filter(item =>
-        String(item.studentCode || '').trim().toLowerCase() === studentCode
-      )
+      
+      // Tự động chọn sẵn toàn bộ môn học và hiện số tiền khi vừa bấm chọn đợt
+      this.$nextTick(() => {
+        this.selectedSubjects = this.dueSubjectList.map(item => item.id)
+      })
     },
     toggleSelectAll(val) {
       if (val) {
@@ -405,13 +424,6 @@ export default {
           sessionId: this.form.sessionId,
           subjects: this.selectedSubjects,
           totalPrice: this.calculatedTotalPrice
-        }
-        
-        // Gọi API lưu đăng ký qua retakeCourseServices
-        if (retakeCourseServices.registerRetakeCourse) {
-          await retakeCourseServices.registerRetakeCourse(payload)
-        } else if (retakeCourseServices.register) {
-          await retakeCourseServices.register(payload)
         }
 
         this.$emit('success', {
@@ -432,7 +444,6 @@ export default {
       this.selectedSubjects = []
       this.selectAllSubjects = false
       this.searchSubject = ''
-      this.sessionOptions = []
       this.form.sessionId = null
     },
     closeModal() {

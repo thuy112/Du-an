@@ -106,9 +106,9 @@
       </div>
     </div>
 
-    <!-- 2. GIAO DIỆN DESKTOP: BẢNG DỮ LIỆU SỬ DỤNG V-SIMPLE-TABLE -->
+    <!-- 2. GIAO DIỆN DESKTOP: BẢNG CỐ ĐỊNH HEADER & CUỘN TRÊN DƯỚI -->
     <div v-if="!isMobileDevice" class="table-responsive-wrapper">
-      <v-simple-table class="flat-table" fixed-header height="100%">
+      <v-simple-table class="flat-table" fixed-header height="550px">
         <template v-slot:default>
           <thead>
             <tr class="bg-gray-head">
@@ -164,7 +164,7 @@
                 <td>{{ item.subjectName }}</td>
                 <td class="text-center font-weight-bold">{{ item.failedScore || '' }}</td>
                 <td class="text-center">
-                  <span :class="['status-badge', item.isRegistered ? 'bg-green' : 'bg-grey']">
+                  <span :class="['status-badge text-nowrap', item.isRegistered ? 'bg-green' : 'bg-grey']">
                     {{ item.isRegistered ? 'Đã đăng ký' : 'Chưa đăng ký' }}
                   </span>
                 </td>
@@ -273,7 +273,7 @@
 
           <div class="mobile-info-row d-flex justify-space-between align-center py-2">
             <span class="info-label text-caption font-weight-bold">Trạng thái</span>
-            <span :class="['status-badge', item.isRegistered ? 'bg-green' : 'bg-grey']">
+            <span :class="['status-badge text-nowrap', item.isRegistered ? 'bg-green' : 'bg-grey']">
               {{ item.isRegistered ? 'Đã đăng ký' : 'Chưa đăng ký' }}
             </span>
           </div>
@@ -462,7 +462,7 @@
 <script>
 import * as XLSX from 'xlsx'
 import RetakeCourseDetailMustRetakeStudentModal from '~/components/RetakeCourse/DetailMustRetakeStudentModal.vue'
-import { MOCK_DATA_HOC_LAI } from '~/consts/danhsachhoclai.js'
+import { MOCK_DATA_LOP_HOC_LAI } from '~/consts/dsmonhoclai.js'
 
 export default {
   name: 'MustRetakeStudentPage',
@@ -560,7 +560,22 @@ export default {
   methods: {
     mockData() {
       const savedStudents = this.getSavedTestStudents()
-      this.studentList = [...savedStudents, ...MOCK_DATA_HOC_LAI]
+      
+      // Ánh xạ các trường từ MOCK_DATA_LOP_HOC_LAI sang định dạng hiển thị của bảng
+      const formattedMockData = MOCK_DATA_LOP_HOC_LAI.map(item => ({
+        id: item.id,
+        fullName: item.fullName || '',
+        studentCode: item.studentCode || '',
+        className: item.classCode || '',          // Ánh xạ classCode sang className
+        sessionCode: item.retakePeriod || '',      // Ánh xạ retakePeriod sang sessionCode (Đợt học lại)
+        termCode: item.semester || '',             // Ánh xạ semester sang termCode (Học kỳ)
+        subjectCode: item.subjectCode || '',
+        subjectName: item.subjectName || '',
+        failedScore: item.score ?? '',             // Điểm (nếu có)
+        isRegistered: item.score !== null && item.score !== undefined // Trạng thái dựa trên điểm hoặc note
+      }))
+
+      this.studentList = [...savedStudents, ...formattedMockData]
       this.selectedItems = []
       this.selectAll = false
     },
@@ -704,21 +719,21 @@ export default {
 
         const dataForExcel = itemsToExport.map((item, index) => ({
           STT: index + 1,
-          'Họ và tên': item.fullName || '',
-          'Mã sinh viên': item.studentCode || '',
-          'Lớp': item.className || '',
+          'Họ tên SV': item.fullName || '',
+          'Mã SV': item.studentCode || '',
+          'Mã lớp': item.className || '',
           'Đợt học lại': item.sessionCode || '',
           'Học kỳ': item.termCode || '',
-          'Mã học phần': item.subjectCode || '',
-          'Tên học phần': item.subjectName || '',
-          'Điểm trượt': item.failedScore || '',
-          'Trạng thái': item.isRegistered ? 'Đã đăng ký' : 'Chưa đăng ký'
+          'Mã môn': item.subjectCode || '',
+          'Học phần': item.subjectName || '',
+          'Điểm': item.failedScore || '',
+          'Ghi chú': item.note || ''
         }))
 
         const worksheet = XLSX.utils.json_to_sheet(dataForExcel)
         const workbook = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Bao_Cao_Sinh_Vien')
-        XLSX.writeFile(workbook, `Bao_Cao_Sinh_Vien_Phai_Hoc_Lai_${Date.now()}.xlsx`)
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'DS_Hoc_Lai')
+        XLSX.writeFile(workbook, `Danh_Sach_Hoc_Lai_${Date.now()}.xlsx`)
       } catch (error) {
         console.error('Lỗi xuất file báo cáo:', error)
       }
@@ -743,21 +758,19 @@ export default {
         const worksheet = workbook.Sheets[workbook.SheetNames[0]]
         const rows = XLSX.utils.sheet_to_json(worksheet)
 
-        const importedStudents = rows.map((row, index) => {
-          const isRegistered = row['Trạng thái'] === 'Đã đăng ký'
-          return {
-            id: Date.now() + index,
-            fullName: row['Họ và tên'] || '—',
-            studentCode: row['Mã sinh viên'] || '—',
-            className: row['Lớp'] || '—',
-            sessionCode: row['Đợt học lại'] || '—',
-            termCode: row['Học kỳ'] || '—',
-            subjectCode: row['Mã học phần'] || '—',
-            subjectName: row['Tên học phần'] || '—',
-            failedScore: row['Điểm trượt'] || '',
-            isRegistered
-          }
-        })
+        const importedStudents = rows.map((row, index) => ({
+          id: Date.now() + index,
+          subjectCode: row['Mã môn'] || '—',
+          subjectName: row['Học phần'] || '—',
+          className: row['Mã lớp'] || '—',
+          studentCode: row['Mã SV'] || '—',
+          fullName: row['Họ tên SV'] || '—',
+          sessionCode: row['Đợt học lại'] || '—',
+          termCode: row['Học kỳ'] || '—',
+          failedScore: row['Điểm'] ?? '',
+          note: row['Ghi chú'] || '',
+          isRegistered: false
+        }))
 
         this.studentList = [...importedStudents, ...this.studentList]
         this.handleSearch()
