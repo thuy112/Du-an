@@ -624,18 +624,25 @@ export default {
           channel: 'CMS'
         }
         const res = await this.$axios.$get('/api/user/list', { params })
-        const list = Array.isArray(res?.data) ? res.data : (res?.data?.items || res || [])
+        
+        // Bóc tách an toàn mọi cấu trúc response từ API (đề phòng trả về null, undefined hoặc object thuần)
+        const responseData = res?.data ?? res?.items ?? res
+        const list = Array.isArray(responseData) 
+          ? responseData 
+          : (Array.isArray(responseData?.items) ? responseData.items : (Array.isArray(responseData?.data) ? responseData.data : []))
         
         this.users = list.map((item, index) => ({
           ...item,
           stt: (this.page - 1) * this.itemsPerPage + index + 1
         }))
+
         this.paginatedUsers = this.users
-        this.totalItems = res?.total || res?.data?.total || this.users.length
+        this.totalItems = res?.total || res?.data?.total || res?.totalItems || this.users.length
       } catch (err) {
         console.error('Lỗi khi tải danh sách người dùng:', err)
         this.users = []
         this.paginatedUsers = []
+        this.totalItems = 0
       } finally {
         this.loading = false
       }
@@ -730,10 +737,9 @@ export default {
       this.dialogs.confirmStatus = true
     },
 
-    async confirmStatusChange() {
+    confirmStatusChange() {
       if (this.targetUser) {
         try {
-          // Gọi API cập nhật trạng thái nếu có, tạm thời cập nhật giao diện và gọi lại list
           const idx = this.users.findIndex((user) => user.id === this.targetUser.id)
           if (idx !== -1) {
             this.$set(this.users[idx], 'status', this.pendingStatusValue)
