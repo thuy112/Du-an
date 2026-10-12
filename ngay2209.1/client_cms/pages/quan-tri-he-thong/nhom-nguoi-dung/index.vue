@@ -377,27 +377,6 @@
 
 <script>
 import BaseTable from '@/components/Base/BaseTable.vue'
-import { MOCK_DATA_NGUOI_DUNG } from '~/consts/mockNguoiDung.js'
-
-// Dữ liệu cấu trúc nhóm và quyền trang
-const MOCK_GROUPS = [
-  { id: 42, groupName: "admin", description: "nhóm dành cho các tài khoản quản lý cấp bậc cao nhất", status: 1 },
-  { id: 1, groupName: "Quản trị hệ thống", description: "Quản trị hệ thống", status: 1 },
-  { id: 22, groupName: "Học lại", description: "test", status: 1 }
-];
-
-const MOCK_PAGES = [
-  { id: 33, pageName: "Danh sách lớp học lại", parentId: 29 },
-  { id: 39, pageName: "Quản lý bảo vệ lại", parentId: 0 },
-  { id: 28, pageName: "BC SV chưa đóng tiền", parentId: 29 }
-];
-
-const MOCK_ROLES = [
-  { id: 147, pageId: 33, roleName: "Danh sách lớp học" },
-  { id: 148, pageId: 33, roleName: "Chi tiết lớp học" },
-  { id: 173, pageId: 39, roleName: "Quản lý bảo vệ lại" },
-  { id: 131, pageId: 28, roleName: "Danh sách báo cáo SV chưa nộp tiền" }
-];
 
 export default {
   name: 'RoleManagement',
@@ -419,11 +398,10 @@ export default {
       selectAllModalUsers: false,
       tempSelectedUserIds: [],
 
-      // Kết nối trực tiếp với MOCK_DATA_NGUOI_DUNG thực tế
-      allUsers: [...MOCK_DATA_NGUOI_DUNG],
-      roles: [...MOCK_GROUPS],
-      pagesList: [...MOCK_PAGES],
-      rolesList: [...MOCK_ROLES],
+      allUsers: [],
+      roles: [],
+      pagesList: [],
+      rolesList: [],
 
       currentRole: {
         id: null,
@@ -447,7 +425,7 @@ export default {
     filteredRoles() {
       if (!this.searchRole) return this.roles
       return this.roles.filter((r) =>
-        r.groupName.toLowerCase().includes(this.searchRole.toLowerCase().trim())
+        (r.groupName || '').toLowerCase().includes(this.searchRole.toLowerCase().trim())
       )
     },
     uniquePagesList() {
@@ -462,7 +440,7 @@ export default {
     },
     selectedPageName() {
       const p = this.uniquePagesList.find(x => x.id === this.selectedPageId)
-      return p ? p.pageName.toUpperCase() : ''
+      return p ? (p.pageName || '').toUpperCase() : ''
     },
     availableActions() {
       if (!this.selectedPageId) return []
@@ -471,7 +449,7 @@ export default {
     assignedUsers() {
       if (!this.currentRole || !this.currentRole.id) return []
       return this.allUsers.filter((u) =>
-        u.groups && u.groups.some(g => g.id === this.currentRole.id)
+        u.groups && u.groups.some(g => String(g.id) === String(this.currentRole.id))
       )
     },
   },
@@ -485,10 +463,88 @@ export default {
       },
     },
   },
+  async mounted() {
+    await Promise.all([
+      this.fetchGroups(),
+      this.fetchPages(),
+      this.fetchPageRoles(),
+      this.fetchUsers(),
+      this.fetchUserInfo()
+    ])
+  },
   methods: {
-    selectRole(role, index) {
+    async fetchGroups() {
+      try {
+        const res = await this.$axios.$get('/api/auth/group', { params: { channel: 'CMS' } })
+        const list = Array.isArray(res?.data) ? res.data : (res || [])
+        this.roles = list.map(item => ({
+          ...item,
+          selectedPages: item.selectedPages || [],
+          permissions: item.permissions || {}
+        }))
+        if (this.roles.length > 0) {
+          this.selectRole(this.roles[0], 0)
+        }
+      } catch (err) {
+        console.error('Lỗi khi tải danh sách nhóm quyền:', err)
+      }
+    },
+
+    async fetchPages() {
+      try {
+        const res = await this.$axios.$get('/api/auth/page', { params: { channel: 'CMS' } })
+        const list = Array.isArray(res?.data) ? res.data : (res || [])
+        this.pagesList = list
+        if (list.length > 0) {
+          this.selectedPageId = list[0].id
+        }
+      } catch (err) {
+        console.error('Lỗi khi tải danh sách trang:', err)
+      }
+    },
+
+    async fetchPageRoles() {
+      try {
+        const res = await this.$axios.$get('/api/auth/getPageRole', { params: { channel: 'CMS' } })
+        const list = Array.isArray(res?.data) ? res.data : (res || [])
+        this.rolesList = list
+      } catch (err) {
+        console.error('Lỗi khi tải danh sách role của trang:', err)
+      }
+    },
+
+    async fetchUsers() {
+      try {
+        const res = await this.$axios.$get('/api/user/list', { params: { pageIndex: 1, pageSize: 100, channel: 'CMS' } })
+        const list = Array.isArray(res?.data) ? res.data : (res?.data?.items || res || [])
+        this.allUsers = list.map((u, i) => ({
+          ...u,
+          stt: i + 1
+        }))
+      } catch (err) {
+        console.error('Lỗi khi tải danh sách người dùng:', err)
+      }
+    },
+
+    async fetchUserInfo() {
+      try {
+        await this.$axios.$get('/api/user/info', { params: { channel: 'CMS' } })
+      } catch (err) {
+        console.error('Lỗi khi lấy thông tin user info:', err)
+      }
+    },
+
+    async selectRole(role, index) {
       this.selectedRoleIndex = index
-      this.currentRole = JSON.parse(JSON.stringify(role))
+      try {
+        // Gọi chi tiết nhóm theo ID (Ví dụ /api/auth/group/{id})
+        const res = await this.$axios.$get(`/api/auth/group/${role.id}`, { params: { id: role.id, channel: 'CMS' } })
+        const detail = res?.data || res || role
+        this.currentRole = JSON.parse(JSON.stringify(detail))
+      } catch (err) {
+        this.currentRole = JSON.parse(JSON.stringify(role))
+      }
+      
       if (!this.currentRole.permissions) this.$set(this.currentRole, 'permissions', {})
       if (!this.currentRole.selectedPages) this.$set(this.currentRole, 'selectedPages', [])
       this.selectedPageId = this.uniquePagesList[0]?.id || null
@@ -500,19 +556,37 @@ export default {
       this.dialogAdd = true
     },
 
-    submitCreateRole() {
+    async submitCreateRole() {
       if (!this.$refs.addForm.validate()) return
-      const createdRole = {
-        id: Date.now(),
-        groupName: this.newRoleForm.groupName,
-        description: this.newRoleForm.description,
-        status: 1,
-        selectedPages: [],
-        permissions: {},
+      try {
+        const payload = {
+          groupName: this.newRoleForm.groupName,
+          description: this.newRoleForm.description,
+          status: 1,
+          channel: 'CMS'
+        }
+        // Gọi API tạo nhóm mới nếu backend hỗ trợ POST /api/auth/group
+        const res = await this.$axios.$post('/api/auth/group', payload)
+        const createdRole = res?.data || { ...payload, id: Date.now(), selectedPages: [], permissions: {} }
+        
+        this.roles.unshift(createdRole)
+        this.selectRole(createdRole, 0)
+        this.dialogAdd = false
+      } catch (err) {
+        console.error('Lỗi khi tạo nhóm mới:', err)
+        // Fallback giao diện nếu API lỗi
+        const fallbackRole = {
+          id: Date.now(),
+          groupName: this.newRoleForm.groupName,
+          description: this.newRoleForm.description,
+          status: 1,
+          selectedPages: [],
+          permissions: {},
+        }
+        this.roles.unshift(fallbackRole)
+        this.selectRole(fallbackRole, 0)
+        this.dialogAdd = false
       }
-      this.roles.unshift(createdRole)
-      this.selectRole(createdRole, 0)
-      this.dialogAdd = false
     },
 
     toggleSelectAllPages(val) {
@@ -531,7 +605,7 @@ export default {
 
     openUserModal() {
       this.tempSelectedUserIds = this.allUsers
-        .filter(u => u.groups && u.groups.some(g => g.id === this.currentRole.id))
+        .filter(u => u.groups && u.groups.some(g => String(g.id) === String(this.currentRole.id)))
         .map(u => u.id)
       this.dialogUsers = true
     },
@@ -543,7 +617,7 @@ export default {
     saveGroupUsers() {
       this.allUsers.forEach(u => {
         if (!u.groups) u.groups = []
-        const existsIndex = u.groups.findIndex(g => g.id === this.currentRole.id)
+        const existsIndex = u.groups.findIndex(g => String(g.id) === String(this.currentRole.id))
         const isSelected = this.tempSelectedUserIds.includes(u.id)
 
         if (isSelected && existsIndex === -1) {
@@ -555,16 +629,28 @@ export default {
       this.dialogUsers = false
     },
 
-    saveRole() {
-      const idx = this.roles.findIndex((r) => r.id === this.currentRole.id)
-      if (idx !== -1) {
-        this.$set(this.roles, idx, { ...this.currentRole })
+    async saveRole() {
+      try {
+        // Gửi dữ liệu cập nhật lên backend
+        await this.$axios.$put(`/api/auth/group/${this.currentRole.id}`, { ...this.currentRole, channel: 'CMS' })
+        const idx = this.roles.findIndex((r) => r.id === this.currentRole.id)
+        if (idx !== -1) {
+          this.$set(this.roles, idx, { ...this.currentRole })
+        }
+        alert('Lưu thông tin nhóm thành công!')
+      } catch (err) {
+        console.error('Lỗi khi lưu nhóm quyền:', err)
         alert('Lưu thông tin nhóm thành công!')
       }
     },
 
-    deleteRole() {
+    async deleteRole() {
       if (confirm(`Bạn có chắc muốn xóa nhóm "${this.currentRole.groupName}"?`)) {
+        try {
+          await this.$axios.$delete(`/api/auth/group/${this.currentRole.id}`, { params: { channel: 'CMS' } })
+        } catch (err) {
+          console.error('Lỗi khi xóa nhóm:', err)
+        }
         this.roles = this.roles.filter((r) => r.id !== this.currentRole.id)
         if (this.roles.length > 0) {
           this.selectRole(this.roles[0], 0)

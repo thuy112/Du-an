@@ -515,10 +515,7 @@
 </template>
 
 <script>
-// Chú ý: Hãy chắc chắn bạn đã tạo file `~/components/Base/BaseTable.vue` 
-// và `~/mock/mockNguoiDung.js` như hướng dẫn trước đó nhé.
 import BaseTable from '~/components/Base/BaseTable.vue'
-import { MOCK_DATA_NGUOI_DUNG } from '~/consts/mockNguoiDung.js'
 
 export default {
   name: 'UserPage',
@@ -533,6 +530,7 @@ export default {
       page: 1,
       pageInput: 1,
       itemsPerPage: 50,
+      totalItems: 0,
       showPassword: false, 
       showRegisteredPassword: false, 
       resetPassword: '123@123a',
@@ -571,7 +569,7 @@ export default {
         { text: 'Email', value: 'email', sortable: false, width: '150px' },
         { text: 'Số điện thoại', value: 'phone', sortable: false, width: '120px' },
         { text: 'Chức vụ', value: 'position', sortable: false, width: '100px' },
-        { text: 'Nhóm người dùng ↑', value: 'groups', sortable: false, width: '180px' },
+        { text: 'Nhóm người dùng', value: 'groups', sortable: false, width: '180px' },
         { text: 'Trạng thái', value: 'status', sortable: false, width: '135px' },
         { text: 'Chức năng', value: 'actions', sortable: false, align: 'center', width: '90px' },
       ],
@@ -580,21 +578,13 @@ export default {
         { text: 'Kích hoạt', value: 'ACTIVE' }, 
         { text: 'Chưa kích hoạt', value: 'INACTIVE' }
       ],
-      roleOptions: ['Quản trị hệ thống', 'admin', 'Học lại', 'Giảng viên'],
+      roleOptions: [],
 
-      users: [...MOCK_DATA_NGUOI_DUNG],
+      users: [],
+      paginatedUsers: [],
 
-      classListSample: [
-        { selected: true, code: 'B2ĐTTX-GDTXHY-CNTT02-K71', name: 'B2ĐTTX-GDTXHY-CNTT02-K71', type: 'Đào tạo thường xuyên', location: 'Đại học Bách khoa Hà Nội', major: 'Công nghệ thông tin', course: 'Khóa 71' },
-        { selected: true, code: 'B2ĐTTX-GDTXHY-CNTT01-K71', name: 'B2ĐTTX-GDTXHY-CNTT01-K71', type: 'Đào tạo thường xuyên', location: 'Đại học Bách khoa Hà Nội', major: 'Công nghệ thông tin', course: 'Khóa 71' },
-        { selected: true, code: 'B2CQ-KTĐK&TDH01-K71', name: 'B2CQ-KTĐK&TDH01-K71', type: 'Chính quy', location: 'Đại học Bách khoa Hà Nội', major: 'Kỹ thuật Điều khiển và Tự động hóa', course: 'Khóa 71' },
-      ],
-
-      managedClassListSample: [
-        { code: 'TEST_999', name: 'Test 999', program: '', location: '', major: '', course: 'Khóa 62' },
-        { code: 'LHC_003', name: 'Lớp hành chính 03', program: '', location: '', major: '', course: 'Khóa 69' },
-        { code: 'B2ĐTTX-GDTXHY-CNTT02-K71', name: 'B2ĐTTX-GDTXHY-CNTT02-K71', program: '', location: '', major: '', course: 'Khóa 71' },
-      ],
+      classListSample: [],
+      managedClassListSample: [],
 
       form: { id: null, fullName: '', password: '', email: '', phone: '', position: '', status: 'ACTIVE', roles: [], avatar: null },
       rules: {
@@ -605,52 +595,120 @@ export default {
     }
   },
   computed: {
-    filteredUsers() {
-      return this.users.filter((user) => {
-        const matchName = !this.activeFilters.fullName || user.fullName.toLowerCase().includes(this.activeFilters.fullName.toLowerCase().trim())
-        const matchEmail = !this.activeFilters.email || user.email.toLowerCase().includes(this.activeFilters.email.toLowerCase().trim())
-        const matchStatus = !this.activeFilters.status || user.status === this.activeFilters.status
-        return matchName && matchEmail && matchStatus
-      })
-    },
     totalPages() {
-      return Math.ceil(this.filteredUsers.length / this.itemsPerPage) || 1
-    },
-    paginatedUsers() {
-      const start = (this.page - 1) * this.itemsPerPage
-      return this.filteredUsers.slice(start, start + this.itemsPerPage)
+      return Math.ceil(this.totalItems / this.itemsPerPage) || 1
     },
   },
   watch: {
     page(val) { this.pageInput = val },
   },
+  async mounted() {
+    await Promise.all([
+      this.fetchUsers(),
+      this.fetchGroups(),
+      this.fetchClasses(),
+      this.fetchUserInfo(),
+      this.fetchPageRole()
+    ])
+  },
   methods: {
+    async fetchUsers() {
+      this.loading = true
+      try {
+        const params = {
+          pageIndex: this.page,
+          pageSize: this.itemsPerPage,
+          fullName: this.activeFilters.fullName || '',
+          email: this.activeFilters.email || '',
+          status: this.activeFilters.status || '',
+          channel: 'CMS'
+        }
+        const res = await this.$axios.$get('/api/user/list', { params })
+        const list = Array.isArray(res?.data) ? res.data : (res?.data?.items || res || [])
+        
+        this.users = list.map((item, index) => ({
+          ...item,
+          stt: (this.page - 1) * this.itemsPerPage + index + 1
+        }))
+        this.paginatedUsers = this.users
+        this.totalItems = res?.total || res?.data?.total || this.users.length
+      } catch (err) {
+        console.error('Lỗi khi tải danh sách người dùng:', err)
+        this.users = []
+        this.paginatedUsers = []
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async fetchGroups() {
+      try {
+        const res = await this.$axios.$get('/api/auth/group', { params: { channel: 'CMS' } })
+        const list = Array.isArray(res?.data) ? res.data : (res || [])
+        this.roleOptions = list.map(g => g.groupName || g.name || g)
+      } catch (err) {
+        console.error('Lỗi khi tải nhóm quyền:', err)
+      }
+    },
+
+    async fetchClasses() {
+      try {
+        const res = await this.$axios.$get('/api/classes/list', { params: { pageSize: 100, pageIndex: 1, status: 'ACTIVE', channel: 'CMS' } })
+        const list = Array.isArray(res?.data) ? res.data : (res?.data?.items || res || [])
+        this.classListSample = list.map(c => ({
+          selected: false,
+          code: c.code,
+          name: c.name,
+          type: c.trainingType || '',
+          location: c.location || '',
+          major: c.majorName || '',
+          course: c.courseName || ''
+        }))
+      } catch (err) {
+        console.error('Lỗi khi tải danh sách lớp:', err)
+      }
+    },
+
+    async fetchUserInfo() {
+      try {
+        await this.$axios.$get('/api/user/info', { params: { channel: 'CMS' } })
+      } catch (err) {
+        console.error('Lỗi khi lấy thông tin user info:', err)
+      }
+    },
+
+    async fetchPageRole() {
+      try {
+        await this.$axios.$get('/api/auth/getPageRole', { params: { channel: 'CMS' } })
+      } catch (err) {
+        console.error('Lỗi khi lấy phân quyền trang:', err)
+      }
+    },
+
     formatGroups(groups) {
       if (!groups || !Array.isArray(groups)) return '';
-      return groups.map(g => g.groupName.trim()).join(', ');
+      return groups.map(g => (g.groupName || g.name || '').trim()).filter(Boolean).join(', ');
     },
 
     searchUsers() { 
       this.activeFilters = { ...this.filters }; 
-      this.page = 1 
+      this.page = 1;
+      this.fetchUsers();
     },
     
     resetFilters() { 
       this.filters = { fullName: '', email: '', status: null }; 
       this.activeFilters = { fullName: '', email: '', status: null }; 
-      this.page = 1 
+      this.page = 1;
+      this.fetchUsers();
     },
 
     goToPage() { 
-      // 1. Cập nhật bộ lọc khi ấn Đi
       this.activeFilters = { ...this.filters }; 
-
-      // 2. Chuyển trang
       const p = parseInt(this.pageInput, 10); 
-      const currentTotalPages = Math.ceil(this.filteredUsers.length / this.itemsPerPage) || 1;
-      
-      if (p >= 1 && p <= currentTotalPages) {
+      if (p >= 1 && p <= this.totalPages) {
         this.page = p; 
+        this.fetchUsers();
       } else {
         this.pageInput = this.page; 
       }
@@ -658,7 +716,8 @@ export default {
 
     onItemsPerPageChange() { 
       this.page = 1; 
-      this.pageInput = 1 
+      this.pageInput = 1;
+      this.fetchUsers();
     },
 
     handleStatusChange(item, newStatusValue) {
@@ -671,12 +730,17 @@ export default {
       this.dialogs.confirmStatus = true
     },
 
-    confirmStatusChange() {
+    async confirmStatusChange() {
       if (this.targetUser) {
-        const idx = this.users.findIndex((user) => user.id === this.targetUser.id)
-        if (idx !== -1) {
-          this.$set(this.users[idx], 'status', this.pendingStatusValue)
+        try {
+          // Gọi API cập nhật trạng thái nếu có, tạm thời cập nhật giao diện và gọi lại list
+          const idx = this.users.findIndex((user) => user.id === this.targetUser.id)
+          if (idx !== -1) {
+            this.$set(this.users[idx], 'status', this.pendingStatusValue)
+          }
           console.log(`Đã cập nhật ${this.targetUser.fullName} thành: ${this.pendingStatus}`)
+        } catch (err) {
+          console.error('Lỗi khi cập nhật trạng thái:', err)
         }
       }
       this.resetStatusState()
@@ -706,11 +770,7 @@ export default {
     },
 
     confirmResetPassword() {
-      const idx = this.users.findIndex(u => u.id === this.selectedUser.id)
-      if (idx !== -1) {
-        this.$set(this.users[idx], 'currentPassword', this.resetPassword)
-        console.log(`Đã reset mật khẩu cho ${this.selectedUser.email} về:`, this.resetPassword)
-      }
+      console.log(`Đã reset mật khẩu cho ${this.selectedUser.email} về:`, this.resetPassword)
       this.dialogs.resetPass = false
     },
 
@@ -726,7 +786,7 @@ export default {
     openEditModal(item) {
       this.isEdit = true
       this.showPassword = false
-      const mappedRoles = item.groups ? item.groups.map(g => g.groupName.trim()) : []
+      const mappedRoles = item.groups ? item.groups.map(g => (g.groupName || g.name || '').trim()) : []
       
       this.form = {
         ...item,
@@ -749,10 +809,9 @@ export default {
           this.$set(this.users, idx, updatedUser)
         }
       } else {
-        const maxId = this.users.reduce((m, u) => (u.id > m ? u.id : m), 0)
         const newUser = {
           ...this.form,
-          id: maxId + 1,
+          id: Date.now(),
           groups: mappedGroups,
           createTime: new Date().toLocaleString()
         }
@@ -769,6 +828,7 @@ export default {
     confirmDelete() {
       if (this.deleteTargetUser) {
         this.users = this.users.filter((user) => user.id !== this.deleteTargetUser.id)
+        this.paginatedUsers = this.users
       }
       this.cancelDelete()
     },

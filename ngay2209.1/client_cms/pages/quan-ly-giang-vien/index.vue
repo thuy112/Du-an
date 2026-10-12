@@ -19,7 +19,6 @@
             @keyup.enter="search"
           ></v-text-field>
 
-          <!-- ĐÃ XÓA @change="search" ĐỂ KHÔNG TỰ ĐỘNG TÌM KIẾM NỮA -->
           <v-select
             v-model="filters.gender"
             :items="genderOptions"
@@ -76,7 +75,6 @@
               <v-icon color="#a2212b" size="24">mdi-refresh</v-icon>
             </v-btn>
 
-            <!-- NÚT TÌM KIẾM CHÍNH -->
             <v-btn color="#a2212b" dark elevation="0" class="min-w-0 px-3 rounded-sm" style="height: 40px;" @click="search">
               <v-icon size="24">mdi-magnify</v-icon>
             </v-btn>
@@ -96,7 +94,6 @@
         <span class="font-weight-medium">{{ (page - 1) * itemsPerPage + index + 1 }}</span>
       </template>
 
-      <!-- SLOT THÔNG TIN CHUNG -->
       <template #[`item.generalInfo`]="{ item }">
         <div class="py-2 info-block">
           <div class="font-weight-bold red--text text--darken-3 mb-1" style="font-size: 15px;">
@@ -114,7 +111,6 @@
         </div>
       </template>
 
-      <!-- SLOT HIỂN THỊ LOẠI GIẢNG VIÊN -->
       <template #[`item.teacherType`]="{ item }">
         <span
           class="status-badge"
@@ -124,7 +120,6 @@
         </span>
       </template>
 
-      <!-- SLOT HIỂN THỊ & CHUYỂN ĐỔI TRẠNG THÁI -->
       <template #[`item.status`]="{ item }">
         <v-menu offset-y bottom left :z-index="999">
           <template #activator="{ on, attrs }">
@@ -150,7 +145,6 @@
         </v-menu>
       </template>
 
-      <!-- SLOT CHỨC NĂNG -->
       <template #[`item.actions`]="{ item }">
         <div class="d-flex align-center gap-1 action-icons">
           <v-btn icon x-small color="cyan darken-1" @click="viewDetail(item)">
@@ -318,7 +312,8 @@
       </v-card>
     </v-dialog>
 
-    <v-snackbar v-model="toast.show" top right :color="toast.color" timeout="3000" class="custom-toast">
+    <!-- Thêm thuộc tính app vào v-snackbar -->
+    <v-snackbar v-model="toast.show" app top right :color="toast.color" timeout="3000" class="custom-toast">
       <div class="d-flex align-center font-weight-medium" :class="toast.color === '#4caf50' ? 'white--text' : 'black--text'">
         <v-icon :color="toast.color === '#4caf50' ? 'white' : 'black'" class="mr-2">
           {{ toast.color === '#4caf50' ? 'mdi-check-circle' : 'mdi-alert-circle' }}
@@ -336,7 +331,6 @@
 
 <script>
 import * as XLSX from 'xlsx'
-import { MOCK_DATA_GIANG_VIEN } from "~/consts/mockGiangVien.js";
 
 const parseTeacherData = (apiData) => {
   return apiData.map(item => {
@@ -370,10 +364,14 @@ const parseTeacherData = (apiData) => {
 export default {
   name: 'QuanLyGiangVienPage',
   middleware: 'authenticated',
-  mounted() {
+  async mounted() {
     if (this.$store) {
       this.$store.commit('SET_PAGE_TITLE', 'Quản lý giảng viên')
     }
+    await Promise.all([
+      this.fetchWorkUnits(),
+      this.fetchTeachers()
+    ]);
   },
   data() {
     return {
@@ -408,7 +406,8 @@ export default {
         { text: 'Chức năng', value: 'actions', sortable: false, align: 'center', width: '90px' },
       ],
       
-      teachers: parseTeacherData(MOCK_DATA_GIANG_VIEN),
+      teachers: [],
+      departmentOptions: [],
     }
   },
   computed: {
@@ -420,9 +419,6 @@ export default {
     },
     statusOptions() {
       return [...new Set(this.teachers.map(t => t.status).filter(v => v && v !== '---'))].sort();
-    },
-    departmentOptions() {
-      return [...new Set(this.teachers.map(t => t.department).filter(v => v && v !== '---'))].sort();
     },
 
     // Bảng chỉ lọc dựa trên `appliedFilters` thay vì `filters`
@@ -456,30 +452,87 @@ export default {
     }
   },
   methods: {
+    // Gọi API lấy danh sách Khoa/Đơn vị qua axios
+    async fetchWorkUnits() {
+      try {
+        const res = await this.$axios.$get('/api/workUnit/list', {
+          params: { status: 'ACTIVE', channel: 'CMS' }
+        });
+        const units = res?.data || res?.items || res || [];
+        if (Array.isArray(units) && units.length > 0) {
+          this.departmentOptions = units.map(u => u.name ? u.name.trim() : '').filter(Boolean).sort();
+        }
+      } catch (err) {
+        console.error('Lỗi khi gọi API danh mục đơn vị:', err);
+      }
+    },
+
+    // Gọi API lấy danh sách giảng viên qua axios
+    async fetchTeachers() {
+      try {
+        const res = await this.$axios.$get('/api/teacher', {
+          params: { 
+            pageIndex: this.page, 
+            pageSize: this.itemsPerPage,
+            search: this.appliedFilters.search || '',
+            status: this.appliedFilters.status || '',
+            gender: this.appliedFilters.gender || '',
+            lecturerStatus: this.appliedFilters.teacherType || '',
+            channel: 'CMS'
+          }
+        });
+        
+        const rawData = res?.data?.data || res?.data?.items || res?.data || [];
+        this.teachers = parseTeacherData(rawData);
+
+        if (!this.departmentOptions.length) {
+          this.departmentOptions = [...new Set(this.teachers.map(t => t.department).filter(v => v && v !== '---'))].sort();
+        }
+      } catch (err) {
+        console.error('Lỗi khi gọi API danh sách giảng viên:', err);
+        this.teachers = [];
+        this.showToast('Không thể tải dữ liệu từ máy chủ!', '#ffc107');
+      }
+    },
+
     getCurrentDateTime() {
       const now = new Date()
       return `${String(now.getDate()).padStart(2, '0')}/${String(now.getMonth() + 1).padStart(2, '0')}/${now.getFullYear()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
     },
-    // Hàm này chạy khi bấm Kính lúp hoặc bấm Enter/Đi
+    
     search() { 
-      this.appliedFilters = { ...this.filters }; // Lưu cấu hình lọc hiện tại
+      this.appliedFilters = { ...this.filters };
       this.page = 1; 
       this.pageInput = 1;
+      this.fetchTeachers();
     },
     resetFilters() {
       this.filters = { search: '', gender: null, teacherType: null, status: null, department: null };
-      this.appliedFilters = { ...this.filters }; // Reset bảng về mặc định
+      this.appliedFilters = { ...this.filters };
       this.page = 1; 
       this.pageInput = 1;
+      this.fetchTeachers();
     },
-    changePage(p) { if (p >= 1 && p <= this.totalPages) { this.page = p; this.pageInput = p } },
+    changePage(p) { 
+      if (p >= 1 && p <= this.totalPages) { 
+        this.page = p; 
+        this.pageInput = p;
+        this.fetchTeachers(); 
+      } 
+    },
     goToPage() {
       let target = parseInt(this.pageInput)
       if (isNaN(target) || target < 1) target = 1
       if (target > this.totalPages) target = this.totalPages
-      this.page = target; this.pageInput = target
+      this.page = target; 
+      this.pageInput = target;
+      this.fetchTeachers();
     },
-    onItemsPerPageChange() { this.page = 1; this.pageInput = 1 },
+    onItemsPerPageChange() { 
+      this.page = 1; 
+      this.pageInput = 1;
+      this.fetchTeachers();
+    },
     viewDetail(item) { this.selectedTeacher = item; this.detailDialog = true },
     checkHistory(item) {
       this.selectedTeacher = { ...item }
@@ -550,6 +603,13 @@ export default {
 }
 </script>
 
+<!-- Style toàn cục đặt ngoài scoped để tác động trực tiếp vào v-snackbar của Vuetify -->
+<style>
+/* Chỉ tăng z-index cực cao để nằm trên header, KHÔNG dùng margin âm nữa */
+.v-snack {
+  z-index: 9999999 !important;
+}
+</style>
 <style scoped>
 /* --- BASE BADGE --- */
 .status-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 600; text-align: center; white-space: nowrap; }
@@ -590,17 +650,40 @@ export default {
 .pagination-input >>> .v-select__selection--comma { margin-top: 4px !important; font-size: 13px !important; }
 .pagination-input >>> .v-input__append-inner { margin-top: 6px !important; }
 
-/* ĐIỀU CHỈNH LAYOUT TỔNG & NỘI DUNG SLOT (Mobile vs Desktop) */
+@media (min-width: 600px) {
+  .teacher-page { 
+    height: calc(100vh - 64px); 
+    display: flex; 
+    flex-direction: column; 
+    overflow: hidden !important; 
+    position: relative !important;
+    z-index: 1;
+    padding: 16px !important;
+  }
+  
+  .top-filter-bar {
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+    background-color: #ffffff;
+  }
+
+  .teacher-page >>> .base-table-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: auto !important; 
+  }
+
+  .info-block { text-align: left !important; }
+  .action-icons { justify-content: center; }
+}
+
 @media (max-width: 599px) {
   .teacher-page { height: auto; min-height: 100vh; overflow: visible; }
   .info-block { text-align: right !important; }
   .action-icons { justify-content: flex-end; }
 }
-@media (min-width: 600px) {
-  .teacher-page { height: calc(100vh - 64px); overflow: hidden; display: flex; flex-direction: column; }
-  .info-block { text-align: left !important; }
-  .action-icons { justify-content: center; }
-}
+
 .custom-toast >>> .v-snack__wrapper { border-radius: 8px !important; }
 .v-menu__content { position: absolute !important; }
 </style>

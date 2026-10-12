@@ -42,7 +42,7 @@
             <div v-if="currentStep === 1">
               <div class="text-center mb-4">
                 <div class="text-caption font-weight-bold text-red-bold mb-2">
-                  Nhập Mã Số Sinh Viên
+                  Nhập Mã Số Sinh Viên (Ví dụ test: 20210105P)
                 </div>
 
                 <v-autocomplete
@@ -50,7 +50,7 @@
                   :items="studentOptions"
                   item-text="displayText"
                   item-value="studentCode"
-                  placeholder="Sinh viên"
+                  placeholder="Chọn hoặc tìm kiếm sinh viên"
                   outlined
                   dense
                   hide-details
@@ -91,11 +91,11 @@
                   <v-col cols="6" class="py-1"></v-col>
 
                   <v-col cols="12" class="py-1">
-                    Email trường: <span class="font-weight-bold text-red-bold">{{ selectedStudent.email }}</span>
+                    Email trường: <span class="font-weight-bold text-red-bold">{{ selectedStudent.email || '--' }}</span>
                   </v-col>
 
                   <v-col cols="12" class="py-1">
-                    Email cá nhân: <span class="font-weight-bold text-red-bold">{{ selectedStudent.personalEmail || 'demo.baovelai@example.com' }}</span>
+                    Email cá nhân: <span class="font-weight-bold text-red-bold">{{ selectedStudent.personalEmail || '--' }}</span>
                   </v-col>
 
                   <v-col cols="6" class="py-1">
@@ -109,7 +109,7 @@
                     Ngành: <span class="font-weight-bold text-red-bold">{{ selectedStudent.majorName || 'Công nghệ thông tin' }}</span>
                   </v-col>
                   <v-col cols="6" class="py-1">
-                    Loại hình đào tạo: <span class="font-weight-bold text-red-bold">{{ selectedStudent.trainingType || 'Vừa làm vừa học' }}</span>
+                    Loại hình đào tạo: <span class="font-weight-bold text-red-bold">{{ selectedStudent.trainingType || 'Chính quy' }}</span>
                   </v-col>
                 </v-row>
 
@@ -132,8 +132,10 @@
               <div class="mb-4">
                 <v-select
                   v-model="form.sessionId"
-                  :items="sessionOptions"
-                  label="Đợt học lại"
+                  :items="sessionOptionsList"
+                  item-text="text"
+                  item-value="value"
+                  label="Chọn đợt học lại mở lớp"
                   outlined
                   dense
                   hide-details
@@ -146,11 +148,11 @@
               <div class="mt-4">
                 <div class="d-flex justify-space-between align-center mb-2">
                   <div class="text-caption font-weight-bold black--text">
-                    Danh sách học phần cần đóng ({{ filteredSubjectList.length }})
+                    Danh sách học phần nợ của sinh viên trong đợt ({{ filteredSubjectList.length }})
                   </div>
                   <v-text-field
                     v-model="searchSubject"
-                    placeholder="Tìm kiếm"
+                    placeholder="Tìm kiếm học phần"
                     dense
                     hide-details
                     append-icon="mdi-magnify"
@@ -183,9 +185,14 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-if="filteredSubjectList.length === 0">
-                        <td colspan="9" class="text-center py-5 text-caption text-grey-color">
-                          Không có dữ liệu
+                      <tr v-if="!form.sessionId">
+                        <td colspan="9" class="text-center py-5 text-caption grey--text">
+                          Vui lòng chọn đợt học lại để kiểm tra học phần của sinh viên
+                        </td>
+                      </tr>
+                      <tr v-else-if="filteredSubjectList.length === 0">
+                        <td colspan="9" class="text-center py-5 text-caption grey--text font-italic">
+                          Sinh viên này không có học phần nợ nào trong đợt học lại này (Không thể đăng ký)
                         </td>
                       </tr>
                       <tr v-for="(item, index) in filteredSubjectList" :key="item.id || index">
@@ -257,12 +264,6 @@
 </template>
 
 <script>
-// IMPORT TRỰC TIẾP CÁC FILE MOCK DATA VÀ SERVICE
-import retakeCourseServices from '~/services/retakeCourseServices'
-import { MOCK_DATA_SINH_VIEN_HOC_LAI } from '@/consts/sinhviendk.js' // Hoặc '@/consts/mockSinhVien.js' tùy tên file thực tế của bạn
-import { MOCK_DATA_DOT_HOC_LAI } from '@/consts/mockDotHocLai.js'
-import { MOCK_DATA_DANH_SACH_MON_HOC } from '@/consts/mockDanhSachMonHoc.js'
-
 export default {
   name: 'RegisterRetakeCourseModal',
   props: {
@@ -270,7 +271,23 @@ export default {
       type: Boolean,
       default: false
     },
+    studentsList: {
+      type: Array,
+      default: () => []
+    },
     registeredClassesList: {
+      type: Array,
+      default: () => []
+    },
+    sessionOptionsList: {
+      type: Array,
+      default: () => []
+    },
+    subjectOptionsList: {
+      type: Array,
+      default: () => []
+    },
+    retakeCoursesFullList: {
       type: Array,
       default: () => []
     }
@@ -294,21 +311,17 @@ export default {
       set(val) { this.$emit('input', val) }
     },
     studentOptions() {
-      const rawData = Array.isArray(MOCK_DATA_SINH_VIEN_HOC_LAI) 
-        ? MOCK_DATA_SINH_VIEN_HOC_LAI 
-        : (MOCK_DATA_SINH_VIEN_HOC_LAI?.data || [])
-
-      return rawData.map(item => ({
-        id: item.id,
-        studentCode: item.code || '',
-        fullName: item.fullName || '',
-        email: item.email || '',
+      return (this.registeredClassesList || []).map(item => ({
+        id: item.student?.id || item.id,
+        studentCode: item.code || (item.student && item.student.code) || '',
+        fullName: item.fullName || (item.student && item.student.fullName) || '',
+        email: item.email || (item.student && item.student.email) || '',
         gender: item.gender || 'Khác',
-        personalEmail: item.personalEmail || `demo.${item.code?.toLowerCase()}@example.com`,
+        personalEmail: item.personalEmail || '',
         academicYear: item.course?.name || 'Khóa 66',
         className: item.clazz?.name || '',
         majorName: item.clazz?.majorName || 'Công nghệ thông tin',
-        trainingType: item.clazz?.trainingUnitName || 'Vừa làm vừa học',
+        trainingType: item.clazz?.trainingUnitName || 'Chính quy',
         displayText: `${item.code || ''} - ${item.fullName || ''}`
       }))
     },
@@ -316,50 +329,38 @@ export default {
       return this.currentStep === 2 &&
         Boolean(this.selectedStudent && this.selectedStudent.studentCode) &&
         Boolean(this.form.sessionId) &&
+        this.dueSubjectList.length > 0 &&
         this.selectedSubjects.length > 0 &&
         !this.submitting
     },
-    sessionOptions() {
-      if (Array.isArray(MOCK_DATA_DOT_HOC_LAI)) {
-        return MOCK_DATA_DOT_HOC_LAI.map(item => item.code || item.sessionCode || item)
-      }
-      if (MOCK_DATA_DOT_HOC_LAI && Array.isArray(MOCK_DATA_DOT_HOC_LAI.data)) {
-        return MOCK_DATA_DOT_HOC_LAI.data.map(item => item.code || item.sessionCode)
-      }
-      return ['20261-A-5', '20261-A-4', '20252-A-4']
-    },
     dueSubjectList() {
-      const selectedSession = String(this.form.sessionId || '').trim()
-      if (!selectedSession) return []
+      if (!this.form.sessionId || !this.selectedStudent) return []
 
-      let rawSubjects = []
-      const dataSrc = MOCK_DATA_DANH_SACH_MON_HOC
+      const currentSessionObj = (this.retakeCoursesFullList || []).find(
+        course => String(course.id) === String(this.form.sessionId) || String(course.code) === String(this.form.sessionId)
+      )
 
-      if (Array.isArray(dataSrc)) {
-        const found = dataSrc.find(d => {
-          const sId = String(d.sessionId || d.code || d.sessionCode || d.dot || '').trim()
-          return sId === selectedSession
-        })
-        
-        if (found && (found.subjects || found.list || found.danhSachMonHoc || found.items)) {
-          rawSubjects = found.subjects || found.list || found.danhSachMonHoc || found.items
-        } else {
-          rawSubjects = dataSrc
+      if (!currentSessionObj || !Array.isArray(currentSessionObj.registerStudents)) return []
+
+      const matchedStudentInSession = currentSessionObj.registerStudents.find(
+        st => String(st.code) === String(this.selectedStudent.studentCode)
+      )
+
+      if (!matchedStudentInSession || !Array.isArray(matchedStudentInSession.registerStudentTerms)) return []
+
+      return matchedStudentInSession.registerStudentTerms.map((termObj, index) => {
+        const t = termObj.term || {}
+        return {
+          id: t.id || t.code || `term_${index}`,
+          code: t.code || '',
+          name: t.name || '',
+          teacherCode: t.teacherCode || '-',
+          teacherName: t.teacherName || '-',
+          ratePrice: Number(termObj.feeRate || t.ratePrice || 350000),
+          credits: Number(t.credits || 2),
+          totalPrice: Number(termObj.fee || t.totalPrice || 700000)
         }
-      } else if (dataSrc && typeof dataSrc === 'object') {
-        rawSubjects = dataSrc[selectedSession] || dataSrc.data || dataSrc.subjects || Object.values(dataSrc)[0] || []
-      }
-
-      return rawSubjects.map((item, index) => ({
-        id: item.id || item.subjectCode || item.code || `subject_${index}`,
-        code: item.subjectCode || item.code || '',
-        name: item.subjectName || item.name || '',
-        teacherCode: item.teacherCode || item.maGV || '',
-        teacherName: item.teacherName || item.tenGV || '',
-        ratePrice: Number(item.ratePrice || item.feeRate || item.dinhMuc || 350000),
-        credits: Number(item.credits || item.soTinChi || 2),
-        totalPrice: Number(item.totalPrice || item.totalFee || item.fee || 700000)
-      }))
+      })
     },
     filteredSubjectList() {
       if (!this.searchSubject) return this.dueSubjectList
@@ -386,7 +387,7 @@ export default {
       if (!val && val !== 0) return '0'
       return Number(val).toLocaleString('vi-VN')
     },
-    async onStudentSelect(std) {
+    onStudentSelect(std) {
       this.selectedStudent = std || null
       this.form.sessionId = null
       this.selectedSubjects = []
@@ -396,14 +397,12 @@ export default {
       if (!this.selectedStudent) return
       this.currentStep = 2
     },
-    // HÀM NÀY PHẢI NẰM TRONG METHODS, KHÔNG PHẢI COMPUTED
     onSessionChange(val) {
       this.form.sessionId = val
       this.selectedSubjects = []
       this.selectAllSubjects = false
       this.searchSubject = ''
       
-      // Tự động chọn sẵn toàn bộ môn học và hiện số tiền khi vừa bấm chọn đợt
       this.$nextTick(() => {
         this.selectedSubjects = this.dueSubjectList.map(item => item.id)
       })
@@ -415,7 +414,7 @@ export default {
         this.selectedSubjects = []
       }
     },
-    async saveData() {
+    saveData() {
       if (!this.canSave) return
       this.submitting = true
       try {

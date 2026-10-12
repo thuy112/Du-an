@@ -402,23 +402,56 @@
       </v-card>
     </v-dialog>
 
-    <!-- SNACKBAR THÔNG BÁO -->
-    <v-snackbar v-model="snackbar.show" color="#4CAF50" top right timeout="3000" class="mt-2 custom-toast">
-      <div class="d-flex align-center font-weight-medium white--text">
-        <v-icon left color="white">mdi-check-circle</v-icon>
-        <span>{{ snackbar.text }}</span>
+<!-- KHU VỰC HIỂN THỊ DANH SÁCH THÔNG BÁO -->
+<div class="toast-container">
+  <v-snackbar
+    v-for="item in toasts"
+    :key="item.id"
+    v-model="item.show"
+    top
+    right
+    :color="item.color"
+    :timeout="-1" 
+    class="custom-toast mb-2"
+  >
+    <div class="d-flex align-center justify-space-between font-weight-medium width-100 white--text">
+      <div class="d-flex align-center">
+        <v-icon color="white" class="mr-2">
+          mdi-check-circle
+        </v-icon>
+        <span>{{ item.message }}</span>
       </div>
-    </v-snackbar>
+      <v-btn text icon color="white" x-small @click="removeToast(item.id)">
+        <v-icon small>mdi-close</v-icon>
+      </v-btn>
+    </div>
+  </v-snackbar>
+</div>
   </div>
 </template>
 
 <script>
 import BaseTable from '~/components/Base/BaseTable.vue'
-import { MOCK_DATA_DOT_HOC_LAI } from '~/consts/mockDotHocLai.js'
+
+const parseDotHocLaiData = (apiData) => {
+  return (apiData || []).map((item) => {
+    if (!item) return {}
+    return {
+      id: item.id || Date.now(),
+      maDot: item.code || item.maDot || '---',
+      hocKy: item.semester?.name || item.semester?.code || item.semesterName || item.hocKy || '20261',
+      ngayBatDau: item.fromTime ? item.fromTime.split(' ')[0] : (item.ngayBatDau || ''),
+      ngayKetThuc: item.toTime ? item.toTime.split(' ')[0] : (item.ngayKetThuc || ''),
+      hanChotDongPhi: item.paymentToTime ? item.paymentToTime.split(' ')[0] : (item.hanChotDongPhi || ''),
+      trangThai: item.status === 'ACTIVE' || item.status === 'Kích hoạt' || item.trangThai === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+    }
+  })
+}
 
 export default {
   name: 'QuanLyDotDangKyHocLai',
   components: { BaseTable },
+  middleware: 'authenticated',
   data() {
     return {
       isMobileDevice: false, 
@@ -468,10 +501,7 @@ export default {
         oldStatus: '',
         newStatus: '',
       },
-      snackbar: {
-        show: false,
-        text: '',
-      },
+      toasts: [],
       headers: [
         { text: 'STT', value: 'stt', sortable: false, width: '70px', align: 'left' },
         { text: 'Mã đợt đăng ký học lại', value: 'maDot', sortable: false, align: 'left' },
@@ -482,6 +512,7 @@ export default {
       ],
       dataList: [],
       appliedData: [],
+      userInfo: null,
     }
   },
 
@@ -519,17 +550,38 @@ export default {
     },
   },
 
-  created() {
-    this.fetchData()
-  },
-  
-  mounted() {
+  async mounted() {
     if (typeof navigator !== 'undefined') {
       this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     }
+    if (this.$store) {
+      this.$store.commit('SET_PAGE_TITLE', 'Quản lý đợt đăng ký học lại');
+    }
+    await Promise.all([
+      this.fetchUserInfo(),
+      this.fetchPageRole(),
+      this.fetchData()
+    ]);
   },
 
   methods: {
+    async fetchUserInfo() {
+      try {
+        const res = await this.$axios.$get('/api/user/info', { params: { channel: 'CMS' } })
+        this.userInfo = res?.data || res
+      } catch (err) {
+        console.error('Lỗi tải thông tin user:', err)
+      }
+    },
+
+    async fetchPageRole() {
+      try {
+        await this.$axios.$get('/api/auth/getPageRole', { params: { channel: 'CMS' } })
+      } catch (err) {
+        console.error('Lỗi kiểm tra quyền trang:', err)
+      }
+    },
+
     statusLabel(status) {
       const option = this.statusOptions.find((item) => item.value === status)
       return option ? option.text : status
@@ -537,39 +589,40 @@ export default {
     normalizeStatus(status) {
       return status === 'ACTIVE' || status === 'Kích hoạt' ? 'ACTIVE' : 'INACTIVE'
     },
-    fetchData() {
+    async fetchData() {
       this.loading = true
-      // Kết nối dữ liệu trực tiếp từ file consts/mockDotHocLai.js
-      this.dataList = (MOCK_DATA_DOT_HOC_LAI || []).map((item) => ({
-        id: item.id,
-        maDot: item.code || item.maDot || '---',
-        hocKy: item.semesterName || (item.semester ? item.semester.name : '20261'),
-        ngayBatDau: item.fromTime ? item.fromTime.split(' ')[0] : '',
-        ngayKetThuc: item.toTime ? item.toTime.split(' ')[0] : '',
-        hanChotDongPhi: item.paymentToTime ? item.paymentToTime.split(' ')[0] : '',
-        trangThai: this.normalizeStatus(item.status),
-      }))
-      this.appliedData = [...this.dataList]
-      this.loading = false
+      try {
+        const res = await this.$axios.$get('/api/retakeSession', {
+          params: {
+            pageIndex: 1,
+            pageSize: 50,
+            search: this.filters.search || '',
+            status: this.filters.status || '',
+            fromTime: this.filters.fromDate || '',
+            toTime: this.filters.toDate || '',
+            channel: 'CMS'
+          }
+        })
+        const rawData = res?.data?.data || res?.data?.items || res?.data || []
+        this.dataList = parseDotHocLaiData(rawData)
+        this.appliedData = [...this.dataList]
+      } catch (err) {
+        console.error('Lỗi tải dữ liệu đợt học lại:', err)
+        this.dataList = []
+        this.appliedData = []
+        this.showSuccessNotification('Không thể tải dữ liệu từ máy chủ!', '#C62828')
+      } finally {
+        this.loading = false
+      }
     },
     handleExecuteSearch(resetPage = true) {
-      const keyword = (this.filters?.search || '').toLowerCase().trim()
-      this.appliedData = this.dataList.filter((item) => {
-        const matchSearch = !keyword || item.maDot?.toLowerCase().includes(keyword) || item.hocKy?.toLowerCase().includes(keyword)
-        const matchStatus = !this.filters?.status || item.trangThai === this.filters.status
-        let matchFromDate = true
-        let matchToDate = true
-        if (this.filters.fromDate) matchFromDate = item.ngayBatDau >= this.filters.fromDate
-        if (this.filters.toDate) matchToDate = item.ngayKetThuc <= this.filters.toDate
-        return matchSearch && matchStatus && matchFromDate && matchToDate
-      })
+      this.fetchData()
       if (resetPage) {
         this.page = 1
         this.pageInput = 1
       }
     },
     handleGoBtnClick() {
-      this.handleExecuteSearch(false)
       const targetPage = parseInt(this.pageInput, 10)
       if (targetPage && targetPage >= 1 && targetPage <= this.totalPages) {
         this.page = targetPage
@@ -580,9 +633,9 @@ export default {
     },
     resetFilters() {
       this.filters = { search: '', fromDate: '', toDate: '', status: null }
-      this.appliedData = [...this.dataList]
       this.page = 1
       this.pageInput = 1
+      this.fetchData()
     },
     changePage(p) {
       if (p >= 1 && p <= this.totalPages) {
@@ -656,9 +709,22 @@ export default {
       this.deleteDialog = false
       this.showSuccessNotification('Xóa đợt đăng ký thành công')
     },
-    showSuccessNotification(message) {
-      this.snackbar.text = message
-      this.snackbar.show = true
+    showSuccessNotification(message, color = '#4caf50', timeout = 3000) {
+      const id = Date.now() + Math.random()
+      const newToast = { id, message, color, timeout, show: true }
+      
+      this.toasts.unshift(newToast)
+
+      setTimeout(() => {
+        this.removeToast(id)
+      }, timeout)
+    },
+    removeToast(id) {
+      const index = this.toasts.findIndex((t) => t.id === id)
+      if (index !== -1) {
+        this.toasts[index].show = false
+        this.toasts.splice(index, 1)
+      }
     },
     saveData() {
       const newSession = {

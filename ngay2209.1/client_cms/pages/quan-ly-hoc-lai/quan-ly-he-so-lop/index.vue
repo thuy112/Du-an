@@ -1,5 +1,18 @@
 <template>
   <div class="page-layout-wrapper d-flex flex-column pa-2 pa-md-4 system-bg" :class="{ 'is-mobile-device': isMobileDevice }">
+    <!-- THANH THÔNG BÁO BANNER NỔI (MÀU VÀNG KHI TRÙNG, MÀU XANH KHI THÀNH CÔNG) -->
+    <div v-if="alertMessage" :style="{ backgroundColor: alertColor + ' !important' }" class="custom-alert-banner px-4 py-3 d-flex align-center justify-space-between mb-3 elevation-2">
+      <div class="d-flex align-center">
+        <v-icon :color="alertColor === '#ffc107' ? 'black' : 'white'" class="mr-2">
+          {{ alertColor === '#ffc107' ? 'mdi-alert-circle-outline' : 'mdi-check-circle-outline' }}
+        </v-icon>
+        <span :class="alertColor === '#ffc107' ? 'black--text' : 'white--text'" class="font-weight-medium text-body-2">{{ alertMessage }}</span>
+      </div>
+      <v-btn icon x-small dark @click="alertMessage = ''">
+        <v-icon :color="alertColor === '#ffc107' ? 'black' : 'white'">mdi-close</v-icon>
+      </v-btn>
+    </div>
+
     <!-- 1. HEADER & BỘ LỌC TÌM KIẾM -->
     <div class="top-section flex-shrink-0 mb-3 bg-white pa-3 rounded-0">
       <v-row align="center" justify="space-between" no-gutters>
@@ -103,7 +116,7 @@
       </BaseTable>
     </div>
 
-    <!-- 3. THANH PHÂN TRANG (Bản ghi: 92x32, Trang: 64x32) -->
+    <!-- 3. THANH PHÂN TRANG -->
     <div class="custom-pagination-bar flex-shrink-0 d-flex align-center justify-end flex-wrap gap-2 py-3 px-3 bg-white mt-2 rounded-0">
       <div class="d-flex align-center flex-wrap justify-end gap-2 w-100">
         <div class="d-flex align-center gap-2">
@@ -175,10 +188,11 @@
         <v-card-text class="pa-6">
           <v-form ref="classCoeffForm" v-model="isFormValid">
             <v-row dense>
+              <!-- Loại lớp: Chỉ có Lớp mở, Lớp ghép, Đồ án môn học -->
               <v-col cols="12">
                 <v-select
-                  v-model="formData.loaiLop"
-                  :items="['Lớp mở', 'Lớp ghép (Chuyên ngành)', 'Lớp ghép (Đại cương)', 'Đồ án môn học (HPTT)', 'Đồ án môn học (HP.DAMH)']"
+                  v-model="formData.baseLoaiLop"
+                  :items="['Lớp mở', 'Lớp ghép', 'Đồ án môn học']"
                   label="Loại lớp (*)"
                   dense
                   outlined
@@ -186,17 +200,43 @@
                   :rules="[v => !!v || 'Vui lòng chọn loại lớp']"
                 ></v-select>
               </v-col>
+
+              <!-- Nếu chọn Lớp ghép: Hiện thêm Loại học phần (Đại cương / Chuyên ngành) -->
+              <v-col cols="12" class="mt-3" v-if="formData.baseLoaiLop === 'Lớp ghép'">
+                <v-select
+                  v-model="formData.loaiHocPhan"
+                  :items="['Đại cương', 'Chuyên ngành']"
+                  label="Loại học phần (*)"
+                  dense
+                  outlined
+                  hide-details="auto"
+                ></v-select>
+              </v-col>
+
               <v-col cols="12" class="mt-3">
                 <v-text-field v-model.number="formData.thuHocPhiSv" label="Thu học phí SV (*)" type="number" dense outlined hide-details="auto" :rules="[v => (v !== null && v !== '') || 'Vui lòng nhập giá trị']"></v-text-field>
               </v-col>
               <v-col cols="12" class="mt-3">
-                <v-text-field v-model.number="formData.thanhToanGiangDay" label="Thanh toán giảng dạy" type="number" dense outlined hide-details="auto"></v-text-field>
+                <v-text-field v-model.number="formData.thanhToanGiangDay" label="Thanh toán giảng dạy (*)" type="number" dense outlined hide-details="auto" :rules="[v => (v !== null && v !== '') || 'Vui lòng nhập giá trị']"></v-text-field>
+              </v-col>
+              <v-col cols="12" class="mt-3">
+                <v-text-field v-model="formData.description" label="Mô tả" dense outlined hide-details="auto"></v-text-field>
               </v-col>
               <v-col cols="12" class="mt-3">
                 <v-text-field v-model.number="formData.minSv" label="Số lượng tối thiểu (*)" type="number" dense outlined hide-details="auto" :rules="[v => (v !== null && v !== '') || 'Vui lòng nhập số lượng tối thiểu']"></v-text-field>
               </v-col>
               <v-col cols="12" class="mt-3">
                 <v-text-field v-model.number="formData.maxSv" label="Số lượng tối đa (*)" type="number" dense outlined hide-details="auto" :rules="[v => (v !== null && v !== '') || 'Vui lòng nhập số lượng tối đa']"></v-text-field>
+              </v-col>
+
+              <!-- Nếu chọn Đồ án môn học: Hiện nút gạt Học phần thường (HPTT) để phân biệt với HP.DAMH -->
+              <v-col cols="12" class="mt-4" v-if="formData.baseLoaiLop === 'Đồ án môn học'">
+                <v-switch
+                  v-model="formData.isCourseNormal"
+                  label="Học phần thường"
+                  color="#a2212b"
+                  hide-details
+                ></v-switch>
               </v-col>
             </v-row>
           </v-form>
@@ -230,11 +270,46 @@
 
 <script>
 import BaseTable from '@/components/Base/BaseTable.vue'
-import { MOCK_DINH_MUC_GIANG_VIEN } from '~/consts/mockDinhMucGiangVien.js'
+
+const parseCoefficientData = (apiData) => {
+  return (apiData || []).map((item) => {
+    if (!item) return {}
+    
+    let loaiLopVN = 'Lớp mở'
+    if (item.classType === 'COMBINE_CLASS') {
+      if (item.courseType === 'SPECIALIZED') {
+        loaiLopVN = 'Lớp ghép (Chuyên ngành)'
+      } else {
+        loaiLopVN = 'Lớp ghép (Đại cương)'
+      }
+    } else if (item.classType === 'PROJECT_BASED_CLASS') {
+      loaiLopVN = item.isCourseNormal ? 'Đồ án môn học (HPTT)' : 'Đồ án môn học (HP.DAMH)'
+    } else {
+      loaiLopVN = 'Lớp mở'
+    }
+
+    const min = item.minStudent || 0
+    const max = item.maxStudent || 0
+
+    return {
+      id: item.id || Date.now(),
+      loaiLop: loaiLopVN,
+      thuHocPhiSv: item.coefficient ?? 1.0,
+      thanhToanGiangDay: item.coefficientTeacher ?? '',
+      description: item.description || '',
+      minSv: min,
+      maxSv: max,
+      classType: item.classType,
+      courseType: item.courseType,
+      isCourseNormal: item.isCourseNormal
+    }
+  })
+}
 
 export default {
   name: 'QuanLyHeSoLop',
   components: { BaseTable },
+  middleware: 'authenticated',
   data() {
     return {
       isMobileDevice: false,
@@ -243,6 +318,8 @@ export default {
       deleteDialog: false,
       isEdit: false,
       isFormValid: true,
+      alertMessage: '', // Nội dung thông báo banner
+      alertColor: '#ffc107', // Màu banner ('#ffc107' cho vàng cảnh báo, '#4caf50' cho xanh thành công)
 
       page: 1,
       pageInput: 1,
@@ -250,7 +327,17 @@ export default {
 
       filters: { search: '', coefficient: '' },
       selectedItem: {},
-      formData: { id: null, loaiLop: 'Lớp mở', thuHocPhiSv: 1.0, thanhToanGiangDay: '', minSv: 1, maxSv: 10 },
+      formData: {
+        id: null,
+        baseLoaiLop: 'Lớp mở',
+        loaiHocPhan: 'Đại cương',
+        thuHocPhiSv: 1.0,
+        thanhToanGiangDay: '',
+        description: '',
+        minSv: 1,
+        maxSv: 10,
+        isCourseNormal: false
+      },
 
       headers: [
         { text: 'STT', value: 'stt', sortable: false, width: '70px', align: 'left' },
@@ -261,8 +348,9 @@ export default {
         { text: 'Chức năng', value: 'actions', sortable: false, align: 'center', width: '130px' },
       ],
 
-      dataList: [...MOCK_DINH_MUC_GIANG_VIEN],
+      dataList: [],
       appliedData: [],
+      userInfo: null,
     }
   },
   computed: {
@@ -282,13 +370,60 @@ export default {
       return pages
     },
   },
-  created() { this.appliedData = [...this.dataList] },
-  mounted() {
+  async mounted() {
     if (typeof navigator !== 'undefined') {
       this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     }
+    if (this.$store) {
+      this.$store.commit('SET_PAGE_TITLE', 'Quản lý hệ số lớp');
+    }
+    await Promise.all([
+      this.fetchUserInfo(),
+      this.fetchPageRole(),
+      this.fetchData()
+    ]);
   },
   methods: {
+    async fetchUserInfo() {
+      try {
+        const res = await this.$axios.$get('/api/user/info', { params: { channel: 'CMS' } })
+        this.userInfo = res?.data || res
+      } catch (err) {
+        console.error('Lỗi tải thông tin user:', err)
+      }
+    },
+
+    async fetchPageRole() {
+      try {
+        await this.$axios.$get('/api/auth/getPageRole', { params: { channel: 'CMS' } })
+      } catch (err) {
+        console.error('Lỗi kiểm tra quyền trang:', err)
+      }
+    },
+
+    async fetchData() {
+      this.loading = true
+      try {
+        const res = await this.$axios.$get('/api/coefficient', {
+          params: {
+            pageIndex: 1,
+            pageSize: 50,
+            search: this.filters.search || '',
+            channel: 'CMS'
+          }
+        })
+        const rawData = res?.data?.data || res?.data?.items || res?.data || []
+        this.dataList = parseCoefficientData(rawData)
+        this.appliedData = [...this.dataList]
+      } catch (err) {
+        console.error('Lỗi tải dữ liệu hệ số lớp:', err)
+        this.dataList = []
+        this.appliedData = []
+      } finally {
+        this.loading = false
+      }
+    },
+
     handleExecuteSearch(resetPage = true) {
       const keyword = (this.filters.search || '').toLowerCase().trim()
       const coeff = (this.filters.coefficient || '').trim()
@@ -315,35 +450,123 @@ export default {
     changePage(p) { if (p >= 1 && p <= this.totalPages) { this.page = p; this.pageInput = p } },
     openCreateModal() {
       this.isEdit = false
-      this.formData = { id: null, loaiLop: 'Lớp mở', thuHocPhiSv: 1.0, thanhToanGiangDay: '', minSv: 1, maxSv: 10 }
+      this.alertMessage = ''
+      this.formData = {
+        id: null,
+        baseLoaiLop: 'Lớp mở',
+        loaiHocPhan: 'Đại cương',
+        thuHocPhiSv: 1.0,
+        thanhToanGiangDay: '',
+        description: '',
+        minSv: 1,
+        maxSv: 10,
+        isCourseNormal: false
+      }
       if (this.$refs.classCoeffForm) this.$refs.classCoeffForm.resetValidation()
       this.formDialog = true
     },
     openEditModal(item) {
       this.isEdit = true
+      this.alertMessage = ''
       this.selectedItem = item
-      this.formData = { ...item }
+
+      let baseLop = 'Lớp mở'
+      let hocPhan = 'Đại cương'
+      if (item.loaiLop.includes('Lớp ghép')) {
+        baseLop = 'Lớp ghép'
+        hocPhan = item.loaiLop.includes('Chuyên ngành') ? 'Chuyên ngành' : 'Đại cương'
+      } else if (item.loaiLop.includes('Đồ án')) {
+        baseLop = 'Đồ án môn học'
+      }
+
+      this.formData = {
+        id: item.id,
+        baseLoaiLop: baseLop,
+        loaiHocPhan: hocPhan,
+        thuHocPhiSv: item.thuHocPhiSv,
+        thanhToanGiangDay: item.thanhToanGiangDay,
+        description: item.description,
+        minSv: item.minSv,
+        maxSv: item.maxSv,
+        isCourseNormal: item.isCourseNormal || false
+      }
       if (this.$refs.classCoeffForm) this.$refs.classCoeffForm.resetValidation()
       this.formDialog = true
     },
     saveData() {
       if (this.$refs.classCoeffForm && !this.$refs.classCoeffForm.validate()) return
+
+      const newMin = Number(this.formData.minSv)
+      const newMax = Number(this.formData.maxSv)
+      const newThuHocPhi = Number(this.formData.thuHocPhiSv)
+      const newThanhToan = Number(this.formData.thanhToanGiangDay)
+
+      if (newMin > newMax) {
+        this.alertColor = '#ffc107'
+        this.alertMessage = 'Số lượng tối thiểu không được lớn hơn số lượng tối đa!'
+        return
+      }
+
+      let calculatedLoaiLop = 'Lớp mở'
+      if (this.formData.baseLoaiLop === 'Lớp ghép') {
+        calculatedLoaiLop = this.formData.loaiHocPhan === 'Chuyên ngành' ? 'Lớp ghép (Chuyên ngành)' : 'Lớp ghép (Đại cương)'
+      } else if (this.formData.baseLoaiLop === 'Đồ án môn học') {
+        calculatedLoaiLop = this.formData.isCourseNormal ? 'Đồ án môn học (HPTT)' : 'Đồ án môn học (HP.DAMH)'
+      }
+
+      const isOverlap = this.dataList.some((item) => {
+        if (this.isEdit && item.id === this.selectedItem.id) return false
+        if (item.loaiLop === calculatedLoaiLop) {
+          const overlapRange = !(newMax < item.minSv || newMin > item.maxSv)
+          if (overlapRange) {
+            const sameFee = Number(item.thuHocPhiSv) === newThuHocPhi
+            const sameTeaching = Number(item.thanhToanGiangDay) === newThanhToan
+            if (sameFee && sameTeaching) return true
+          }
+        }
+        return false
+      })
+
+      if (isOverlap) {
+        this.alertColor = '#ffc107' // Màu vàng cảnh báo trùng
+        this.alertMessage = `Cấu hình số lượng sinh viên cho loại ${calculatedLoaiLop} đã tồn tại!`
+        return
+      }
+
       const newItem = {
         id: this.isEdit ? this.formData.id : Date.now(),
-        loaiLop: this.formData.loaiLop,
-        thuHocPhiSv: Number(this.formData.thuHocPhiSv),
-        thanhToanGiangDay: this.formData.thanhToanGiangDay !== '' ? Number(this.formData.thanhToanGiangDay) : '',
-        minSv: Number(this.formData.minSv),
-        maxSv: Number(this.formData.maxSv),
+        loaiLop: calculatedLoaiLop,
+        thuHocPhiSv: newThuHocPhi,
+        thanhToanGiangDay: newThanhToan,
+        description: this.formData.description || '',
+        minSv: newMin,
+        maxSv: newMax,
+        isCourseNormal: this.formData.isCourseNormal
       }
-      if (this.isEdit) Object.assign(this.selectedItem, newItem)
-      else { this.dataList.unshift(newItem); this.appliedData = [...this.dataList]; this.page = 1; this.pageInput = 1 }
+
+      if (this.isEdit) {
+        Object.assign(this.selectedItem, newItem)
+        this.alertColor = '#4caf50' // Màu xanh thành công
+        this.alertMessage = 'Cập nhật hệ số lớp thành công!'
+      } else {
+        this.dataList.unshift(newItem)
+        this.appliedData = [...this.dataList]
+        this.page = 1
+        this.pageInput = 1
+        this.alertColor = '#4caf50' // Màu xanh thành công
+        this.alertMessage = 'Thêm mới hệ số lớp thành công!'
+      }
       this.formDialog = false
     },
     openDeleteModal(item) { this.selectedItem = item; this.deleteDialog = true },
     confirmDelete() {
       const index = this.dataList.findIndex(x => x.id === this.selectedItem.id)
-      if (index !== -1) { this.dataList.splice(index, 1); this.appliedData = [...this.dataList] }
+      if (index !== -1) {
+        this.dataList.splice(index, 1)
+        this.appliedData = [...this.dataList]
+        this.alertColor = '#4caf50' // Màu xanh thành công
+        this.alertMessage = 'Xóa hệ số lớp thành công!'
+      }
       this.deleteDialog = false
     },
   },
@@ -360,6 +583,12 @@ export default {
 .gap-2 { gap: 8px; }
 .gap-3 { gap: 12px; }
 
+/* Banner thông báo động (Màu vàng cảnh báo / Màu xanh thành công) */
+.custom-alert-banner {
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
 .filter-input-box { min-width: 180px; flex: 1 1 140px; }
 @media (min-width: 960px) { .filter-input-box { max-width: 160px; } }
 
@@ -371,7 +600,6 @@ export default {
 .btn-action-icon { width: 40px !important; height: 40px !important; }
 .btn-action-square { width: 48px !important; min-width: 48px !important; height: 40px !important; border-radius: 4px !important; padding: 0 !important; }
 
-/* Tùy chỉnh kích thước ô Bản ghi (92x32px) và Trang (64x32px) */
 .select-records.v-text-field--outlined,
 .select-records.v-text-field--outlined .v-input__control,
 .select-records.v-text-field--outlined .v-input__slot {
@@ -421,4 +649,15 @@ export default {
 
 .page-layout-wrapper:not(.is-mobile-device) { height: calc(100vh - 64px); }
 .page-layout-wrapper:not(.is-mobile-device) .main-content-block { display: flex; flex-direction: column; overflow: auto; }
+/* Banner thông báo thu gọn ở góc trên bên phải, kéo dài ra đến chỗ Admin */
+.custom-alert-banner {
+  position: fixed;
+  top: 16px;
+  right: 24px;
+  z-index: 99999;
+  width: 380px;
+  max-width: calc(100vw - 32px);
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
 </style>

@@ -97,7 +97,7 @@
       </v-card>
     </v-dialog>
 
-    <!-- BẢNG DỮ LIỆU DÙNG BASETABLE (TỰ CHUYỂN MOBILE KHI < 600PX) -->
+    <!-- BẢNG DỮ LIỆU DÙNG BASETABLE -->
     <BaseTable
       :headers="headers"
       :items="paginatedStudents"
@@ -108,7 +108,7 @@
         <span class="font-weight-medium">{{ (page - 1) * itemsPerPage + index + 1 }}</span>
       </template>
 
-      <!-- THÔNG TIN CHUNG (Responsive Mobile) -->
+      <!-- THÔNG TIN CHUNG -->
       <template #[`item.generalInfo`]="{ item }">
         <div class="py-2 info-block">
           <div class="font-weight-bold red--text text--darken-3 mb-1" style="font-size: 15px;">
@@ -142,13 +142,13 @@
             </div>
           </template>
           <v-list dense class="py-1">
-            <v-list-item @click="openConfirmStatusDialog(item, 'Đang học')">
+            <v-list-item @click="promptChangeStatus(item, 'Đang học')">
               <v-list-item-title class="red--text text--darken-1 font-weight-bold">Đang học</v-list-item-title>
             </v-list-item>
-            <v-list-item @click="openConfirmStatusDialog(item, 'Bảo lưu')">
+            <v-list-item @click="promptChangeStatus(item, 'Bảo lưu')">
               <v-list-item-title class="orange--text text--darken-2 font-weight-bold">Bảo lưu</v-list-item-title>
             </v-list-item>
-            <v-list-item @click="openConfirmStatusDialog(item, 'Đã tốt nghiệp')">
+            <v-list-item @click="promptChangeStatus(item, 'Đã tốt nghiệp')">
               <v-list-item-title class="grey--text text--darken-2 font-weight-bold">Đã tốt nghiệp</v-list-item-title>
             </v-list-item>
           </v-list>
@@ -168,8 +168,98 @@
       </template>
     </BaseTable>
 
-    <!-- THANH PHÂN TRANG & EXCEL (CỐ ĐỊNH PHÍA DƯỚI) -->
-    <!-- THANH PHÂN TRANG & EXCEL (CỐ ĐỊNH PHÍA DƯỚI) -->
+    <!-- DIALOG XÁC NHẬN ĐỔI TRẠNG THÁI -->
+    <v-dialog v-model="confirmStatusDialog" max-width="450px" persistent>
+      <v-card class="rounded-lg">
+        <v-card-title class="pa-4 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center" style="background-color: #a2212b;">
+          <span>Xác nhận</span>
+          <v-btn icon dark x-small @click="confirmStatusDialog = false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+        <v-card-text class="pa-5 text-body-1 black--text">
+          Bạn có chắc chắn muốn đổi trạng thái từ <span class="red--text font-weight-bold">{{ pendingStatusChange.oldStatus }}</span> sang <span class="red--text font-weight-bold">{{ pendingStatusChange.newStatus }}</span> không?
+        </v-card-text>
+        <v-card-actions class="pa-3 border-top justify-end">
+          <v-btn outlined color="grey darken-1" class="text-capitalize px-4" @click="confirmStatusDialog = false">Đóng</v-btn>
+          <v-btn color="#a2212b" dark elevation="0" class="text-capitalize px-4" @click="confirmStatusUpdate">Xác Nhận</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- DIALOG LỊCH SỬ DỮ LIỆU SINH VIÊN -->
+    <v-dialog v-model="historyDialog" max-width="900px" scrollable>
+      <v-card class="rounded-lg overflow-hidden">
+        <v-card-title class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center" style="background-color: #a2212b;">
+          <span>Lịch sử dữ liệu sinh viên</span>
+          <v-btn icon small color="white" @click="historyDialog = false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-4 bg-white" style="max-height: 75vh;">
+          <div class="d-flex align-center gap-2 mb-4 flex-wrap">
+            <v-select
+              v-model="historyFilter.hocPhan"
+              :items="hocPhanOptions"
+              item-text="text"
+              item-value="value"
+              placeholder="Học phần"
+              outlined
+              dense
+              hide-details
+              clearable
+              class="flex-grow-1"
+            ></v-select>
+
+            <v-select
+              v-model="historyFilter.quyTrinh"
+              :items="['Học lại', 'Thi lại', 'Bảo vệ lại', 'Danh mục hệ thống']"
+              placeholder="Quy trình học tập"
+              outlined
+              dense
+              hide-details
+              clearable
+              class="flex-grow-1"
+            ></v-select>
+
+            <v-btn icon color="#a2212b" @click="resetHistoryFilter">
+              <v-icon>mdi-refresh</v-icon>
+            </v-btn>
+
+            <v-btn color="#a2212b" dark elevation="0" @click="searchHistory">
+              <v-icon>mdi-magnify</v-icon>
+            </v-btn>
+          </div>
+
+          <v-simple-table class="border rounded-sm">
+            <thead>
+              <tr class="grey lighten-4">
+                <th class="font-weight-bold">STT</th>
+                <th class="font-weight-bold">Tên học phần</th>
+                <th class="font-weight-bold">Mã học phần</th>
+                <th class="font-weight-bold">Quy trình học tập</th>
+                <th class="font-weight-bold">Thời gian hoàn thành</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="filteredHistoryData.length === 0">
+                <td colspan="5" class="text-center py-4 grey--text">Không có dữ liệu</td>
+              </tr>
+              <tr v-for="(item, idx) in filteredHistoryData" :key="idx">
+                <td>{{ idx + 1 }}</td>
+                <td>{{ item.tenHocPhan }}</td>
+                <td>{{ item.maHocPhan }}</td>
+                <td>{{ item.quyTrinh }}</td>
+                <td>{{ item.thoiGianHoanThanh }}</td>
+              </tr>
+            </tbody>
+          </v-simple-table>
+        </v-card-text>
+
+        <v-card-actions class="justify-end pa-3 border-top">
+          <v-btn outlined color="grey darken-2" class="px-4 text-capitalize" @click="historyDialog = false">Đóng X</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- THANH PHÂN TRANG & EXCEL -->
     <div class="bottom-bar d-flex align-center justify-space-between flex-nowrap py-2 px-3 mt-auto bg-white border-top">
       <v-btn color="#2e7d32" dark elevation="0" class="text-capitalize rounded px-4 font-weight-bold" @click="exportToExcel">
         <v-icon left small>mdi-export</v-icon> XUẤT FILE EXCEL
@@ -260,22 +350,53 @@
       </v-card>
     </v-dialog>
 
-    <!-- TOAST -->
-    <v-snackbar v-model="toast.show" :color="toast.color" timeout="3000" top right>
-      <span>{{ toast.message }}</span>
-    </v-snackbar>
+    <!-- HỆ THỐNG TOAST HÀNG ĐỢI (Xếp chồng, có nút X và thanh tiến trình thời gian chạy) -->
+    <div class="toast-queue-container">
+      <transition-group name="toast-list" tag="div">
+        <div
+          v-for="itemToast in toastList"
+          :key="itemToast.id"
+          class="custom-toast-item d-flex flex-column mb-2"
+          :style="{ backgroundColor: itemToast.color || '#4caf50' }"
+        >
+          <div class="toast-content d-flex align-center justify-space-between px-4 py-3">
+            <div class="d-flex align-center mr-3">
+              <v-icon left color="white" size="20">
+                {{ itemToast.color === '#C62828' ? 'mdi-alert-circle-outline' : 'mdi-check-circle-outline' }}
+              </v-icon>
+              <span class="toast-text font-weight-medium white--text">{{ itemToast.message }}</span>
+            </div>
+            <v-btn
+              icon
+              dark
+              x-small
+              class="ma-0 close-toast-btn"
+              aria-label="Đóng thông báo"
+              @click="removeToast(itemToast.id)"
+            >
+              <v-icon size="16">mdi-close</v-icon>
+            </v-btn>
+          </div>
+          <!-- Thanh thời gian chạy đếm ngược -->
+          <div class="toast-progress-bar-container">
+            <div class="toast-progress-bar" :style="{ width: itemToast.progress + '%' }"></div>
+          </div>
+        </div>
+      </transition-group>
+    </div>
   </div>
 </template>
 
 <script>
 import * as XLSX from 'xlsx'
 import BaseTable from '~/components/Base/BaseTable.vue'
-import { MOCK_DATA_SINH_VIEN } from '~/consts/mockSinhVien.js'
 
 const parseStudentData = (apiData) => {
   return apiData.map(item => {
     let statusVN = 'Đang học';
-    if (item.status === 'ACTIVE' || item.status === 'STUDYING') statusVN = 'Đang học';
+    if (item.status === 'ACTIVE' || item.status === 'STUDYING' || item.status === 'Đang học') statusVN = 'Đang học';
+    else if (item.status === 'Bảo lưu') statusVN = 'Bảo lưu';
+    else if (item.status === 'Đã tốt nghiệp') statusVN = 'Đã tốt nghiệp';
     else if (item.status === 'INACTIVE') statusVN = 'Không hoạt động';
 
     return {
@@ -285,11 +406,11 @@ const parseStudentData = (apiData) => {
       email: item.email || '---',
       citizen: item.citizen || '---',
       status: statusVN,
-      className: item.className || '---',
-      courseName: item.courseName || '---',
-      majorName: item.majorName || '---',
-      trainingMethodName: item.trainingMethodName ? item.trainingMethodName.trim() : '---',
-      trainingUnitName: item.trainingUnitName || '---'
+      className: item.className || (item.class && item.class.name) || '---',
+      courseName: item.courseName || (item.course && item.course.name) || '---',
+      majorName: item.majorName || (item.major && item.major.name) || '---',
+      trainingMethodName: item.trainingMethodName ? item.trainingMethodName.trim() : (item.trainingMethod && item.trainingMethod.name) || '---',
+      trainingUnitName: item.trainingUnitName || (item.trainingUnit && item.trainingUnit.name) || '---'
     };
   });
 };
@@ -311,9 +432,17 @@ export default {
       filterDialog: false,
       detailDialog: false,
       confirmStatusDialog: false,
+      historyDialog: false,
       selectedStudent: {},
-      pendingStatusChange: { student: null, newStatus: '' },
-      toast: { show: false, message: '', color: '#4caf50' },
+      pendingStatusChange: { student: null, oldStatus: '', newStatus: '' },
+      
+      // Quản lý hàng đợi Toast thay cho snackbar đơn
+      toastList: [],
+      toastDuration: 3000, // Thời gian hiển thị 3 giây
+
+      historyFilter: { hocPhan: null, quyTrinh: null },
+      historyDataList: [],
+      filteredHistoryData: [],
 
       headers: [
         { text: 'STT', value: 'stt', sortable: false, width: '50px' },
@@ -326,15 +455,39 @@ export default {
         { text: 'Chức năng', value: 'actions', sortable: false, align: 'center', width: '80px' },
       ],
       
-      students: parseStudentData(MOCK_DATA_SINH_VIEN),
+      students: [],
+      classList: [],
+      trainingMethodList: [],
+      courseList: [],
+      termList: [],
+      userInfo: null,
     }
   },
   computed: {
-    classOptions() { return [...new Set(this.students.map(s => s.className).filter(v => v !== '---'))].sort() },
-    trainingTypeOptions() { return [...new Set(this.students.map(s => s.trainingMethodName).filter(v => v !== '---'))].sort() },
-    locationOptions() { return [...new Set(this.students.map(s => s.trainingUnitName).filter(v => v !== '---'))].sort() },
+    classOptions() {
+      const fromApi = (this.classList || []).map(c => c.name || c.code);
+      const fromStudents = this.students.map(s => s.className);
+      return [...new Set([...fromApi, ...fromStudents].filter(v => v && v !== '---'))].sort();
+    },
+    trainingTypeOptions() {
+      const fromApi = (this.trainingMethodList || []).map(t => t.name);
+      const fromStudents = this.students.map(s => s.trainingMethodName);
+      return [...new Set([...fromApi, ...fromStudents].filter(v => v && v !== '---'))].sort();
+    },
+    courseOptions() {
+      const fromApi = (this.courseList || []).map(c => c.name || c.code);
+      const fromStudents = this.students.map(s => s.courseName);
+      return [...new Set([...fromApi, ...fromStudents].filter(v => v && v !== '---'))].sort();
+    },
     majorOptions() { return [...new Set(this.students.map(s => s.majorName).filter(v => v !== '---'))].sort() },
-    courseOptions() { return [...new Set(this.students.map(s => s.courseName).filter(v => v !== '---'))].sort() },
+    locationOptions() { return [...new Set(this.students.map(s => s.trainingUnitName).filter(v => v !== '---'))].sort() },
+
+    hocPhanOptions() {
+      return (this.termList || []).map(item => ({
+        text: `${item.code} - ${item.name}`,
+        value: item.id || item.code
+      }));
+    },
 
     filteredStudents() {
       return this.students.filter(s => {
@@ -365,23 +518,136 @@ export default {
       return pages;
     }
   },
-  mounted() {
+  async mounted() {
     if (this.$store) {
       this.$store.commit('SET_PAGE_TITLE', 'Quản lý sinh viên');
     }
+    await Promise.all([
+      this.fetchUserInfo(),
+      this.fetchPageRole(),
+      this.fetchStudents(),
+      this.fetchClasses(),
+      this.fetchTrainingMethods(),
+      this.fetchCourses(),
+      this.fetchTerms()
+    ]);
+  },
+  beforeDestroy() {
+    // Dọn dẹp bộ đếm thời gian khi component bị hủy để tránh rò rỉ bộ nhớ
+    this.toastList.forEach((toast) => clearInterval(toast.timer));
   },
   methods: {
+    async fetchUserInfo() {
+      try {
+        const res = await this.$axios.$get('/api/user/info', { params: { channel: 'CMS' } });
+        this.userInfo = res?.data || res;
+      } catch (err) {
+        console.error('Lỗi tải thông tin user:', err);
+      }
+    },
+
+    async fetchPageRole() {
+      try {
+        await this.$axios.$get('/api/auth/getPageRole', { params: { channel: 'CMS' } });
+      } catch (err) {
+        console.error('Lỗi kiểm tra quyền trang:', err);
+      }
+    },
+
+    async fetchStudents() {
+      try {
+        const res = await this.$axios.$get('/api/student', {
+          params: { 
+            pageIndex: 1, 
+            pageSize: 10000, // Lấy toàn bộ số lượng sinh viên về phía client
+            search: this.appliedFilters.search || '',
+            status: this.appliedFilters.status || '',
+            channel: 'CMS'
+          }
+        });
+        const rawData = res?.data?.data || res?.data?.items || res?.data || [];
+        this.students = parseStudentData(rawData);
+      } catch (err) {
+        console.error('Lỗi tải danh sách sinh viên:', err);
+        this.students = [];
+        this.showToast('Không thể tải danh sách sinh viên từ hệ thống!', '#C62828');
+      }
+    },
+
+    async fetchClasses() {
+      try {
+        const res = await this.$axios.$get('/api/classes/list', {
+          params: { pageIndex: 1, pageSize: 100, status: 'ACTIVE', channel: 'CMS' }
+        });
+        this.classList = res?.data || res?.items || res || [];
+      } catch (err) {
+        console.error('Lỗi tải danh sách lớp:', err);
+      }
+    },
+
+    async fetchTrainingMethods() {
+      try {
+        const res = await this.$axios.$get('/api/trainingMethod/list', {
+          params: { status: 'ACTIVE', channel: 'CMS' }
+        });
+        this.trainingMethodList = res?.data || res?.items || res || [];
+      } catch (err) {
+        console.error('Lỗi tải hình thức đào tạo:', err);
+      }
+    },
+
+    async fetchCourses() {
+      try {
+        const res = await this.$axios.$get('/api/course/all', {
+          params: { status: 'ACTIVE', channel: 'CMS' }
+        });
+        this.courseList = res?.data || res?.items || res || [];
+      } catch (err) {
+        console.error('Lỗi tải danh sách khóa học:', err);
+      }
+    },
+
+    async fetchTerms() {
+      try {
+        const res = await this.$axios.$get('/api/term/list', {
+          params: { status: 'ACTIVE', channel: 'CMS' }
+        });
+        this.termList = res?.data || res?.items || res || [];
+      } catch (err) {
+        console.error('Lỗi tải danh sách học phần:', err);
+      }
+    },
+
     getStatusClass(status) {
       switch (status) {
         case 'Đang học': return 'status-studying';
-        case 'Không hoạt động': return 'status-dropout';
+        case 'Bảo lưu': return 'status-warning';
+        case 'Đã tốt nghiệp': return 'status-dropout';
         default: return 'status-unknown';
+      }
+    },
+    promptChangeStatus(item, newStatus) {
+      if (item.status === newStatus) return;
+      this.pendingStatusChange = {
+        student: item,
+        oldStatus: item.status,
+        newStatus
+      };
+      this.confirmStatusDialog = true;
+    },
+    confirmStatusUpdate() {
+      const { student, newStatus } = this.pendingStatusChange;
+      if (student) {
+        student.status = newStatus;
+        this.confirmStatusDialog = false;
+        this.showToast('Cập nhật trạng thái thành công', '#4caf50');
       }
     },
     search() {
       this.appliedFilters = { ...this.appliedFilters, ...this.filters, ...this.tempDialogFilters };
       this.page = 1;
       this.pageInput = 1;
+      this.fetchStudents();
     },
     openFilterDialog() {
       this.tempDialogFilters = {
@@ -402,8 +668,14 @@ export default {
       this.appliedFilters = { search: '', class: null, status: null, trainingType: null, location: null, major: null, course: null };
       this.page = 1;
       this.pageInput = 1;
+      this.fetchStudents();
     },
-    changePage(p) { if (p >= 1 && p <= this.totalPages) { this.page = p; this.pageInput = p; } },
+    changePage(p) { 
+      if (p >= 1 && p <= this.totalPages) { 
+        this.page = p; 
+        this.pageInput = p; 
+      } 
+    },
     goToPage() {
       let target = parseInt(this.pageInput);
       if (isNaN(target) || target < 1) target = 1;
@@ -411,25 +683,36 @@ export default {
       this.page = target;
       this.pageInput = target;
     },
-    onItemsPerPageChange() { this.page = 1; this.pageInput = 1; },
+    onItemsPerPageChange() { 
+      this.page = 1; 
+      this.pageInput = 1; 
+    },
     viewDetail(item) {
       this.selectedStudent = { ...item };
       this.detailDialog = true;
     },
     checkHistory(item) {
-      this.showToast('Tính năng lịch sử đang phát triển', '#fbc02d');
+      this.selectedStudent = { ...item };
+      this.historyDataList = (this.termList || []).map((m, idx) => ({
+        tenHocPhan: m.name || `Học phần ${idx + 1}`,
+        maHocPhan: m.code || `HP0${idx + 1}`,
+        quyTrinh: idx % 2 === 0 ? 'Học lại' : 'Thi lại',
+        thoiGianHoanThanh: `15/0${(idx % 9) + 1}/2026`
+      }));
+      this.filteredHistoryData = [];
+      this.historyFilter = { hocPhan: null, quyTrinh: null };
+      this.historyDialog = true;
     },
-    openConfirmStatusDialog(item, newStatusVN) {
-      if (item.status === newStatusVN) return;
-      this.pendingStatusChange = { student: item, newStatus: newStatusVN };
-      this.confirmStatusDialog = true;
+    searchHistory() {
+      this.filteredHistoryData = this.historyDataList.filter(item => {
+        const matchHP = !this.historyFilter.hocPhan || item.maHocPhan === this.historyFilter.hocPhan || item.tenHocPhan === this.historyFilter.hocPhan;
+        const matchQT = !this.historyFilter.quyTrinh || item.quyTrinh === this.historyFilter.quyTrinh;
+        return matchHP && matchQT;
+      });
     },
-    confirmStatusUpdate() {
-      if (this.pendingStatusChange.student) {
-        this.pendingStatusChange.student.status = this.pendingStatusChange.newStatus;
-        this.confirmStatusDialog = false;
-        this.showToast('Cập nhật trạng thái thành công', '#4caf50');
-      }
+    resetHistoryFilter() {
+      this.historyFilter = { hocPhan: null, quyTrinh: null };
+      this.filteredHistoryData = [];
     },
     exportToExcel() {
       const dataToExport = this.filteredStudents.map((item, index) => ({
@@ -444,15 +727,53 @@ export default {
         'Trạng thái': item.status
       }));
 
+      if (dataToExport.length === 0) {
+        this.showToast('Không có dữ liệu để xuất file!', '#C62828');
+        return;
+      }
+
       const worksheet = XLSX.utils.json_to_sheet(dataToExport);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách');
       XLSX.writeFile(workbook, 'danh_sach.xlsx');
+      this.showToast('Xuất file Excel thành công!', '#4caf50');
     },
-    showToast(message, color) {
-      this.toast.message = message;
-      this.toast.color = color;
-      this.toast.show = true;
+
+    // Hàm gọi hiển thị Toast xếp chồng kèm progress bar chạy thời gian
+    showToast(message, color = '#4caf50') {
+      const id = Date.now() + Math.random();
+      const newToast = {
+        id,
+        message,
+        color,
+        progress: 100,
+        timer: null,
+      };
+
+      // Đẩy thông báo mới vào (thông báo mới nằm trên, đẩy thông báo cũ xuống dưới)
+      this.toastList.push(newToast);
+
+      const stepTime = 30;
+      const decrement = (stepTime / this.toastDuration) * 100;
+
+      newToast.timer = setInterval(() => {
+        const target = this.toastList.find(t => t.id === id);
+        if (target) {
+          target.progress -= decrement;
+          if (target.progress <= 0) {
+            clearInterval(target.timer);
+            this.removeToast(id);
+          }
+        }
+      }, stepTime);
+    },
+
+    removeToast(id) {
+      const index = this.toastList.findIndex(t => t.id === id);
+      if (index !== -1) {
+        clearInterval(this.toastList[index].timer);
+        this.toastList.splice(index, 1);
+      }
     }
   }
 }
@@ -475,6 +796,7 @@ export default {
 
 .status-badge { border-radius: 16px !important; display: inline-flex; align-items: center; }
 .status-studying { background-color: #a2212b !important; color: #ffffff !important; }
+.status-warning { background-color: #ff9800 !important; color: #ffffff !important; }
 .status-dropout { background-color: #616161 !important; color: #ffffff !important; }
 .status-unknown { background-color: #9e9e9e !important; color: #ffffff !important; }
 
@@ -485,6 +807,87 @@ export default {
   overflow-x: auto;
 }
 .pagination-input >>> .v-input__control { min-height: 36px !important; }
+
+/* Styles cho hệ thống Toast hàng đợi (xếp chồng, có progress bar và nút X) */
+.toast-queue-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 380px;
+  width: 100%;
+  pointer-events: none;
+}
+
+.custom-toast-item {
+  pointer-events: auto;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: toastSlideIn 0.3s ease-out forwards;
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toast-text {
+  font-size: 14px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.close-toast-btn {
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.close-toast-btn:hover {
+  opacity: 1;
+}
+
+.toast-progress-bar-container {
+  width: 100%;
+  height: 3px;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.toast-progress-bar {
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.9);
+  transition: width 0.03s linear;
+}
+
+.toast-list-enter-active,
+.toast-list-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-list-enter {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.toast-list-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 @media (max-width: 599px) {
   .student-page { height: auto; min-height: 100vh; overflow: visible; }

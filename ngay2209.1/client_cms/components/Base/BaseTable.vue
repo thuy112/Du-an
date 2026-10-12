@@ -73,15 +73,16 @@ export default {
   .base-table-container {
     flex: 1 1 auto;
     min-height: 0;
-    overflow-x: auto; /* Hiển thị thanh cuộn ngang khi bảng quá dài */
+    overflow-x: auto !important; /* Cho phép container ngoài cuộn ngang */
   }
   .custom-table {
-    min-width: 1000px !important; /* Đảm bảo chiều rộng tối thiểu để không bóp nghẹt data */
+    min-width: 1250px !important; /* Đảm bảo độ rộng để kích hoạt thanh cuộn */
     height: 100%;
   }
   .custom-table >>> .v-data-table__wrapper {
     height: 100% !important;
     max-height: 100% !important;
+    overflow-x: visible !important; /* Để container ngoài quản lý cuộn ngang */
     overflow-y: auto !important; /* Cuộn dọc */
   }
   .custom-table >>> th {

@@ -2,7 +2,6 @@
   <v-container fluid class="pa-0 bg-white fill-height align-stretch flex-column overflow-hidden" :class="{ 'is-mobile-device': isMobileDevice }">
     <!-- Layout tổng thể Flexbox cố định full chiều cao viewport làm việc -->
     <div class="main-page-layout">
-      
       <!-- 1. THANH BỘ LỌC TÌM KIẾM (CỐ ĐỊNH PHÍA TRÊN) -->
       <div class="sticky-filter-bar filter-bar-container px-4 py-3 bg-white shrink-0">
         <div class="d-flex align-md-center justify-space-between flex-wrap gap-3 flex-column flex-md-row">
@@ -124,10 +123,15 @@
             </v-chip>
           </template>
 
+          <!-- Thanh toán giảng dạy: Để trống không ghi -->
+          <template v-slot:[`item.thanhToan`]>
+            <span></span>
+          </template>
+
           <!-- Học phần -->
           <template v-slot:[`item.hocPhan`]="{ item }">
             <div class="py-1" :class="isMobileDevice ? 'text-right' : 'text-left'">
-              <div class="font-weight-bold text-caption text-gray-800">{{ item.hocPhanCode }} -</div>
+              <div class="font-weight-bold text-caption text-gray-800">{{ item.hocPhanCode }}</div>
               <div class="text-caption text-gray-600 line-clamp-2">{{ item.hocPhanName }}</div>
             </div>
           </template>
@@ -149,19 +153,19 @@
           <template v-slot:[`item.trangThaiDuyet`]="{ item }">
             <div :class="isMobileDevice ? 'd-flex justify-end' : ''">
               <v-select
-                :value="item.trangThaiDuyet"
+                v-model="item.trangThaiDuyet"
                 :items="approvalOptions"
                 item-text="text"
                 item-value="value"
                 dense
                 outlined
                 hide-details
-                :append-icon="isRowLocked(item) ? '' : 'mdi-menu-down'"
-                :disabled="isRowLocked(item) || updatingClassIds.includes(item.id)"
+                menu-props="auto"
+                append-icon="mdi-menu-down"
+                :disabled="updatingClassIds.includes(item.id)"
                 :class="[
                   'status-pill-select',
-                  item.trangThaiDuyet === 'Đã duyệt danh sách' ? 'pill-green-solid' : 'pill-orange-solid',
-                  { 'is-disabled-select': isRowLocked(item) },
+                  item.trangThaiDuyet === 'Đã duyệt danh sách' ? 'pill-green-solid' : 'pill-orange-solid'
                 ]"
                 @change="onApprovalStatusChange(item, $event)"
               ></v-select>
@@ -172,19 +176,19 @@
           <template v-slot:[`item.trangThaiBangDiem`]="{ item }">
             <div :class="isMobileDevice ? 'd-flex justify-end' : ''">
               <v-select
-                :value="item.examStatus"
+                v-model="item.examStatus"
                 :items="gradeOptions"
                 item-text="text"
                 item-value="value"
                 dense
                 outlined
                 hide-details
-                :append-icon="isRowLocked(item) ? '' : 'mdi-menu-down'"
-                :disabled="isRowLocked(item) || updatingClassIds.includes(item.id)"
+                menu-props="auto"
+                append-icon="mdi-menu-down"
+                :disabled="updatingClassIds.includes(item.id)"
                 :class="[
                   'status-pill-select',
-                  item.examStatus === 'ANNOUNCED' ? 'pill-blue-grade' : 'pill-orange-solid',
-                  { 'is-disabled-select': isRowLocked(item) },
+                  getGradePillClass(item.examStatus)
                 ]"
                 @change="onGradeStatusChange(item, $event)"
               ></v-select>
@@ -356,68 +360,6 @@
       </transition-group>
     </div>
 
-    <v-dialog v-model="confirmDialog.show" max-width="540px" persistent>
-      <v-card class="status-confirm-card">
-        <div class="status-confirm-header d-flex align-center justify-space-between px-4 py-3">
-          <span class="text-h6 font-weight-bold white--text">Xác nhận</span>
-          <v-btn
-            icon
-            dark
-            small
-            class="ma-0"
-            :disabled="confirmDialog.confirming"
-            aria-label="Đóng hộp thoại"
-            @click="cancelStatusChange"
-          >
-            <v-icon size="20">mdi-close</v-icon>
-          </v-btn>
-        </div>
-
-        <v-card-text class="pt-5 pb-3 px-6 bg-white black--text">
-          <p class="text-body-1 mb-4 status-confirm-message">
-            {{ confirmDialog.messageText }}
-            <span class="font-weight-bold">{{ confirmDialog.item ? confirmDialog.item.maLop : '' }}</span>
-            từ <span class="font-weight-bold">{{ confirmDialog.fromLabel }}</span>
-            sang <span class="font-weight-bold">{{ confirmDialog.toLabel }}</span> không?
-          </p>
-
-          <div
-            v-if="confirmDialog.showWarning"
-            class="status-warning-alert pa-3 d-flex align-start mb-2"
-          >
-            <v-icon color="#F57C00" class="mr-2 mt-1" size="20">mdi-alert</v-icon>
-            <div class="text-body-2 orange--text text--darken-4">
-              <span class="font-weight-bold">Cảnh báo:</span>
-              Bạn sẽ không thể chỉnh sửa thông tin lớp học này sau khi chuyển sang trạng thái
-              'Chưa duyệt danh sách'.
-            </div>
-          </div>
-        </v-card-text>
-
-        <v-card-actions class="justify-end pb-4 px-6 pt-2 bg-white">
-          <v-btn
-            text
-            class="text-none font-weight-medium mr-2"
-            :disabled="confirmDialog.confirming"
-            @click="cancelStatusChange"
-          >
-            Đóng <v-icon size="18" right>mdi-close</v-icon>
-          </v-btn>
-          <v-btn
-            color="#A62229"
-            dark
-            elevation="0"
-            class="px-5 status-confirm-button text-none font-weight-medium"
-            :loading="confirmDialog.confirming"
-            :disabled="confirmDialog.confirming"
-            @click="confirmStatusChange"
-          >
-            Xác nhận
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
     <RetakeCourseDetailModal
       v-model="detailModal.show"
       :detail-data="detailModal.data"
@@ -439,10 +381,7 @@ import BaseTable from '~/components/Base/BaseTable.vue'
 import AssignTeacherModal from '~/components/RetakeCourse/AssignTeacherModal.vue'
 import RetakeCourseDetailModal from '~/components/RetakeCourse/RetakeCourseDetailModal.vue'
 import RetakeSessionFilterModal from '~/components/RetakeCourse/RetakeSessionFilterModal.vue'
-import retakeClassServices from '~/services/retakeCourseServices'
-import retakeSessionServices from '~/services/retakeSessionServices'
-import classCoefficientServices from '~/services/coefficientServices'
-import { MOCK_DATA_LOP_HOC_LAI } from '~/consts/dslophoclai.js'
+
 export default {
   name: 'DanhSachLopHocLai',
   components: {
@@ -463,6 +402,9 @@ export default {
       toastList: [],
       toastDuration: 3000,
       updatingClassIds: [],
+      userInfo: null,
+      pageRoles: null,
+
       detailModal: {
         show: false,
         data: {},
@@ -474,24 +416,14 @@ export default {
         item: null,
         saving: false,
       },
-      confirmDialog: {
-        show: false,
-        type: '',
-        item: null,
-        newValue: null,
-        fromLabel: '',
-        toLabel: '',
-        messageText: '',
-        showWarning: false,
-        confirming: false,
-      },
       approvalOptions: [
         { text: 'Chưa duyệt danh sách', value: 'Chưa duyệt danh sách' },
         { text: 'Đã duyệt danh sách', value: 'Đã duyệt danh sách' },
       ],
       gradeOptions: [
-        { text: 'Chưa có điểm', value: 'NOT_ANNOUNCED' },
-        { text: 'Đã có điểm', value: 'ANNOUNCED' },
+        { text: 'Chưa có điểm', value: 'Chưa có điểm' },
+        { text: 'Chờ duyệt', value: 'Chờ duyệt' },
+        { text: 'Đã có điểm', value: 'Đã có điểm' },
       ],
 
       filters: {
@@ -501,17 +433,10 @@ export default {
         coefficient: null,
       },
 
-      canExportApprovedClass(item) {
-        return (
-          item.hasBeenApproved ||
-          item.approvalStatus === 'ACTIVE' ||
-          item.trangThaiDuyet === 'Đã duyệt danh sách'
-        )
-      },
-
       retakeSessionOptions: [],
       courseOptions: [],
-      coefficientOptions: ['1.5', '1.3', '1.7', '2.0'],
+      coefficientOptions: [],
+      allClassesList: [],
 
       headers: [
         { text: 'STT', value: 'stt', width: '45px', align: 'center', sortable: false },
@@ -521,13 +446,15 @@ export default {
         { text: 'Thanh toán giảng dạy', value: 'thanhToan', width: '80px', align: 'center', sortable: false },
         { text: 'Đợt học lại', value: 'dotHocLai', width: '90px', align: 'center', sortable: false },
         { text: 'Học phần', value: 'hocPhan', width: '170px', sortable: false },
-        { text: 'Thời gian', value: 'thoiGian', width: '110px', align: 'center', sortable: false },
-        { text: 'Trạng thái duyệt danh sách', value: 'approvalStatus', width: '210px', align: 'center', sortable: false },
+        { text: 'Số lượng sinh viên', value: 'quantityText', width: '110px', align: 'center', sortable: false },
+        { text: 'Số lượng SV đăng ký', value: 'svDangKy', width: '100px', align: 'center', sortable: false },
+        { text: 'Thời gian', value: 'thoiGian', width: '130px', align: 'center', sortable: false },
+        { text: 'Trạng thái duyệt danh sách', value: 'trangThaiDuyet', width: '210px', align: 'center', sortable: false },
         { text: 'Trạng thái bảng điểm', value: 'examStatus', width: '190px', align: 'center', sortable: false },
         { text: 'Chức năng', value: 'chucNang', width: '70px', align: 'center', sortable: false },
       ],
 
-      dataList: [],
+      allRawData: [],
       appliedData: [],
     }
   },
@@ -543,18 +470,14 @@ export default {
       this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     }
 
-    const mockLoaded = (MOCK_DATA_LOP_HOC_LAI || []).map((item) => ({
-      ...item,
-      hasBeenApproved: item.trangThaiDuyet === 'Đã duyệt danh sách',
-    }))
-
-    this.dataList = mockLoaded
-    this.appliedData = [...this.dataList]
-    this.totalItems = this.appliedData.length
-
+    // Gọi đúng toàn bộ các endpoint không bị trùng lặp
     await Promise.all([
+      this.fetchUserInfo(),
+      this.fetchPageRole(),
       this.getRetakeSessions(),
       this.getCoefficients(),
+      this.getCourseOptions(),
+      this.getAllClasses(),
       this.fetchData(),
     ])
   },
@@ -564,156 +487,51 @@ export default {
   },
 
   methods: {
-    isRowLocked(item) {
+    canExportApprovedClass(item) {
       return (
-        item.trangThaiDuyet === 'Đã duyệt danh sách' &&
-        item.examStatus === 'ANNOUNCED'
+        item.hasBeenApproved ||
+        item.approvalStatus === 'ACTIVE' ||
+        item.trangThaiDuyet === 'Đã duyệt danh sách'
       )
     },
 
     onChangeItemsPerPage() {
       this.page = 1
       this.pageInput = 1
-      this.fetchData()
+      this.updatePaginationSlice()
     },
 
     changePage(newPage) {
       if (newPage >= 1 && newPage <= this.totalPages) {
         this.page = newPage
         this.pageInput = newPage
-        this.fetchData()
+        this.updatePaginationSlice()
       }
     },
 
     goToPage() {
       if (this.pageInput >= 1 && this.pageInput <= this.totalPages) {
         this.page = this.pageInput
-        this.fetchData()
+        this.updatePaginationSlice()
       } else {
         this.pageInput = this.page
       }
     },
 
+    updatePaginationSlice() {
+      const start = (this.page - 1) * this.itemsPerPage
+      const end = start + this.itemsPerPage
+      this.appliedData = this.allRawData.slice(start, end)
+    },
+
     getPermissions(item) {
       const isApproved = item.trangThaiDuyet === 'Đã duyệt danh sách'
       const hasTeacher = item.teacherId !== null && item.teacherId !== undefined
-      const isOverCapacity = (item.svDangKy ?? 0) > (item.maxSv ?? 0)
-      const isExpired = this.checkIsExpired(item.denNgay)
-
-      if (isOverCapacity && !isApproved) {
-        return {
-          showDetail: true,
-          showExportExcel: false,
-          showGrades: false,
-          showAssignTeacher: false,
-        }
-      }
-
       return {
         showDetail: true,
-        showExportExcel: isApproved || (isExpired && hasTeacher),
+        showExportExcel: isApproved,
         showGrades: isApproved || hasTeacher,
         showAssignTeacher: !hasTeacher,
-      }
-    },
-
-    checkIsExpired(denNgayStr) {
-      if (!denNgayStr) return false
-      const [day, month, year] = denNgayStr.split('/')
-      if (!year) return false
-      const endDate = new Date(year, month - 1, day, 23, 59, 59)
-      return new Date() > endDate
-    },
-
-    async getRetakeSessions() {
-      try {
-        const res = await retakeSessionServices.getList()
-        const sessions = Array.isArray(res?.data) ? res.data : res?.data?.items || []
-        if (sessions.length) {
-          this.retakeSessionOptions = sessions.map((item) => {
-            if (typeof item === 'string') return { text: item, value: item }
-            return {
-              text: item.maDot || item.code || item.name || String(item.id),
-              value: item.id,
-            }
-          })
-        }
-      } catch (err) {
-        console.error('Lỗi khi tải đợt học lại:', err)
-      }
-    },
-
-    async getCoefficients() {
-      try {
-        const res = await classCoefficientServices.getList()
-        const coefficients = Array.isArray(res?.data) ? res.data : res?.data?.items || []
-        if (coefficients.length) {
-          this.coefficientOptions = coefficients.map((item) => {
-            const value = typeof item === 'object'
-              ? item.thuHocPhiSv ?? item.coefficient ?? item.value
-              : item
-            return String(value)
-          }).filter(Boolean)
-        }
-      } catch (err) {
-        console.error('Lỗi khi tải hệ số:', err)
-      }
-    },
-
-    async fetchData() {
-      this.loading = true
-      try {
-        const params = {
-          pageIndex: this.page,
-          pageSize: this.itemsPerPage,
-          keyword: this.filters.className,
-          examId: this.filters.retakeSession,
-          termId: this.filters.course,
-          classCoefficient: this.filters.coefficient,
-        }
-        
-        let rawItems = []
-        try {
-          const res = await retakeClassServices.getList(params)
-          const responseWrapper = res?.data || {}
-          rawItems = Array.isArray(responseWrapper.data) 
-            ? responseWrapper.data 
-            : (Array.isArray(responseWrapper) ? responseWrapper : (Array.isArray(res) ? res : []))
-        } catch (apiErr) {
-          console.warn('API lỗi, chuyển sang dùng MOCK_DATA_LOP_HOC_LAI:', apiErr)
-        }
-
-        // Nếu API không trả về dữ liệu, tự động nạp 41 dòng dữ liệu mock để test giao diện ngay lập tức
-        if (!rawItems || rawItems.length === 0) {
-          rawItems = MOCK_DATA_LOP_HOC_LAI
-        }
-
-        this.appliedData = rawItems.map((item, index) => {
-          const termObj = item.term || {}
-          const examObj = item.exam || {}
-          
-          return {
-            id: item.id || (index + 1),
-            stt: (this.page - 1) * this.itemsPerPage + (index + 1),
-            maLop: item.code || '',
-            loaiLop: item.retakeCourseStatus === 'COMBINE_CLASS' ? 'Lớp ghép' : 'Lớp mở',
-            thuHocPhi: item.classCoefficient || 1.0,
-            thanhToan: item.feePaidStatus === 'PAID' ? 'Đã thanh toán' : 'Chưa thanh toán',
-            dotHocLai: examObj.code || '20261-A-5',
-            hocPhan: termObj.code && termObj.name ? `${termObj.code} - ${termObj.name}` : (termObj.name || 'CH2021 - Đổi mới sáng tạo và khởi nghiệp'),
-            thoiGian: item.fromTime && item.toTime ? `${item.fromTime.slice(0, 10)} - ${item.toTime.slice(0, 10)}` : '01/09/2026 - 31/12/2026',
-            trangThaiDuyet: item.approvalStatus === 'ACTIVE' ? 'Đã duyệt danh sách' : 'Chưa duyệt danh sách',
-            examStatus: item.examStatus || 'UNANNOUNCED',
-            original: item
-          }
-        })
-        this.totalItems = this.appliedData.length
-      } catch (err) {
-        console.error('Lỗi xử lý dữ liệu:', err)
-        this.appliedData = []
-        this.totalItems = 0
-      } finally {
-        this.loading = false
       }
     },
 
@@ -725,336 +543,195 @@ export default {
       return '#1890ff'
     },
 
+    getGradePillClass(status) {
+      if (status === 'Chờ duyệt') return 'pill-lime-grade'
+      if (status === 'Đã có điểm') return 'pill-blue-grade'
+      return 'pill-orange-solid'
+    },
+
+    onApprovalStatusChange(item, newVal) {
+      item.trangThaiDuyet = newVal
+      item.approvalStatus = newVal
+    },
+
+    onGradeStatusChange(item, newVal) {
+      item.examStatus = newVal
+    },
+
+    async fetchUserInfo() {
+      try {
+        const res = await this.$axios.$get('/api/user/info', { params: { channel: 'CMS' } })
+        this.userInfo = res?.data || res || null
+      } catch (err) {
+        console.error('Lỗi khi tải thông tin user:', err)
+      }
+    },
+
+    async fetchPageRole() {
+      try {
+        const res = await this.$axios.$get('/api/auth/getPageRole', { params: { channel: 'CMS' } })
+        this.pageRoles = res?.data || res || null
+      } catch (err) {
+        console.error('Lỗi khi tải phân quyền trang:', err)
+      }
+    },
+
+    async getRetakeSessions() {
+      try {
+        const res = await this.$axios.$get('/api/retakeSession/list', { params: { channel: 'CMS' } })
+        const sessions = Array.isArray(res?.data) ? res.data : res?.data?.items || res || []
+        if (sessions.length) {
+          this.retakeSessionOptions = sessions.map((s) => ({
+            text: s.maDot || s.code || s.name || String(s.id),
+            value: s.id,
+          }))
+        }
+      } catch (err) {
+        console.error('Lỗi khi tải đợt học lại:', err)
+      }
+    },
+
+    async getCoefficients() {
+      try {
+        const res = await this.$axios.$get('/api/coefficient', {
+          params: { pageIndex: 1, pageSize: 100, channel: 'CMS' }
+        })
+        const coefficients = Array.isArray(res?.data) ? res.data : res?.data?.items || res || []
+        if (coefficients.length) {
+          this.coefficientOptions = coefficients.map((c) => {
+            const value = typeof c === 'object'
+              ? c.thuHocPhiSv ?? c.coefficient ?? c.value
+              : c
+            return String(value)
+          }).filter(Boolean)
+        }
+      } catch (err) {
+        console.error('Lỗi khi tải hệ số:', err)
+      }
+    },
+
+    async getCourseOptions() {
+      try {
+        const res = await this.$axios.$get('/api/term/list', {
+          params: { status: 'ACTIVE', channel: 'CMS' }
+        })
+        const items = res?.data || res || []
+        if (items.length) {
+          this.courseOptions = items.map((t) => ({
+            text: `${t.code} - ${t.name}`,
+            value: t.id,
+          }))
+        }
+      } catch (err) {
+        console.error('Lỗi tải danh mục học phần:', err)
+      }
+    },
+
+    async getAllClasses() {
+      try {
+        const res = await this.$axios.$get('/api/classes/all', { params: { channel: 'CMS' } })
+        this.allClassesList = res?.data || res || []
+      } catch (err) {
+        console.error('Lỗi tải danh sách lớp học:', err)
+      }
+    },
+
+    async fetchData() {
+      this.loading = true
+      try {
+        const params = {
+          pageIndex: 1,
+          pageSize: 50,
+          search: this.filters.className || '',
+          examId: this.filters.retakeSession,
+          termId: this.filters.course,
+          classCoefficient: this.filters.coefficient,
+          channel: 'CMS',
+        }
+        const res = await this.$axios.$get('/api/retakeCourse', { params })
+        const responseWrapper = res?.data || {}
+        const rawItems = Array.isArray(responseWrapper.data)
+          ? responseWrapper.data
+          : (Array.isArray(responseWrapper) ? responseWrapper : (Array.isArray(res) ? res : []))
+
+        this.allRawData = rawItems.map((item, index) => {
+          const termObj = item.term || {}
+          const examObj = item.exam || {}
+          
+          const classCode = item.examClass || item.code || ''
+
+          let loaiLopName = 'Lớp mở'
+          if (item.retakeCourseStatus === 'COMBINE_CLASS') {
+            loaiLopName = 'Lớp ghép (Đại cương)'
+          } else if (item.retakeCourseStatus === 'PROJECT_BASED_CLASS' || item.retakeCourseStatus === 'PROJECT' || classCode.startsWith('D_') || classCode.startsWith('M_')) {
+            loaiLopName = 'Đồ án môn học'
+          }
+
+          const sessionStatus = (item.examSessionStatus || '').toUpperCase()
+          const rawApproval = (item.approvalStatus || item.status || '').toUpperCase()
+          const isApproved = 
+            rawApproval === 'ACTIVE' || 
+            rawApproval === 'APPROVED' || 
+            rawApproval === 'ĐÃ DUYỆT DANH SÁCH' || 
+            sessionStatus === 'FINALIZED' ||
+            item.hasBeenApproved === true
+
+          const trangThaiDuyetText = isApproved ? 'Đã duyệt danh sách' : 'Chưa duyệt danh sách'
+
+          let mappedExamStatus = 'Chưa có điểm'
+          const rawExamStatus = (item.examStatus || '').toUpperCase()
+          const rawScoreStatus = (item.scoreStatus || '').toUpperCase()
+
+          if (rawExamStatus === 'ANNOUNCED' || rawScoreStatus === 'SCOREBOARD_AVAILABLE') {
+            mappedExamStatus = 'Đã có điểm'
+          } else if (rawExamStatus === 'UNAPPROVED' || rawExamStatus === 'PENDING' || rawExamStatus === 'CHỜ DUYỆT') {
+            mappedExamStatus = 'Chờ duyệt'
+          } else {
+            mappedExamStatus = 'Chưa có điểm'
+          }
+
+          return {
+            id: item.id || (index + 1),
+            stt: index + 1,
+            code: classCode,
+            maLop: classCode,
+            loaiLop: loaiLopName,
+            classCoefficient: item.classCoefficient || 1.5,
+            thanhToan: '',
+            dotHocLai: examObj.code || '20252-A-1',
+            hocPhanCode: termObj.code || '',
+            hocPhanName: termObj.name || '---',
+            hocPhan: termObj.code ? `${termObj.code} - ${termObj.name}` : (termObj.name || '---'),
+            quantityText: `${item.quantityCurrent || 0}/${item.quantitySeat || 20}`,
+            svDangKy: item.quantityCurrent || 0,
+            maxSv: item.quantitySeat || 20,
+            tuNgay: item.fromTime ? item.fromTime.slice(0, 10) : '01/09/2026',
+            denNgay: item.toTime ? item.toTime.slice(0, 10) : '31/12/2026',
+            thoiGian: item.fromTime && item.toTime ? `${item.fromTime.slice(0, 10)} đến ${item.toTime.slice(0, 10)}` : '01/09/2026 - 31/12/2026',
+            trangThaiDuyet: trangThaiDuyetText,
+            examStatus: mappedExamStatus,
+            original: item
+          }
+        })
+
+        this.totalItems = this.allRawData.length
+        this.page = 1
+        this.pageInput = 1
+        this.updatePaginationSlice()
+      } catch (err) {
+        console.error('Không thể lấy dữ liệu từ server thực tế:', err)
+        this.allRawData = []
+        this.appliedData = []
+        this.totalItems = 0
+      } finally {
+        this.loading = false
+      }
+    },
+
     handleSearch() {
       this.page = 1
       this.pageInput = 1
       this.fetchData()
-    },
-
-    onApprovalStatusChange(item, value) {
-      if (value === item.trangThaiDuyet) return
-
-      const fromLabel = item.trangThaiDuyet
-      const toLabel = value
-      this.confirmDialog = {
-        ...this.confirmDialog,
-        show: true,
-        type: 'APPROVAL',
-        item,
-        newValue: value,
-        fromLabel,
-        toLabel,
-        messageText: 'Bạn có chắc chắn muốn đổi trạng thái duyệt danh sách lớp học',
-        showWarning: fromLabel === 'Đã duyệt danh sách' && value !== 'Đã duyệt danh sách',
-      }
-    },
-
-    onGradeStatusChange(item, value) {
-      if (value === item.examStatus) return
-
-      this.confirmDialog = {
-        ...this.confirmDialog,
-        show: true,
-        type: 'GRADE',
-        item,
-        newValue: value,
-        fromLabel: this.getGradeStatusLabel(item.examStatus),
-        toLabel: this.getGradeStatusLabel(value),
-        messageText: 'Bạn có chắc chắn muốn đổi trạng thái bảng điểm của lớp học',
-        showWarning: false,
-      }
-    },
-
-    getGradeStatusLabel(status) {
-      return status === 'ANNOUNCED' ? 'Đã có điểm' : 'Chưa có điểm'
-    },
-
-    async confirmStatusChange() {
-      const { type, item, newValue } = this.confirmDialog
-      if (!item || !newValue || this.confirmDialog.confirming) return
-
-      this.confirmDialog.confirming = true
-      if (type === 'APPROVAL') {
-        const isApproved = newValue === 'Đã duyệt danh sách'
-        const saved = await this.updateClassStatus(item, 'trangThaiDuyet', newValue, {
-          registerStudentStatus: isApproved ? 'CONFIRMED' : 'PENDING',
-          successMessage: 'Cập nhật trạng thái duyệt danh sách thành công.',
-        })
-        if (saved && isApproved) {
-          item.hasBeenApproved = true
-        }
-      } else if (type === 'GRADE') {
-        await this.updateClassStatus(item, 'examStatus', newValue, {
-          successMessage: 'Cập nhật trạng thái bảng điểm thành công.',
-        })
-      }
-
-      this.confirmDialog.show = false
-      this.confirmDialog.confirming = false
-      this.clearConfirmDialog()
-    },
-
-    cancelStatusChange() {
-      if (this.confirmDialog.confirming) return
-      this.confirmDialog.show = false
-      this.clearConfirmDialog()
-    },
-
-    clearConfirmDialog() {
-      this.confirmDialog.type = ''
-      this.confirmDialog.item = null
-      this.confirmDialog.newValue = null
-      this.confirmDialog.fromLabel = ''
-      this.confirmDialog.toLabel = ''
-      this.confirmDialog.messageText = ''
-      this.confirmDialog.showWarning = false
-    },
-
-    async updateClassStatus(item, field, value, options = {}) {
-      const originalValue = item[field]
-      const originalRegisterStatus = item.registerStudentStatus
-      item[field] = value
-      if (options.registerStudentStatus) {
-        item.registerStudentStatus = options.registerStudentStatus
-      }
-
-      this.updatingClassIds.push(item.id)
-      try {
-        await retakeClassServices.update(item.id, { [field]: value })
-        this.showNotification(options.successMessage)
-        return true
-      } catch (err) {
-        item[field] = originalValue
-        if (options.registerStudentStatus) {
-          item.registerStudentStatus = originalRegisterStatus
-        }
-        this.showNotification(`Cập nhật trạng thái lớp ${item.maLop} thất bại.`, '#C62828')
-        return false
-      } finally {
-        this.updatingClassIds = this.updatingClassIds.filter((id) => id !== item.id)
-      }
-    },
-
-    async handleViewDetail(item) {
-      this.detailModal.data = { ...item }
-      this.detailModal.error = ''
-      this.detailModal.show = true
-      this.detailModal.loading = true
-
-      try {
-        const response = await retakeClassServices.getDetail(item.id)
-        const payload = response?.data || {}
-        const detail = payload.item || payload.data || payload
-        this.detailModal.data = {
-          ...item,
-          ...detail,
-          students: Array.isArray(detail.students)
-            ? detail.students
-            : Array.isArray(detail.studentList)
-              ? detail.studentList
-              : item.students || [],
-        }
-      } catch (err) {
-        this.detailModal.error = 'Không thể tải thông tin chi tiết lớp học lại.'
-        this.showNotification(this.detailModal.error, '#C62828')
-      } finally {
-        this.detailModal.loading = false
-      }
-    },
-
-    handleExportDSSV(item) {
-      const students = Array.isArray(item.students) ? item.students : []
-      if (!students.length) {
-        this.showNotification('Lớp học này chưa có sinh viên đăng ký!', '#C62828')
-        return
-      }
-
-      try {
-        const excelData = students.map((student, index) => ({
-          STT: index + 1,
-          'Mã sinh viên': student.studentId || student.mssv || '',
-          'Họ và tên': student.fullName || student.hoTen || '',
-          'Lớp sinh viên': student.className || student.lopSinhVien || '',
-          'Ngày đăng ký': student.registeredAt || student.ngayDangKy || '',
-          'Trạng thái': student.status || 'Đã đăng ký',
-        }))
-        const worksheet = XLSX.utils.json_to_sheet(excelData)
-        worksheet['!cols'] = [
-          { wch: 6 },
-          { wch: 16 },
-          { wch: 26 },
-          { wch: 18 },
-          { wch: 16 },
-          { wch: 16 },
-        ]
-        const workbook = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'DSSV')
-
-        const classCode = item.classCode || item.maLop || 'lop'
-        const safeClassCode = classCode.replace(/[\\/:*?"<>|]/g, '_')
-        XLSX.writeFile(workbook, `Danh_sach_sinh_vien_${safeClassCode}.xlsx`)
-      } catch (err) {
-        this.showNotification(`Lỗi khi xuất DSSV lớp ${item.maLop || item.classCode}.`, '#C62828')
-      }
-    },
-
-    navigateToGradeSheet(item) {
-      const classCode = item && (item.maLop || item.classCode)
-      if (!classCode) {
-        this.showNotification('Không tìm thấy mã lớp học lại!', '#C62828')
-        return
-      }
-
-      return this.$router.push({
-        path: `/quan-ly-hoc-lai/danh-sach-lop-hoc/${encodeURIComponent(classCode)}/bang-diem`,
-        query: {
-          examStatus: item.examStatus || item.gradeStatus || 'NOT_ANNOUNCED',
-        },
-      })
-    },
-
-    handleAssignTeacher(item) {
-      this.assignTeacherModal.item = item
-      this.assignTeacherModal.show = true
-    },
-
-    async saveTeacherAssignment(assignment) {
-      const item = this.assignTeacherModal.item
-      if (!item || !assignment.primaryTeacher || this.assignTeacherModal.saving) return
-
-      this.assignTeacherModal.saving = true
-      try {
-        await retakeClassServices.update(item.id, {
-          teacherId: assignment.primaryTeacher.id,
-          assistantTeacherId: assignment.assistantTeacher ? assignment.assistantTeacher.id : null,
-        })
-        item.teacherId = assignment.primaryTeacher.id
-        item.assistantTeacherId = assignment.assistantTeacher ? assignment.assistantTeacher.id : null
-        item.primaryTeacher = assignment.primaryTeacher
-        item.assistantTeacher = assignment.assistantTeacher
-        this.assignTeacherModal.show = false
-        this.showNotification(`Gán giảng viên cho lớp ${item.maLop} thành công.`)
-      } catch (err) {
-        this.showNotification(`Gán giảng viên cho lớp ${item.maLop} thất bại.`, '#C62828')
-      } finally {
-        this.assignTeacherModal.saving = false
-      }
-    },
-
-    exportSummaryToExcel() {
-      const classes = this.appliedData
-      if (!classes.length) {
-        this.showNotification('Không có dữ liệu lớp học để xuất!', '#C62828')
-        return
-      }
-
-      try {
-        const excelData = classes.map((item, index) => {
-          const classCode = item.classCode || item.maLop || ''
-          const approvalStatus = item.approvalStatus || item.trangThaiDuyet
-          const gradeStatus = item.gradeStatus || item.examStatus
-          let classTypeName = 'Lớp thường'
-
-          if (classCode.startsWith('G_')) classTypeName = 'Lớp ghép'
-          else if (classCode.startsWith('M_')) classTypeName = 'Lớp mở'
-          else if (classCode.startsWith('D_')) classTypeName = 'Đồ án môn học'
-
-          return {
-            STT: index + 1,
-            'Mã lớp': classCode,
-            'Loại lớp': classTypeName,
-            'Trạng thái duyệt danh sách':
-              approvalStatus === 'ACTIVE' || approvalStatus === 'Đã duyệt danh sách'
-                ? 'Đã duyệt danh sách'
-                : 'Chưa duyệt danh sách',
-            'Trạng thái bảng điểm':
-              gradeStatus === 'ACTIVE' || gradeStatus === 'ANNOUNCED'
-                ? 'Đã có điểm'
-                : 'Chưa có điểm',
-          }
-        })
-        const worksheet = XLSX.utils.json_to_sheet(excelData)
-        worksheet['!cols'] = [
-          { wch: 6 },
-          { wch: 16 },
-          { wch: 20 },
-          { wch: 28 },
-          { wch: 22 },
-        ]
-        const workbook = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách lớp')
-
-        const dateStr = new Date().toISOString().slice(0, 10)
-        XLSX.writeFile(workbook, `Bang_diem_tong_hop_${dateStr}.xlsx`)
-      } catch (err) {
-        this.showNotification('Lỗi khi xuất bảng điểm tổng hợp', '#C62828')
-      }
-    },
-
-    showNotification(message, color = '#2E7D32') {
-      const id = Date.now() + Math.random()
-      const startTime = Date.now()
-      const toast = {
-        id,
-        message,
-        color,
-        progress: 100,
-        timer: null,
-      }
-
-      toast.timer = setInterval(() => {
-        const elapsedTime = Date.now() - startTime
-        const remaining = Math.max(0, this.toastDuration - elapsedTime)
-        toast.progress = (remaining / this.toastDuration) * 100
-
-        if (remaining <= 0) {
-          this.removeToast(id)
-        }
-      }, 30)
-
-      this.toastList.push(toast)
-    },
-
-    removeToast(id) {
-      const index = this.toastList.findIndex((toast) => toast.id === id)
-      if (index === -1) return
-
-      clearInterval(this.toastList[index].timer)
-      this.toastList.splice(index, 1)
-    },
-
-    applyLocalSearch() {
-      if (!Array.isArray(this.dataList)) {
-        this.appliedData = []
-        this.totalItems = 0
-        return
-      }
-
-      const filtered = this.dataList.filter((item) => {
-        if (!item) return false
-
-        const keyword = this.filters.className ? this.filters.className.toLowerCase() : ''
-        const matchName =
-          !keyword ||
-          (item.maLop && item.maLop.toLowerCase().includes(keyword)) ||
-          (item.hocPhanName && item.hocPhanName.toLowerCase().includes(keyword))
-
-        const matchSession =
-          !this.filters.retakeSession || item.dotHocLai === this.filters.retakeSession
-
-        const matchCourse =
-          !this.filters.course || 
-          (item.hocPhanCode && String(item.hocPhanCode).includes(this.filters.course)) || 
-          (item.hocPhanName && String(item.hocPhanName).includes(this.filters.course))
-
-        const matchCoeff =
-          !this.filters.coefficient || String(item.thuHocPhi) === String(this.filters.coefficient)
-
-        return matchName && matchSession && matchCourse && matchCoeff
-      })
-
-      this.appliedData = filtered
-      this.totalItems = filtered.length
     },
 
     resetFilters() {
@@ -1066,14 +743,36 @@ export default {
       }
       this.page = 1
       this.pageInput = 1
-      this.applyLocalSearch()
+      this.fetchData()
     },
+
+    exportSummaryToExcel() {
+      const classes = this.allRawData
+      if (!classes.length) return
+
+      try {
+        const excelData = classes.map((item, index) => ({
+          STT: index + 1,
+          'Mã lớp': item.maLop,
+          'Loại lớp': item.loaiLop,
+          'Thu học phí SV': item.classCoefficient,
+          'Thanh toán giảng dạy': item.thanhToan,
+          'Đợt học lại': item.dotHocLai,
+          'Trạng thái duyệt': item.trangThaiDuyet,
+        }))
+        const worksheet = XLSX.utils.json_to_sheet(excelData)
+        const workbook = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách lớp')
+        XLSX.writeFile(workbook, 'danh_sach_lop_hoc_lai.xlsx')
+      } catch (err) {
+        console.error('Lỗi xuất file Excel:', err)
+      }
+    }
   },
 }
 </script>
 
 <style scoped>
-/* Cố định layout chiều cao full màn hình, phần bảng tự động co giãn và sinh thanh cuộn */
 .main-page-layout {
   display: flex;
   flex-direction: column;
@@ -1262,7 +961,11 @@ export default {
 .status-pill-select >>> .v-input__slot {
   border-radius: 18px !important;
   padding: 0 10px 0 14px !important;
-  border-width: 1px !important;
+  box-shadow: none !important;
+}
+
+.status-pill-select >>> fieldset {
+  border: none !important;
 }
 
 .status-pill-select >>> .v-select__selections {
@@ -1274,184 +977,29 @@ export default {
 
 .status-pill-select >>> .v-select__selection {
   overflow: hidden;
-  font-size: 12px !important;
-  font-weight: 500 !important;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  color: #ffffff !important;
+  font-weight: 500;
+  font-size: 13px;
 }
 
-.status-pill-select >>> fieldset {
-  border: none !important;
-}
-
-.status-pill-select.is-disabled-select >>> .v-input__inner,
-.status-pill-select.is-disabled-select >>> .v-select__selection,
-.status-pill-select.is-disabled-select >>> .v-icon {
-  opacity: 1 !important;
-}
-
-.status-pill-select.is-disabled-select >>> .v-input__slot,
-.status-pill-select.is-disabled-select >>> .v-select__selection {
-  cursor: not-allowed !important;
-}
-
-.pill-orange-solid >>> .v-input__slot {
-  background-color: #ff8f00 !important;
-}
-
-.pill-orange-solid >>> .v-select__selection,
-.pill-orange-solid >>> .v-icon,
-.pill-green-solid >>> .v-select__selection,
-.pill-green-solid >>> .v-icon {
+.status-pill-select >>> .v-icon {
   color: #ffffff !important;
 }
 
 .pill-green-solid >>> .v-input__slot {
-  background-color: #4caf50 !important;
+  background-color: #42b858 !important;
 }
 
-.pill-orange-grade >>> .v-input__slot {
-  background-color: #ffa91c !important;
-  border: 1px solid #ffa91c !important;
+.pill-orange-solid >>> .v-input__slot {
+  background-color: #f59e0b !important;
 }
 
-.pill-orange-grade >>> .v-select__selection,
-.pill-orange-grade >>> .v-icon {
-  color: #ffffff !important;
+.pill-lime-grade >>> .v-input__slot {
+  background-color: #a3e635 !important;
 }
 
 .pill-blue-grade >>> .v-input__slot {
-  background-color: #2196f3 !important;
-  border: 1px solid #2196f3 !important;
-}
-
-.pill-blue-grade >>> .v-select__selection,
-.pill-blue-grade >>> .v-icon {
-  color: #ffffff !important;
-}
-
-.action-dots-btn {
-  color: #555;
-}
-
-.popup-action-menu {
-  min-width: 150px;
-}
-
-.custom-table >>> td {
-  font-size: 12px !important;
-}
-
-.border-btn {
-  border: 1px solid #a2212b !important;
-}
-
-.gap-3 {
-  gap: 12px;
-}
-
-.toast-queue-container {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 999999 !important;
-  display: flex;
-  flex-direction: column;
-  pointer-events: none;
-}
-
-.custom-toast-item {
-  width: 380px;
-  max-width: calc(100vw - 40px);
-  overflow: hidden;
-  border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-  pointer-events: auto;
-}
-
-.toast-success {
-  background-color: #2e7d32 !important;
-}
-
-.toast-error {
-  background-color: #c62828 !important;
-}
-
-.toast-content {
-  min-height: 48px;
-}
-
-.toast-text {
-  font-size: 14px;
-  line-height: 1.4;
-}
-
-.close-toast-btn {
-  flex: 0 0 auto;
-  opacity: 0.85;
-}
-
-.close-toast-btn:hover {
-  opacity: 1;
-}
-
-.toast-progress-bar-container {
-  width: 100%;
-  height: 4px;
-  background-color: rgba(255, 255, 255, 0.3);
-}
-
-.toast-progress-bar {
-  height: 100%;
-  background-color: #a5d6a7;
-  transition: width 0.03s linear;
-}
-
-.toast-list-enter-active,
-.toast-list-leave-active,
-.toast-list-move {
-  transition: all 0.35s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-.toast-list-enter {
-  opacity: 0;
-  transform: translateX(60px);
-}
-
-.toast-list-leave-to {
-  opacity: 0;
-  transform: translateY(-20px) scale(0.95);
-}
-
-.toast-list-leave-active {
-  position: absolute;
-  width: 100%;
-}
-
-.status-confirm-card {
-  border-radius: 12px !important;
-  overflow: hidden;
-}
-
-.status-confirm-header {
-  background-color: #a62229;
-}
-
-.status-confirm-message {
-  color: #1f2937;
-  line-height: 1.5;
-}
-
-.status-warning-alert {
-  background-color: #fff8e1 !important;
-  border: 1px solid #ffe082 !important;
-  border-radius: 8px;
-}
-
-.status-confirm-button {
-  background-color: #a62229 !important;
-  border-radius: 8px !important;
-  height: 40px !important;
+  background-color: #3b82f6 !important;
 }
 </style>
-
