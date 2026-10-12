@@ -76,9 +76,9 @@ export default {
 
   // Cấu hình Axios và Proxy để trỏ thẳng tới server backend từ xa mà không bị chặn CORS
   axios: {
-  proxy: false,
-  baseURL: 'http://103.147.34.20:19800',
-},
+    proxy: false,
+    baseURL: '', 
+  },
 
   proxy: {
     // 1. Các API chung bắt đầu bằng /api
@@ -120,4 +120,7 @@ export default {
   },
 
   build: {},
+  serverMiddleware: [
+    '~/server/proxy.js'
+  ],
 }
