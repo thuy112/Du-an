@@ -1,9 +1,19 @@
 {
   "version": 2,
+  "builds": [
+    {
+      "src": "nuxt.config.js",
+      "use": "@nuxtjs/vercel-builder"
+    }
+  ],
   "rewrites": [
     {
+      "source": "/api/:match*",
+      "destination": "http://103.147.34.20:19800/api/:match*"
+    },
+    {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/"
     }
   ]
 }
