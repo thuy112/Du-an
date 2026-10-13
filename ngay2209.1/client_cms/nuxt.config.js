@@ -63,23 +63,24 @@ export default {
   },
 
   // QUAN TRỌNG: Đặt baseURL là '/' để gọi qua cơ chế định tuyến ngầm của Vercel, triệt tiêu lỗi CORS/Mixed Content
-  modules: [
-    '@nuxtjs/axios',
-    '@nuxtjs/style-resources',
-  ],
+  // nuxt.config.js
+modules: [
+  '@nuxtjs/axios',
+  '@nuxtjs/style-resources',
+],
 
-  axios: {
-    proxy: true, // Bật proxy cho môi trường dev/local
-    baseURL: '/',
-  },
+axios: {
+  // Bật proxy ở môi trường dev để code ở VS Code không bị CORS
+  proxy: process.env.NODE_ENV !== 'production',
+  baseURL: '/',
+},
 
-  proxy: {
-    '/api/': {
-      target: 'http://103.147.34.20:19800',
-      changeOrigin: true,
-    }
-  },
-
+proxy: process.env.NODE_ENV !== 'production' ? {
+  '/api/': {
+    target: 'http://103.147.34.20:19800',
+    changeOrigin: true,
+  }
+} : undefined,
   vuetify: {
     customVariables: ['~/assets/variables.scss'],
     treeShake: true,
