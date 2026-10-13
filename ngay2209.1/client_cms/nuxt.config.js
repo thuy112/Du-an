@@ -77,7 +77,7 @@ export default {
   // Cấu hình Axios và Proxy để trỏ thẳng tới server backend từ xa mà không bị chặn CORS
   axios: {
     proxy: false,
-    baseURL: '', 
+    baseURL: '/',
   },
 
   proxy: {
