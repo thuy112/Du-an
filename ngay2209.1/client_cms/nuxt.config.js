@@ -1,10 +1,8 @@
 import colors from 'vuetify/es5/util/colors'
 
 export default {
-  // Chạy ở chế độ SPA, không SSR (Mục 1 & 9)
   ssr: false,
 
-  // Cấu hình router chuyển hướng từ trang chủ "/" sang "/dang-nhap"
   router: {
     extendRoutes(routes, resolve) {
       routes.push({
@@ -23,22 +21,15 @@ export default {
     meta: [
       { charset: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      {
-        hid: 'description',
-        name: 'description',
-        content: 'Hệ thống Quản lý học lại, bảo vệ lại và thi lại Bách Khoa',
-      },
-      { name: 'format-detection', content: 'telephone=no' },
+      { hid: 'description', name: 'description', content: 'Hệ thống Quản lý học lại, bảo vệ lại và thi lại Bách Khoa' },
     ],
     link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }],
   },
 
-  // 1. Nạp SCSS global từ assets/scss/main.scss (Mục 9 & theo cây thư mục)
   css: [
     '~/assets/scss/main.scss'
   ],
 
-  // 2. Danh sách 10 plugin theo thứ tự nạp quan trọng (Mục 5)
   plugins: [
     { src: '~/plugins/common.js', mode: 'client' },
     '~/plugins/api.js',
@@ -51,7 +42,7 @@ export default {
     { src: '~/plugins/mitt.js', mode: 'client' },
     '~/plugins/nuxt-client-init.js',
   ],
-  // Tự động import component theo PascalCase (Mục 8)
+
   components: true,
 
   buildModules: [
@@ -59,14 +50,11 @@ export default {
     '@nuxtjs/vuetify',
   ],
 
-  // 3. Thêm @nuxtjs/style-resources và @nuxtjs/proxy (nếu cần)
   modules: [
     '@nuxtjs/axios',
     '@nuxtjs/style-resources',
-    '@nuxtjs/proxy', // Đã thêm module proxy
   ],
 
-  // 4. Cấu hình styleResources nạp biến màu và biến SCSS chung
   styleResources: {
     scss: [
       '~/assets/scss/colors.scss',
@@ -74,40 +62,20 @@ export default {
     ],
   },
 
-  // Cấu hình Axios và Proxy để trỏ thẳng tới server backend từ xa mà không bị chặn CORS
+  // QUAN TRỌNG: Đặt baseURL là '/' để gọi qua cơ chế định tuyến ngầm của Vercel, triệt tiêu lỗi CORS/Mixed Content
   axios: {
     proxy: false,
-    baseURL: 'http://103.147.34.20:19800',
-  },
-
-  proxy: {
-    // 1. Các API chung bắt đầu bằng /api
-    '/api/': {
-      target: 'http://103.147.34.20:19800',
-      changeOrigin: true,
-    },
-    // 2. Nếu có nhóm API xác thực/auth riêng ở port khác hoặc đường dẫn khác
-    '/auth/': {
-      target: 'http://103.147.34.20:19800', // Hoặc một domain/port khác tùy ý
-      changeOrigin: true,
-    },
-    // 3. Nếu có nhóm API bên thứ 3 hoặc service khác
-    '/service-b/': {
-      target: 'https://api.servicekhac.com',
-      changeOrigin: true,
-      pathRewrite: { '^/service-b/': '' } // Xóa bỏ tiền tố /service-b khi gửi đi nếu server kia không cần
-    }
+    baseURL: '/',
   },
 
   vuetify: {
-    // Override biến Sass mặc định của Vuetify ở gốc assets/ (Mục 9)
     customVariables: ['~/assets/variables.scss'],
     treeShake: true,
     theme: {
       dark: false,
       themes: {
         light: {
-          primary: '#a2212b', // Màu đỏ Bách Khoa (Mục 9)
+          primary: '#a2212b',
           accent: colors.grey.darken3,
           secondary: colors.amber.darken3,
           info: colors.teal.lighten1,
