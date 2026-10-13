@@ -1,33 +1,35 @@
 export default defineEventHandler(async (event) => {
-  const slug = event.context.params.slug
-  const path = Array.isArray(slug) ? slug.join('/') : slug
-
+  // Lấy ra phần path phía sau /api/ (Ví dụ: /api/student/list -> path là ['student', 'list'])
+  const path = event.context.params.path || []
+  const targetUrl = `http://103.147.34.20:19800/api/${path.join('/')}`
+  
+  // Lấy query params và method hiện tại (GET, POST, PUT, DELETE,...)
   const query = getQuery(event)
-  const method = getMethod(event)
-  const body = ['POST', 'PUT', 'PATCH'].includes(method) ? await readBody(event) : undefined
-
-  // Lấy header Authorization từ client truyền lên để xác thực
-  const headers = getHeaders(event)
-  const forwardHeaders = {
-    'Content-Type': 'application/json',
-  }
-  if (headers.authorization) {
-    forwardHeaders['Authorization'] = headers.authorization
+  const method = event.node.req.method
+  
+  let body = null
+  if (['POST', 'PUT', 'PATCH'].includes(method)) {
+    try {
+      body = await readBody(event)
+    } catch (e) {
+      // Bỏ qua nếu body trống
+    }
   }
 
   try {
-    const response = await $fetch(`http://103.147.34.20:19800/api/${path}`, {
+    // Chuyển tiếp request sang backend gốc (chạy server-to-server nên không bị chặn HTTPS trên Vercel)
+    const response = await $fetch(targetUrl, {
       method,
-      query,
-      body,
-      headers: forwardHeaders,
+      params: query,
+      body: body,
     })
     return response
   } catch (error) {
-    throw createError({
-      statusCode: error.response?.status || 500,
-      statusMessage: error.message || 'Lỗi kết nối tới Backend gốc',
-      data: error.data,
-    })
+    console.error(`Proxy Error for ${targetUrl}:`, error)
+    return {
+      success: false,
+      message: error.message || 'Lỗi proxy kết nối backend',
+      data: null
+    }
   }
 })
