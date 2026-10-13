@@ -64,8 +64,15 @@ export default {
 
   // QUAN TRỌNG: Đặt baseURL là '/' để gọi qua cơ chế định tuyến ngầm của Vercel, triệt tiêu lỗi CORS/Mixed Content
   axios: {
-    proxy: false,
+    proxy: true, // Bật proxy lên khi chạy local
     baseURL: '/',
+  },
+
+  proxy: {
+    '/api/': {
+      target: 'http://103.147.34.20:19800',
+      changeOrigin: true,
+    }
   },
 
   vuetify: {
