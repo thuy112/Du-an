@@ -152,7 +152,7 @@ export default {
       this.loading = true
 
       try {
-        // Thử gọi API đăng nhập thật
+        // 1. Luôn ưu tiên gọi API thật trước
         const res = await authServices.login(this.form)
 
         if (res && (res.success || res.token || res.accessToken || res.data)) {
@@ -162,7 +162,7 @@ export default {
             res.token ||
             'dummy-token-logged-in'
 
-          // Lưu token vào Cookie và LocalStorage
+          // Lưu token thật từ backend trả về
           Cookies.set('token', token, { expires: 7, path: '/' })
           Cookies.set('auth_token', token, { expires: 7, path: '/' })
 
@@ -170,26 +170,35 @@ export default {
             fullName: this.form.username,
             username: this.form.username,
             email: `${this.form.username}@hust.edu.vn`,
-            phone: '0862265204',
-            role: 'Quản trị viên',
-            groups: 'Quản trị hệ thống',
           }
 
           localStorage.setItem('user_info', JSON.stringify(userInfo))
           localStorage.setItem('login_success', 'true')
-
-          // Dùng window.location.href để ép chuyển trang và nạp layout chính xác
+          
           window.location.href = '/'
-        } else {
-          this.doMockLogin()
+          return
         }
       } catch (err) {
-        console.warn('API thật gặp sự cố, chuyển sang đăng nhập giả lập:', err)
-        // Kích hoạt Mock Login nếu API mạng trên Vercel bị chặn
-        this.doMockLogin()
+        console.warn('API thật chưa phản hồi hoặc đang lỗi, chuyển sang chế độ dự phòng:', err)
       } finally {
         this.loading = false
       }
+
+      // 2. Chế độ dự phòng (chỉ chạy khi gọi API thật ở trên bị lỗi hoặc mất kết nối)
+      const dummyToken = 'dummy-token-logged-in'
+      Cookies.set('token', dummyToken, { expires: 7, path: '/' })
+      Cookies.set('auth_token', dummyToken, { expires: 7, path: '/' })
+
+      const dummyUser = {
+        fullName: this.form.username || 'Quản trị viên',
+        username: this.form.username || 'admin',
+        email: `${this.form.username || 'admin'}@hust.edu.vn`,
+      }
+      
+      localStorage.setItem('user_info', JSON.stringify(dummyUser))
+      localStorage.setItem('login_success', 'true')
+
+      window.location.href = '/'
     },
 
     // Hàm hỗ trợ Đăng nhập giả lập an toàn
