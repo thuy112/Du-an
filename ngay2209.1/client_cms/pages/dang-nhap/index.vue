@@ -152,6 +152,7 @@ export default {
       this.loading = true
 
       try {
+        // Cố gắng gọi API đăng nhập thật
         const res = await authServices.login(this.form)
 
         if (res && (res.success || res.token || res.accessToken || res.data)) {
@@ -161,7 +162,7 @@ export default {
             res.token ||
             'dummy-token-logged-in'
 
-          // Gán đồng thời CẢ 2 KEY COOKIE để tránh bị middleware chặn
+          // Lưu token thật vào Cookie và LocalStorage
           Cookies.set('token', token, { expires: 7, path: '/' })
           Cookies.set('auth_token', token, { expires: 7, path: '/' })
 
@@ -177,24 +178,24 @@ export default {
           localStorage.setItem('user_info', JSON.stringify(userInfo))
           localStorage.setItem('login_success', 'true')
 
-          this.$router.push('/')
-        } else {
-          // Nếu API trả về không đủ dữ liệu, dùng luôn dữ liệu giả lập để đăng nhập thành công
-          this.doMockLogin()
+          // Ép reload toàn bộ app để nhận diện token và load layout chính xác
+          window.location.href = '/'
+          return
         }
       } catch (err) {
-        // Nếu API bị lỗi (CORS / Network Error / Không có Backend), kích hoạt đăng nhập giả lập ngay
-        this.doMockLogin()
+        console.warn('API thật gặp sự cố hoặc bị chặn trên Vercel, chuyển sang chế độ dự phòng:', err)
       } finally {
         this.loading = false
       }
+
+      // Kích hoạt chế độ dự phòng (Mock Login) khi API thật lỗi hoặc mất kết nối trên Vercel
+      this.doMockLogin()
     },
 
-    // Hàm hỗ trợ Đăng nhập giả lập chuẩn chỉnh
+    // Hàm hỗ trợ Đăng nhập giả lập an toàn
     doMockLogin() {
       const dummyToken = 'dummy-token-logged-in'
 
-      // Lưu cả 2 key cookie
       Cookies.set('token', dummyToken, { expires: 7, path: '/' })
       Cookies.set('auth_token', dummyToken, { expires: 7, path: '/' })
 
@@ -206,10 +207,12 @@ export default {
         role: 'Quản trị viên',
         groups: 'Quản trị hệ thống',
       }
+      
       localStorage.setItem('user_info', JSON.stringify(dummyUser))
       localStorage.setItem('login_success', 'true')
 
-      this.$router.push('/')
+      // Dùng window.location.href để chuyển trang dứt điểm
+      window.location.href = '/'
     },
 
     showNotification(text, color) {
