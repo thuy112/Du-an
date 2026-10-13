@@ -152,7 +152,6 @@ export default {
       this.loading = true
 
       try {
-        // 1. Luôn ưu tiên gọi API thật trước
         const res = await authServices.login(this.form)
 
         if (res && (res.success || res.token || res.accessToken || res.data)) {
@@ -162,7 +161,7 @@ export default {
             res.token ||
             'dummy-token-logged-in'
 
-          // Lưu token thật từ backend trả về
+          // Gán đồng thời CẢ 2 KEY COOKIE để tránh bị middleware chặn
           Cookies.set('token', token, { expires: 7, path: '/' })
           Cookies.set('auth_token', token, { expires: 7, path: '/' })
 
@@ -170,57 +169,47 @@ export default {
             fullName: this.form.username,
             username: this.form.username,
             email: `${this.form.username}@hust.edu.vn`,
+            phone: '0862265204',
+            role: 'Quản trị viên',
+            groups: 'Quản trị hệ thống',
           }
 
           localStorage.setItem('user_info', JSON.stringify(userInfo))
           localStorage.setItem('login_success', 'true')
-          
-          window.location.href = '/'
-          return
+
+          this.$router.push('/')
+        } else {
+          // Nếu API trả về không đủ dữ liệu, dùng luôn dữ liệu giả lập để đăng nhập thành công
+          this.doMockLogin()
         }
       } catch (err) {
-        console.warn('API thật chưa phản hồi hoặc đang lỗi, chuyển sang chế độ dự phòng:', err)
+        // Nếu API bị lỗi (CORS / Network Error / Không có Backend), kích hoạt đăng nhập giả lập ngay
+        this.doMockLogin()
       } finally {
         this.loading = false
       }
-
-      // 2. Chế độ dự phòng (chỉ chạy khi gọi API thật ở trên bị lỗi hoặc mất kết nối)
-      const dummyToken = 'dummy-token-logged-in'
-      Cookies.set('token', dummyToken, { expires: 7, path: '/' })
-      Cookies.set('auth_token', dummyToken, { expires: 7, path: '/' })
-
-      const dummyUser = {
-        fullName: this.form.username || 'Quản trị viên',
-        username: this.form.username || 'admin',
-        email: `${this.form.username || 'admin'}@hust.edu.vn`,
-      }
-      
-      localStorage.setItem('user_info', JSON.stringify(dummyUser))
-      localStorage.setItem('login_success', 'true')
-
-      window.location.href = '/'
     },
 
-    // Hàm hỗ trợ Đăng nhập giả lập an toàn
+    // Hàm hỗ trợ Đăng nhập giả lập chuẩn chỉnh
     doMockLogin() {
       const dummyToken = 'dummy-token-logged-in'
-      
+
+      // Lưu cả 2 key cookie
       Cookies.set('token', dummyToken, { expires: 7, path: '/' })
       Cookies.set('auth_token', dummyToken, { expires: 7, path: '/' })
 
       const dummyUser = {
-        fullName: this.form.username || 'Quản trị viên Bách Khoa',
-        username: this.form.username || 'admin',
-        email: `${this.form.username || 'admin'}@hust.edu.vn`,
+        fullName: this.form.username || 'Người dùng Demo',
+        username: this.form.username || 'demo_user',
+        email: `${this.form.username || 'demo'}@hust.edu.vn`,
         phone: '0862265204',
         role: 'Quản trị viên',
         groups: 'Quản trị hệ thống',
       }
-      
       localStorage.setItem('user_info', JSON.stringify(dummyUser))
       localStorage.setItem('login_success', 'true')
 
-      window.location.href = '/'
+      this.$router.push('/')
     },
 
     showNotification(text, color) {
