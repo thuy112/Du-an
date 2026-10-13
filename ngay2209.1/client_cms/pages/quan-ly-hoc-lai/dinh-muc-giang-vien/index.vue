@@ -1,63 +1,53 @@
 <template>
   <v-container fluid class="pa-6">
-    <!-- Tiêu đề trang -->
-    <div class="d-flex justify-space-between align-center mb-6">
-      <div>
-        <h1 class="text-h5 font-weight-bold black--text">Quản lý định mức giảng dạy</h1>
-        <p class="text-subtitle-2 text-grey-darken-1 mb-0">Quản lý và thiết lập định mức chi phí giảng dạy cho các loại lớp</p>
+    <!-- Tiêu đề trang & Thanh công cụ -->
+    <div class="d-flex justify-space-between align-center mb-4">
+      <div class="text-subtitle-1 font-weight-bold black--text">
+        Danh sách quy định định mức phí <span class="red--text">({{ filteredList.length }})</span>
       </div>
-      <v-btn color="#A62229" dark class="text-none font-weight-medium rounded-sm" elevation="0" @click="openAddModal">
-        <v-icon left small>mdi-plus</v-icon> Thêm định mức mới
-      </v-btn>
-    </div>
+      <div class="d-flex align-center gap-2">
+        <!-- Bộ lọc loại lớp -->
+        <v-select
+          v-model="filters.classType"
+          :items="classTypeList"
+          label="Loại lớp"
+          outlined
+          dense
+          clearable
+          hide-details
+          style="width: 150px;"
+          @change="handleSearch"
+        ></v-select>
 
-    <!-- Khung tìm kiếm và lọc -->
-    <v-card flat class="pa-4 mb-4 rounded-lg border">
-      <v-row dense align="center">
-        <v-col cols="12" sm="3">
-          <v-select
-            v-model="filters.classType"
-            :items="classTypeList"
-            label="Loại lớp"
-            outlined
-            dense
-            clearable
-            hide-details
-          ></v-select>
-        </v-col>
-        <v-col cols="12" sm="3">
-          <v-select
-            v-model="filters.trainingType"
-            :items="trainingTypeList"
-            label="Hình thức đào tạo"
-            outlined
-            dense
-            clearable
-            hide-details
-          ></v-select>
-        </v-col>
-        <v-col cols="12" sm="4">
-          <v-text-field
-            v-model="filters.search"
-            label="Tìm kiếm..."
-            outlined
-            dense
-            clearable
-            hide-details
-            append-icon="mdi-magnify"
-            @keyup.enter="handleSearch"
-          ></v-text-field>
-        </v-col>
-        <v-col cols="12" sm="2" class="d-flex gap-2">
-          <v-btn color="#A62229" dark small class="text-none flex-grow-1" elevation="0" @click="handleSearch">
-            Lọc
-          </v-btn>
-          <v-btn outlined small class="text-none flex-grow-1" @click="resetFilters">
-            Đặt lại
-          </v-btn>
-        </v-col>
-      </v-row>
-    </v-card>
+        <!-- Bộ lọc hình thức đào tạo -->
+        <v-select
+          v-model="filters.trainingType"
+          :items="trainingTypeList"
+          label="Hình thức đào tạo"
+          outlined
+          dense
+          clearable
+          hide-details
+          style="width: 170px;"
+          @change="handleSearch"
+        ></v-select>
+
+        <!-- Nút Refresh -->
+        <v-btn icon small class="border-btn" @click="fetchData">
+          <v-icon small color="#A62229">mdi-refresh</v-icon>
+        </v-btn>
+
+        <!-- Nút Tìm kiếm -->
+        <v-btn color="#A62229" dark small class="px-3" elevation="0" @click="handleSearch">
+          <v-icon small>mdi-magnify</v-icon>
+        </v-btn>
+
+        <!-- Nút Thêm mới -->
+        <v-btn color="#A62229" dark small class="px-3" elevation="0" @click="openAddModal">
+          <v-icon small>mdi-plus</v-icon>
+        </v-btn>
+      </div>
+    </div>
 
     <!-- Bảng dữ liệu -->
     <v-card flat class="rounded-lg border overflow-hidden">
@@ -67,38 +57,73 @@
         :loading="loading"
         hide-default-footer
         dense
-        class="elevation-0"
+        class="elevation-0 custom-table"
       >
         <template v-slot:[`item.stt`]="{ index }">
-          <span>{{ (page - 1) * pageSize + index + 1 }}</span>
+          <span class="grey--text text--darken-2">{{ (page - 1) * pageSize + index + 1 }}</span>
+        </template>
+
+        <template v-slot:[`item.classType`]="{ item }">
+          <span class="black--text">{{ item.classType }}</span>
+        </template>
+
+        <template v-slot:[`item.trainingType`]="{ item }">
+          <span class="black--text">{{ item.trainingType }}</span>
         </template>
 
         <template v-slot:[`item.price`]="{ item }">
-          <span class="font-weight-bold text-red-bold">{{ formatCurrency(item.price) }}</span>
+          <span class="font-weight-medium black--text">{{ formatCurrency(item.price) }}</span>
         </template>
 
         <template v-slot:[`item.actions`]="{ item }">
-          <v-btn icon small color="primary" @click="editItem(item)">
-            <v-icon small>mdi-pencil</v-icon>
+          <v-btn icon x-small class="amber--text text--darken-2" @click="editItem(item)">
+            <v-icon color="#f59e0b">mdi-pencil</v-icon>
           </v-btn>
         </template>
       </v-data-table>
 
-      <!-- Phân trang -->
-      <div class="d-flex align-center justify-space-between pa-4 border-t bg-white">
-        <div class="text-caption grey--text">
-          Hiển thị từ {{ displayList.length ? (page - 1) * pageSize + 1 : 0 }} đến {{ (page - 1) * pageSize + displayList.length }} trong tổng số {{ filteredList.length }} kết quả
+      <!-- Phân trang chuẩn giao diện mẫu -->
+      <div class="d-flex align-center justify-end pa-3 border-t bg-white gap-3">
+        <div class="d-flex align-center gap-1 text-caption">
+          <span class="grey--text">Bản ghi</span>
+          <v-select
+            v-model="pageSize"
+            :items="[10, 20, 50, 100]"
+            dense
+            outlined
+            hide-details
+            style="width: 70px;"
+            @change="handleSearch"
+          ></v-select>
         </div>
-        <div class="d-flex align-center gap-2">
-          <v-btn outlined small :disabled="page <= 1" @click="prevPage">Trước</v-btn>
-          <span class="text-caption mx-2">Trang {{ page }} / {{ totalPages }}</span>
-          <v-btn outlined small :disabled="page >= totalPages" @click="nextPage">Sau</v-btn>
+
+        <div class="d-flex align-center gap-1 text-caption">
+          <span class="grey--text">Trang</span>
+          <v-text-field
+            v-model="pageInput"
+            dense
+            outlined
+            hide-details
+            style="width: 50px; text-align: center;"
+            @keyup.enter="handleGo"
+          ></v-text-field>
+          <v-btn small dark color="#A62229" class="text-none px-3" elevation="0" @click="handleGo">Đi</v-btn>
+        </div>
+
+        <div class="d-flex align-center gap-1">
+          <v-btn outlined small :disabled="page <= 1" class="px-2" @click="prevPage">
+            <v-icon small>mdi-chevron-left</v-icon>
+          </v-btn>
+          <v-btn small dark color="#A62229" class="px-3" elevation="0">{{ page }}</v-btn>
+          <v-btn outlined small :disabled="page >= totalPages" class="px-2" @click="nextPage">
+            <v-icon small>mdi-chevron-right</v-icon>
+          </v-btn>
         </div>
       </div>
     </v-card>
 
     <!-- Dialog Thêm/Sửa Định Mức -->
-    <v-dialog v-model="dialogVisible" max-width="500px" persistent>
+    <v-dialog v-model="dialogVisible" max-width="480px" persistent>
       <v-card class="rounded-lg">
         <v-card-title class="bg-red-bk white--text pa-3 text-subtitle-1 font-weight-bold">
           {{ isEdit ? 'Cập nhật định mức giảng dạy' : 'Thêm mới định mức giảng dạy' }}
@@ -112,7 +137,7 @@
               label="Loại lớp *"
               outlined
               dense
-              :rules="[v => !!v.trim() || 'Vui lòng chọn loại lớp']"
+              :rules="[v => !!v || 'Vui lòng chọn loại lớp']"
               class="mb-3"
             ></v-select>
 
@@ -122,16 +147,16 @@
               label="Hình thức đào tạo *"
               outlined
               dense
-              :rules="[v => !!v.trim() || 'Vui lòng chọn hình thức đào tạo']"
+              :rules="[v => !!v || 'Vui lòng chọn hình thức đào tạo']"
               class="mb-3"
             ></v-select>
 
             <v-text-field
               v-model="formattedPrice"
-              label="Định mức phí (VNĐ) *"
+              label="Giá tiền (VNĐ) *"
               outlined
               dense
-              :rules="[v => !!v || 'Vui lòng nhập định mức phí']"
+              :rules="[v => !!v || 'Vui lòng nhập giá tiền']"
               @input="onPriceInput"
             ></v-text-field>
           </v-form>
@@ -170,7 +195,6 @@ export default {
             loading: false,
             submitting: false,
 
-            // Filter data
             filters: {
                 classType: null,
                 trainingType: null,
@@ -182,12 +206,18 @@ export default {
             rawList: [],
             filteredList: [],
 
-            // Phân trang
+            headers: [
+                { text: 'STT', value: 'stt', width: '70px', align: 'center', sortable: false },
+                { text: 'Loại lớp', value: 'classType', sortable: false },
+                { text: 'Hình thức đào tạo', value: 'trainingType', sortable: false },
+                { text: 'Giá tiền', value: 'price', sortable: false },
+                { text: 'Chức năng', value: 'actions', width: '90px', align: 'center', sortable: false }
+            ],
+
             page: 1,
             pageSize: 50,
             pageInput: '1',
 
-            // Dialog Modal State
             dialogVisible: false,
             isEdit: false,
             isFormValid: true,
@@ -236,18 +266,27 @@ export default {
                     : (Array.isArray(responseWrapper) ? responseWrapper : (Array.isArray(res) ? res : []))
 
                 this.rawList = items.map((item, index) => {
-                    // Map lại mã loại lớp từ API sang tên hiển thị tiếng Việt nếu cần
-                    let mappedClassType = item.classType || item.loaiLop || 'Lớp mở'
-                    if (mappedClassType === 'PROJECT_BASED_CLASS') mappedClassType = 'Đồ án môn học'
-                    else if (mappedClassType === 'COMBINE_CLASS') mappedClassType = 'Lớp ghép'
-                    else if (mappedClassType === 'NEW_CLASS') mappedClassType = 'Lớp mở'
+                    // 1. Ánh xạ loại lớp từ code sang tiếng Việt
+                    const rawClass = (item.classType || '').trim()
+                    let mappedClassType = rawClass
+                    if (rawClass === 'PROJECT_BASED_CLASS') {
+                        mappedClassType = 'Đồ án môn học'
+                    } else if (rawClass === 'COMBINE_CLASS') {
+                        mappedClassType = 'Lớp ghép'
+                    } else if (rawClass === 'NEW_CLASS' || rawClass === 'OPEN_CLASS') {
+                        mappedClassType = 'Lớp mở'
+                    }
+
+                    // 2. Lấy tên hình thức đào tạo trực tiếp từ object trainingMethod.name và .trim() để sạch ký tự \t
+                    const trainingMethodObj = item.trainingMethod || {}
+                    const mappedTrainingType = (trainingMethodObj.name || item.trainingType || 'Chính quy').trim()
 
                     return {
                         id: item.id || (index + 1),
                         classType: mappedClassType,
-                        trainingType: item.trainingType || item.hinhThucDaoTao || 'Chính quy',
-                        // Lấy chuẩn xác giá tiền từ trường "fee" của API
-                        price: Number(item.fee !== undefined && item.fee !== null ? item.fee : (item.price || 0)),
+                        trainingType: mappedTrainingType,
+                        // Lấy chuẩn giá tiền từ trường "fee"
+                        price: Number(item.fee !== undefined && item.fee !== null ? item.fee : 0),
                         original: item
                     }
                 })
@@ -303,7 +342,7 @@ export default {
                 const payload = {
                     classType: this.formModel.classType,
                     trainingType: this.formModel.trainingType,
-                    fee: this.formModel.price, // Gửi lên đúng tên trường fee theo API
+                    fee: this.formModel.price,
                     channel: 'CMS'
                 }
 
@@ -355,16 +394,17 @@ export default {
         handleSearch() {
             this.page = 1
             this.pageInput = '1'
-            this.fetchData()
+            this.applyFilter()
         },
 
-        resetFilters() {
-            this.filters.classType = null
-            this.filters.trainingType = null
-            this.filters.search = ''
-            this.page = 1
-            this.pageInput = '1'
-            this.fetchData()
+        handleGo() {
+            const p = parseInt(this.pageInput, 10)
+            if (p >= 1 && p <= this.totalPages) {
+                this.page = p
+            } else {
+                this.page = 1
+                this.pageInput = '1'
+            }
         },
 
         formatCurrency(val) {
@@ -401,8 +441,8 @@ export default {
 
 <style scoped>
 .bg-red-bk { background-color: #A62229 !important; }
-.text-red-bold { color: #A62229 !important; }
 .border { border: 1px solid #E0E0E0 !important; }
+.border-btn { border: 1px solid #BDBDBD !important; }
 .toast-container {
   position: fixed;
   bottom: 20px;
@@ -410,5 +450,7 @@ export default {
   z-index: 9999;
   max-width: 300px;
 }
+.gap-1 { gap: 4px; }
 .gap-2 { gap: 8px; }
+.gap-3 { gap: 12px; }
 </style>
