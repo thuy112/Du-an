@@ -119,8 +119,4 @@ export default {
     },
   },
 
-  build: {},
-  serverMiddleware: [
-    '~/server/proxy.js'
-  ],
 }
