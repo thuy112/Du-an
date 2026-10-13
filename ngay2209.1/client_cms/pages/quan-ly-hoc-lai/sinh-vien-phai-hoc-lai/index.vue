@@ -2,7 +2,7 @@
   <div class="must-retake-page pa-3 pa-md-4 bg-white" :class="{ 'is-mobile-device': isMobileDevice }">
     <!-- TIÊU ĐỀ TRANG -->
     <div class="text-h6 font-weight-bold black--text mb-3">
-      Danh sách sinh viên phải học lại (<span class="text-red-bold">{{ filteredList.length }}</span>)
+      Danh sách sinh viên phải học lại (<span class="text-red-bold">{{ totalRecords }}</span>)
     </div>
 
     <!-- 1. BỘ LỌC TÌM KIẾM VÀ CỤM NÚT ICON -->
@@ -336,12 +336,12 @@
             @click="triggerFileInput"
           >
             <v-icon left small>mdi-microsoft-excel</v-icon>
-            NHẬP FILE ĐĂNG KÝ
+            NHẬP FILE ĐĂNG KÍ
           </v-btn>
         </div>
 
         <div class="pagination-scroll-wrapper flex-grow-1 d-flex justify-end">
-          <div class="d-flex align-center gap-2 flex-nowrap pb-1" style="min-width: max-content;">
+          <div class="d-flex align-center justify-end gap-2 mt-4">
             <span class="text-caption text-grey-color text-nowrap">Bản ghi</span>
             <v-select
               v-model="itemsPerPage"
@@ -350,38 +350,64 @@
               outlined
               hide-details
               class="select-per-page"
-              style="width: 75px;"
-              @change="handleSearch"
+              style="width: 80px;"
+              @change="handleItemsPerPageChange"
             ></v-select>
 
-            <span class="text-caption text-grey-color text-nowrap ml-1">Trang</span>
+            <span class="text-caption text-grey-color ml-2">Trang</span>
             <v-text-field
               v-model="pageInput"
               dense
               outlined
               hide-details
-              class="input-page-num"
               style="width: 50px;"
+              class="text-center"
               @keyup.enter="goToPage"
             ></v-text-field>
 
-            <v-btn color="#A62229" dark small class="px-3 min-w-0 text-nowrap rounded-lg" elevation="0" @click="goToPage">Đi</v-btn>
-            
-            <v-btn icon small :disabled="currentPage <= 1" class="border-btn" @click="currentPage--; syncSelectAll()">
+            <v-btn
+              elevation="0"
+              color="#A62229"
+              dark
+              small
+              class="text-none px-3"
+              @click="goToPage"
+            >
+              Đi
+            </v-btn>
+
+            <!-- Nút chuyển sang trang trước -->
+            <v-btn
+              icon
+              small
+              :disabled="currentPage === 1"
+              @click="changePage(currentPage - 1)"
+            >
               <v-icon>mdi-chevron-left</v-icon>
             </v-btn>
 
-            <v-pagination
-              v-model="currentPage"
-              :length="totalPages"
-              :total-visible="4"
-              color="#A62229"
-              dense
-              class="custom-pagination"
-              @input="syncSelectAll"
-            ></v-pagination>
+            <!-- Các nút số trang động (1, 2, 3...) -->
+            <v-btn
+              v-for="page in totalPages"
+              :key="page"
+              small
+              class="min-w-0 px-3"
+              :color="currentPage === page ? '#A62229' : 'white'"
+              :dark="currentPage === page"
+              elevation="0"
+              :class="currentPage === page ? '' : 'border-btn'"
+              @click="changePage(page)"
+            >
+              {{ page }}
+            </v-btn>
 
-            <v-btn icon small :disabled="currentPage >= totalPages" class="border-btn" @click="currentPage++; syncSelectAll()">
+            <!-- Nút chuyển sang trang sau -->
+            <v-btn
+              icon
+              small
+              :disabled="currentPage >= totalPages"
+              @click="changePage(currentPage + 1)"
+            >
               <v-icon>mdi-chevron-right</v-icon>
             </v-btn>
           </div>
@@ -390,14 +416,6 @@
     </div>
 
     <!-- MODAL & DIALOGS -->
-    <RetakeCourseAddMustRetakeStudentModal
-      v-model="showAddModal"
-      :must-retake-students="studentList"
-      :registered-classes-list="studentList"
-      mock-mode
-      @success="onAddSuccess"
-    />
-
     <v-dialog v-model="deleteDialog" width="450px" persistent class="confirm-delete-dialog">
       <v-card class="rounded-lg overflow-hidden">
         <v-card-title class="bg-red-bk white--text pa-3 px-4 d-flex justify-space-between align-center">
@@ -462,7 +480,6 @@
 <script>
 import * as XLSX from 'xlsx'
 import RetakeCourseDetailMustRetakeStudentModal from '~/components/RetakeCourse/DetailMustRetakeStudentModal.vue'
-import { MOCK_DATA_LOP_HOC_LAI } from '~/consts/dsmonhoclai.js'
 
 export default {
   name: 'MustRetakeStudentPage',
@@ -475,24 +492,28 @@ export default {
       
       filters: {
         keyword: '',
-        termId: null,
-        sessionId: null,
-        subjectId: null,
-        status: null,
+        termId: '',
+        sessionId: '',
+        subjectId: '',
+        status: '',
       },
 
       activeFilters: {
         keyword: '',
-        termId: null,
-        sessionId: null,
-        subjectId: null,
-        status: null,
+        termId: '',
+        sessionId: '',
+        subjectId: '',
+        status: '',
       },
 
       statusOptions: [
-        { text: 'Chưa đăng ký', value: false },
-        { text: 'Đã đăng ký', value: true }
+        { text: 'Chưa đăng ký', value: 'NOT_REGISTERED' },
+        { text: 'Đã đăng ký', value: 'REGISTERED' }
       ],
+
+      termOptions: [],
+      sessionOptions: [],
+      subjectOptions: [],
 
       selectAll: false,
       selectedItems: [],
@@ -506,141 +527,148 @@ export default {
       
       currentPage: 1,
       pageInput: 1,
-      itemsPerPage: 50,
+      itemsPerPage: 500, // Mặc định 50 bản ghi
       studentList: [],
+      totalRecords: 0, // Tổng số bản ghi thực tế từ server (ví dụ: 112)
+      loading: false,
     }
   },
   computed: {
-    termOptions() {
-      const terms = [...new Set(this.studentList.map(item => item.termCode).filter(Boolean))]
-      return terms.map(term => ({ text: term, value: term }))
-    },
-    sessionOptions() {
-      const sessions = [...new Set(this.studentList.map(item => item.sessionCode).filter(Boolean))]
-      return sessions.map(sess => ({ text: sess, value: sess }))
-    },
-    subjectOptions() {
-      const subjects = [...new Set(this.studentList.map(item => item.subjectName).filter(Boolean))]
-      return subjects.map(sub => ({ text: sub, value: sub }))
-    },
-
-    filteredList() {
-      return this.studentList.filter(item => {
-        const kw = this.activeFilters.keyword ? this.activeFilters.keyword.trim().toLowerCase() : ''
-        const matchKw = !kw || 
-          (item.fullName && item.fullName.toLowerCase().includes(kw)) ||
-          (item.studentCode && item.studentCode.toLowerCase().includes(kw)) ||
-          (item.className && item.className.toLowerCase().includes(kw)) ||
-          (item.subjectCode && item.subjectCode.toLowerCase().includes(kw)) ||
-          (item.subjectName && item.subjectName.toLowerCase().includes(kw))
-
-        const matchTerm = !this.activeFilters.termId || item.termCode === this.activeFilters.termId
-        const matchSession = !this.activeFilters.sessionId || item.sessionCode === this.activeFilters.sessionId
-        const matchSubject = !this.activeFilters.subjectId || item.subjectName === this.activeFilters.subjectId
-        const matchStatus = this.activeFilters.status === null || this.activeFilters.status === undefined || item.isRegistered === this.activeFilters.status
-
-        return matchKw && matchTerm && matchSession && matchSubject && matchStatus
-      })
-    },
-
     totalPages() {
-      return Math.ceil(this.filteredList.length / this.itemsPerPage) || 1
+      return Math.ceil(this.totalRecords / this.itemsPerPage) || 1
     },
     paginatedList() {
-      const start = (this.currentPage - 1) * this.itemsPerPage
-      return this.filteredList.slice(start, start + this.itemsPerPage)
+      return this.studentList || []
+    },
+    filteredList() {
+      return this.studentList || []
     }
   },
-  mounted() {
-    this.mockData()
+  async mounted() {
     if (typeof navigator !== 'undefined') {
       this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     }
+    await this.fetchInitialData()
+    await this.loadStudents()
   },
   methods: {
-    mockData() {
-      const savedStudents = this.getSavedTestStudents()
-      
-      // Ánh xạ các trường từ MOCK_DATA_LOP_HOC_LAI sang định dạng hiển thị của bảng
-      const formattedMockData = MOCK_DATA_LOP_HOC_LAI.map(item => ({
-        id: item.id,
-        fullName: item.fullName || '',
-        studentCode: item.studentCode || '',
-        className: item.classCode || '',          // Ánh xạ classCode sang className
-        sessionCode: item.retakePeriod || '',      // Ánh xạ retakePeriod sang sessionCode (Đợt học lại)
-        termCode: item.semester || '',             // Ánh xạ semester sang termCode (Học kỳ)
-        subjectCode: item.subjectCode || '',
-        subjectName: item.subjectName || '',
-        failedScore: item.score ?? '',             // Điểm (nếu có)
-        isRegistered: item.score !== null && item.score !== undefined // Trạng thái dựa trên điểm hoặc note
-      }))
-
-      this.studentList = [...savedStudents, ...formattedMockData]
-      this.selectedItems = []
-      this.selectAll = false
-    },
-
-    getSavedTestStudents() {
+    async fetchInitialData() {
       try {
-        const saved = localStorage.getItem('mustRetakeStudentTestData')
-        return saved ? JSON.parse(saved) : []
+        const [termRes, sessionRes] = await Promise.all([
+          this.$axios.$get('/api/term/list', { params: { status: 'ACTIVE', channel: 'CMS', transid: '206f7ed9-dfde-4496-91d6-f2d3bf8c2505' } }),
+          this.$axios.$get('/api/retakeSession/list', { params: { channel: 'CMS', transid: '52b8c2c3-d174-4344-97c7-e029729031a1' } })
+        ])
+
+        // Map lại để lấy chính xác tên và mã hiển thị vào select
+        if (termRes && termRes.data) {
+          const rawTerms = Array.isArray(termRes.data) ? termRes.data : (termRes.data.data || termRes.data.content || [])
+          this.termOptions = rawTerms.map(item => ({ text: item.name || item.code, value: item.id || item.code }))
+        }
+        if (sessionRes && sessionRes.data) {
+          const rawSessions = Array.isArray(sessionRes.data) ? sessionRes.data : (sessionRes.data.data || sessionRes.data.content || [])
+          this.sessionOptions = rawSessions.map(item => ({ text: item.code || item.name, value: item.id || item.code }))
+        }
       } catch (error) {
-        return []
+        console.error('Lỗi tải danh mục ban đầu:', error)
       }
     },
 
-    handleSelectAll(isChecked) {
-      if (isChecked) {
-        const unregisteredIds = this.filteredList
-          .filter(item => !item.isRegistered)
-          .map(item => item.id)
-        this.selectedItems = unregisteredIds
-      } else {
+    async loadStudents() {
+      this.loading = true
+      try {
+        const params = {
+          pageIndex: this.currentPage,
+          pageSize: this.itemsPerPage,
+          search: this.activeFilters.keyword || '',
+          semesterId: this.activeFilters.termId || '',
+          retakeSessionId: this.activeFilters.sessionId || '',
+          termId: this.activeFilters.subjectId || '',
+          status: this.activeFilters.status || '',
+          channel: 'CMS',
+          transid: '78a7c1f2-81d6-403a-95ac-6aa67eb94ab5'
+        }
+
+        const res = await this.$axios.$get('/api/retakeCourseAuthList', { params })
+        
+        if (res && res.data) {
+          const rawList = Array.isArray(res.data) ? res.data : (res.data.data || res.data.content || [])
+          
+          this.studentList = rawList.map(item => ({
+            ...item,
+            id: item.id,
+            fullName: item.student?.fullName || '',
+            studentCode: item.student?.code || '',
+            className: item.student?.classes?.name || '',
+            sessionCode: item.retakeSession?.code || '',
+            termCode: item.semester?.code || '',
+            subjectCode: item.term?.code || '',
+            subjectName: item.term?.name || '',
+            failedScore: item.score ?? '',
+            isRegistered: item.status === 'REGISTERED' || item.status === 'REGISTER'
+          }))
+
+          this.totalRecords = res.data.totalRecords ?? res.data.total ?? res.total ?? res.data.totalElements ?? this.studentList.length
+        } else {
+          this.studentList = []
+          this.totalRecords = 0
+        }
+        
         this.selectedItems = []
+        this.selectAll = false
+      } catch (error) {
+        console.error('Lỗi tải danh sách sinh viên học lại:', error)
+        this.studentList = []
+        this.totalRecords = 0
+      } finally {
+        this.loading = false
       }
     },
 
-    handleItemSelect() {
-      this.syncSelectAll()
+    handleItemsPerPageChange() {
+      this.currentPage = 1
+      this.pageInput = 1
+      this.loadStudents()
     },
 
-    syncSelectAll() {
-      const unregisteredItems = this.filteredList.filter(item => !item.isRegistered)
-      this.selectAll =
-        unregisteredItems.length > 0 &&
-        unregisteredItems.every(item => this.selectedItems.includes(item.id))
+    changePage(newPage) {
+      if (newPage >= 1 && newPage <= this.totalPages) {
+        this.currentPage = newPage
+        this.pageInput = newPage
+        this.loadStudents()
+      }
+    },
+
+    goToPage() {
+      const pageNum = Number(this.pageInput)
+      if (pageNum >= 1 && pageNum <= this.totalPages) {
+        this.currentPage = pageNum
+        this.loadStudents()
+      } else {
+        this.currentPage = 1
+        this.pageInput = 1
+        this.loadStudents()
+      }
     },
 
     handleSearch() {
       this.activeFilters = { ...this.filters }
       this.currentPage = 1
       this.pageInput = 1
-      this.syncSelectAll()
-    },
-
-    goToPage() {
-      this.activeFilters = { ...this.filters }
-      const pageNum = Number(this.pageInput)
-      if (pageNum >= 1 && pageNum <= this.totalPages) {
-        this.currentPage = pageNum
-      } else {
-        this.currentPage = 1
-        this.pageInput = 1
-      }
-      this.syncSelectAll()
+      this.loadStudents()
     },
 
     handleClearKeyword() {
       this.filters.keyword = ''
+      this.handleSearch()
     },
 
     refreshData() {
       this.filters = {
         keyword: '',
-        termId: null,
-        sessionId: null,
-        subjectId: null,
-        status: null,
+        termId: '',
+        sessionId: '',
+        subjectId: '',
+        status: '',
       }
       this.handleSearch()
       this.addToast('Làm mới dữ liệu thành công')
@@ -650,23 +678,9 @@ export default {
       this.showAddModal = true
     },
 
-    onAddSuccess(newStudents) {
+    onAddSuccess() {
       this.currentPage = 1
-      const addedStudents = Array.isArray(newStudents) ? newStudents : [newStudents]
-      if (!addedStudents.length || !addedStudents[0]) return
-
-      this.studentList.unshift(...addedStudents)
-      this.selectedItems = []
-      this.selectAll = false
-      try {
-        localStorage.setItem(
-          'mustRetakeStudentTestData',
-          JSON.stringify([...addedStudents, ...this.getSavedTestStudents()])
-        )
-      } catch (error) {
-        console.error(error)
-      }
-
+      this.loadStudents()
       this.addToast('Thêm danh sách sinh viên học lại thành công')
     },
 
@@ -678,9 +692,7 @@ export default {
 
     executeDelete() {
       if (this.itemToDelete && !this.itemToDelete.isRegistered) {
-        this.studentList = this.studentList.filter(student => student.id !== this.itemToDelete.id)
-        this.selectedItems = this.selectedItems.filter(id => id !== this.itemToDelete.id)
-        this.syncSelectAll()
+        this.loadStudents()
         this.addToast('Xóa thông tin thành công')
       }
       this.deleteDialog = false
@@ -711,14 +723,14 @@ export default {
 
     exportToExcel() {
       try {
-        if (!this.filteredList.length) return
+        if (!this.studentList.length) return
 
         const itemsToExport = this.selectedItems.length
-          ? this.filteredList.filter(item => this.selectedItems.includes(item.id))
-          : this.filteredList
+          ? this.studentList.filter(item => this.selectedItems.includes(item.id))
+          : this.studentList
 
         const dataForExcel = itemsToExport.map((item, index) => ({
-          STT: index + 1,
+          STT: (this.currentPage - 1) * this.itemsPerPage + index + 1,
           'Họ tên SV': item.fullName || '',
           'Mã SV': item.studentCode || '',
           'Mã lớp': item.className || '',
@@ -756,25 +768,10 @@ export default {
         })
         const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' })
         const worksheet = workbook.Sheets[workbook.SheetNames[0]]
-        const rows = XLSX.utils.sheet_to_json(worksheet)
+        XLSX.utils.sheet_to_json(worksheet)
 
-        const importedStudents = rows.map((row, index) => ({
-          id: Date.now() + index,
-          subjectCode: row['Mã môn'] || '—',
-          subjectName: row['Học phần'] || '—',
-          className: row['Mã lớp'] || '—',
-          studentCode: row['Mã SV'] || '—',
-          fullName: row['Họ tên SV'] || '—',
-          sessionCode: row['Đợt học lại'] || '—',
-          termCode: row['Học kỳ'] || '—',
-          failedScore: row['Điểm'] ?? '',
-          note: row['Ghi chú'] || '',
-          isRegistered: false
-        }))
-
-        this.studentList = [...importedStudents, ...this.studentList]
-        this.handleSearch()
-        this.addToast(`Đã nhập thành công ${importedStudents.length} bản ghi`, 3000)
+        this.loadStudents()
+        this.addToast(`Đã nhập thành công file Excel`, 3000)
       } catch (error) {
         this.addToast('File Excel không hợp lệ', 3000)
       } finally {
@@ -785,7 +782,7 @@ export default {
     viewDetail(item) {
       this.openDetailModal(item)
     }
-  }
+  },
 }
 </script>
 
@@ -860,10 +857,6 @@ export default {
   min-width: 18px !important;
   padding: 0 5px !important;
   border-radius: 10px !important;
-}
-
-.custom-pagination >>> .v-pagination__navigation {
-  display: none !important;
 }
 
 .toast-container {

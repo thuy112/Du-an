@@ -7,7 +7,6 @@
       </div>
 
       <div class="d-flex align-center gap-2">
-        <!-- Thêm clearable để hiện nút X xoá nhanh, xoá @keyup.enter -->
         <v-text-field
           v-model="filters.fullName"
           placeholder="Họ tên"
@@ -19,7 +18,6 @@
           class="bg-white rounded custom-input"
         ></v-text-field>
 
-        <!-- Thêm clearable để hiện nút X xoá nhanh, xoá @keyup.enter -->
         <v-text-field
           v-model="filters.email"
           placeholder="Email"
@@ -31,7 +29,6 @@
           class="bg-white rounded custom-input"
         ></v-text-field>
 
-        <!-- Xoá @change -->
         <v-select
           v-model="filters.status"
           :items="statusOptions"
@@ -50,7 +47,6 @@
           <v-icon color="#a2212b">mdi-refresh</v-icon>
         </v-btn>
 
-        <!-- Nút tìm kiếm (Kính lúp) -->
         <v-btn color="#a2212b" dark elevation="0" class="min-w-0 px-3 rounded-sm" @click="searchUsers">
           <v-icon small>mdi-magnify</v-icon>
         </v-btn>
@@ -61,7 +57,7 @@
       </div>
     </div>
 
-    <!-- Bảng dữ liệu: Đã thay thế v-data-table bằng BaseTable -->
+    <!-- Bảng dữ liệu -->
     <div class="w-100">
       <div class="table-scroll-panel">
         <BaseTable
@@ -91,12 +87,10 @@
             </div>
           </template>
 
-          <!-- Render list groups thay vì roleName -->
           <template #[`item.groups`]="{ item }">
             <span class="text-body-2">{{ formatGroups(item.groups) }}</span>
           </template>
 
-          <!-- Xử lý select trạng thái ACTIVE / INACTIVE -->
           <template #[`item.status`]="{ item }">
             <v-select
               :value="item.status"
@@ -113,7 +107,6 @@
             ></v-select>
           </template>
 
-          <!-- Menu 3 chấm -->
           <template #[`item.actions`]="{ item }">
             <v-menu offset-y left transition="scale-transition">
               <template #activator="{ on, attrs }">
@@ -188,7 +181,6 @@
           @keyup.enter="goToPage"
         ></v-text-field>
 
-        <!-- Nút Đi -->
         <v-btn color="#a2212b" dark small class="text-capitalize px-3 rounded-sm elevation-0" @click="goToPage">Đi</v-btn>
         
         <v-btn icon :disabled="page <= 1" @click="page--"><v-icon>mdi-chevron-left</v-icon></v-btn>
@@ -268,7 +260,7 @@
         </v-card-title>
         <v-card-text class="pt-4 pb-2 px-6">
           <div class="d-flex align-center justify-space-between mb-3">
-            <span class="body-1 font-weight-bold red--text text--darken-3">Danh sách lớp sinh viên (15/187)</span>
+            <span class="body-1 font-weight-bold red--text text--darken-3">Danh sách lớp sinh viên ({{ classListSample.length }})</span>
             <div class="d-flex gap-2">
               <v-text-field placeholder="Tên/Mã lớp sinh viên" outlined dense hide-details clearable style="width: 200px"></v-text-field>
               <v-btn icon color="#a2212b" class="border-btn rounded-sm"><v-icon>mdi-refresh</v-icon></v-btn>
@@ -339,7 +331,7 @@
         </v-card-title>
         <v-card-text class="pt-4 pb-2 px-6">
           <div class="d-flex align-center justify-space-between mb-3">
-            <span class="body-1 font-weight-bold red--text text--darken-3">Danh sách lớp sinh viên (15)</span>
+            <span class="body-1 font-weight-bold red--text text--darken-3">Danh sách lớp sinh viên ({{ managedClassListSample.length }})</span>
             <div class="d-flex gap-2">
               <v-text-field placeholder="Tên/Mã lớp sinh viên" outlined dense hide-details clearable style="width: 200px"></v-text-field>
               <v-btn icon color="#a2212b" class="border-btn rounded-sm"><v-icon>mdi-refresh</v-icon></v-btn>
@@ -598,6 +590,9 @@ export default {
     totalPages() {
       return Math.ceil(this.totalItems / this.itemsPerPage) || 1
     },
+    filteredUsers() {
+      return Array.isArray(this.users) ? this.users : []
+    }
   },
   watch: {
     page(val) { this.pageInput = val },
@@ -605,10 +600,10 @@ export default {
   async mounted() {
     await Promise.all([
       this.fetchUsers(),
+      this.fetchPageRole(),
       this.fetchGroups(),
       this.fetchClasses(),
-      this.fetchUserInfo(),
-      this.fetchPageRole()
+      this.fetchUserInfo()
     ])
   },
   methods: {
@@ -618,26 +613,29 @@ export default {
         const params = {
           pageIndex: this.page,
           pageSize: this.itemsPerPage,
-          fullName: this.activeFilters.fullName || '',
-          email: this.activeFilters.email || '',
-          status: this.activeFilters.status || '',
           channel: 'CMS'
         }
+
+        if (this.activeFilters.fullName) params.fullName = this.activeFilters.fullName
+        if (this.activeFilters.email) params.email = this.activeFilters.email
+        if (this.activeFilters.status) params.status = this.activeFilters.status
+
         const res = await this.$axios.$get('/api/user/list', { params })
         
-        // Bóc tách an toàn mọi cấu trúc response từ API (đề phòng trả về null, undefined hoặc object thuần)
         const responseData = res?.data ?? res?.items ?? res
         const list = Array.isArray(responseData) 
           ? responseData 
-          : (Array.isArray(responseData?.items) ? responseData.items : (Array.isArray(responseData?.data) ? responseData.data : []))
+          : (Array.isArray(responseData?.items) 
+              ? responseData.items 
+              : (Array.isArray(responseData?.data) ? responseData.data : []))
         
         this.users = list.map((item, index) => ({
           ...item,
           stt: (this.page - 1) * this.itemsPerPage + index + 1
         }))
 
-        this.paginatedUsers = this.users
-        this.totalItems = res?.total || res?.data?.total || res?.totalItems || this.users.length
+        this.paginatedUsers = [...this.users]
+        this.totalItems = res?.total ?? res?.data?.total ?? res?.totalItems ?? (this.users ? this.users.length : 0)
       } catch (err) {
         console.error('Lỗi khi tải danh sách người dùng:', err)
         this.users = []
@@ -645,42 +643,6 @@ export default {
         this.totalItems = 0
       } finally {
         this.loading = false
-      }
-    },
-
-    async fetchGroups() {
-      try {
-        const res = await this.$axios.$get('/api/auth/group', { params: { channel: 'CMS' } })
-        const list = Array.isArray(res?.data) ? res.data : (res || [])
-        this.roleOptions = list.map(g => g.groupName || g.name || g)
-      } catch (err) {
-        console.error('Lỗi khi tải nhóm quyền:', err)
-      }
-    },
-
-    async fetchClasses() {
-      try {
-        const res = await this.$axios.$get('/api/classes/list', { params: { pageSize: 100, pageIndex: 1, status: 'ACTIVE', channel: 'CMS' } })
-        const list = Array.isArray(res?.data) ? res.data : (res?.data?.items || res || [])
-        this.classListSample = list.map(c => ({
-          selected: false,
-          code: c.code,
-          name: c.name,
-          type: c.trainingType || '',
-          location: c.location || '',
-          major: c.majorName || '',
-          course: c.courseName || ''
-        }))
-      } catch (err) {
-        console.error('Lỗi khi tải danh sách lớp:', err)
-      }
-    },
-
-    async fetchUserInfo() {
-      try {
-        await this.$axios.$get('/api/user/info', { params: { channel: 'CMS' } })
-      } catch (err) {
-        console.error('Lỗi khi lấy thông tin user info:', err)
       }
     },
 
@@ -692,9 +654,55 @@ export default {
       }
     },
 
+    async fetchGroups() {
+      try {
+        const res = await this.$axios.$get('/api/auth/group', { params: { channel: 'CMS' } })
+        const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : [])
+        this.roleOptions = list.map(g => g?.groupName || g?.name || String(g || ''))
+      } catch (err) {
+        console.error('Lỗi khi tải nhóm quyền:', err)
+      }
+    },
+
+    async fetchClasses() {
+      try {
+        const res = await this.$axios.$get('/api/classes/list', { 
+          params: { pageSize: 100, pageIndex: 1, status: 'ACTIVE', channel: 'CMS' } 
+        })
+        const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res?.data?.items) ? res.data.items : (Array.isArray(res) ? res : []))
+        
+        this.classListSample = list.map(c => ({
+          selected: false,
+          code: c?.code || '',
+          name: c?.name || '',
+          type: c?.trainingType || '',
+          location: c?.location || '',
+          major: c?.majorName || '',
+          course: c?.courseName || ''
+        }))
+        
+        this.managedClassListSample = [...this.classListSample]
+      } catch (err) {
+        console.error('Lỗi khi tải danh sách lớp:', err)
+      }
+    },
+
+    async fetchUserInfo() {
+      try {
+        await this.$axios.$get('/api/user/info', { params: { channel: 'CMS' } })
+      } catch (err) {
+        console.error('Lỗi khi lấy thông tin người dùng:', err)
+      }
+    },
+
     formatGroups(groups) {
-      if (!groups || !Array.isArray(groups)) return '';
-      return groups.map(g => (g.groupName || g.name || '').trim()).filter(Boolean).join(', ');
+      if (!groups) return ''
+      if (typeof groups === 'string') return groups
+      if (!Array.isArray(groups)) return ''
+      return groups
+        .map(g => (typeof g === 'string' ? g : (g?.groupName || g?.name || '')).trim())
+        .filter(Boolean)
+        .join(', ')
     },
 
     searchUsers() { 
@@ -744,7 +752,6 @@ export default {
           if (idx !== -1) {
             this.$set(this.users[idx], 'status', this.pendingStatusValue)
           }
-          console.log(`Đã cập nhật ${this.targetUser.fullName} thành: ${this.pendingStatus}`)
         } catch (err) {
           console.error('Lỗi khi cập nhật trạng thái:', err)
         }
@@ -764,19 +771,32 @@ export default {
       this.pendingStatusValue = ''
     },
 
-    openDetailModal(item) { this.selectedUser = item; this.dialogs.detail = true },
-    openGanLopModal(item) { this.selectedUser = item; this.dialogs.ganLop = true },
-    openPhanQuyenModal(item) { this.selectedUser = item; this.dialogs.phanQuyen = true },
-    openLopQuanLyModal(item) { this.selectedUser = item; this.dialogs.lopQuanLy = true },
+    openDetailModal(item) { this.selectedUser = item || {}; this.dialogs.detail = true },
+    
+    openGanLopModal(item) { 
+      this.selectedUser = item || {}
+      // Đồng bộ trạng thái đã gán lớp cho user cụ thể nếu có
+      const assignedClassCodes = item?.classes || item?.assignedClasses || []
+      this.classListSample.forEach(c => {
+        c.selected = assignedClassCodes.includes(c.code)
+      })
+      this.dialogs.ganLop = true 
+    },
+    
+    openPhanQuyenModal(item) { this.selectedUser = item || {}; this.dialogs.phanQuyen = true },
+    
+    openLopQuanLyModal(item) { 
+      this.selectedUser = item || {}
+      this.dialogs.lopQuanLy = true 
+    },
     
     openResetPasswordModal(item) { 
-      this.selectedUser = item
+      this.selectedUser = item || {}
       this.showRegisteredPassword = false
       this.dialogs.resetPass = true 
     },
 
     confirmResetPassword() {
-      console.log(`Đã reset mật khẩu cho ${this.selectedUser.email} về:`, this.resetPassword)
       this.dialogs.resetPass = false
     },
 
@@ -792,7 +812,8 @@ export default {
     openEditModal(item) {
       this.isEdit = true
       this.showPassword = false
-      const mappedRoles = item.groups ? item.groups.map(g => (g.groupName || g.name || '').trim()) : []
+      const rawGroups = Array.isArray(item?.groups) ? item.groups : []
+      const mappedRoles = rawGroups.map(g => (typeof g === 'string' ? g : (g?.groupName || g?.name || '')).trim())
       
       this.form = {
         ...item,
@@ -805,7 +826,7 @@ export default {
     saveUser() {
       if (!this.$refs.userForm.validate()) return
 
-      const mappedGroups = this.form.roles.map((r, i) => ({ id: i + 100, groupName: r }))
+      const mappedGroups = (this.form.roles || []).map((r, i) => ({ id: i + 100, groupName: r }))
 
       if (this.isEdit) {
         const idx = this.users.findIndex((u) => u.id === this.form.id)
@@ -834,7 +855,7 @@ export default {
     confirmDelete() {
       if (this.deleteTargetUser) {
         this.users = this.users.filter((user) => user.id !== this.deleteTargetUser.id)
-        this.paginatedUsers = this.users
+        this.paginatedUsers = [...this.users]
       }
       this.cancelDelete()
     },
@@ -844,7 +865,7 @@ export default {
     },
     triggerSelectFile() { this.$refs.fileInput.click() },
     handleFileUpload(e) {
-      const file = e.target.files[0]
+      const file = e.target.files?.[0]
       if (file) this.form.avatar = URL.createObjectURL(file)
     },
   },

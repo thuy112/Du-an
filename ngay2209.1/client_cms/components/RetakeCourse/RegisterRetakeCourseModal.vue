@@ -322,7 +322,7 @@ export default {
         className: item.clazz?.name || '',
         majorName: item.clazz?.majorName || 'Công nghệ thông tin',
         trainingType: item.clazz?.trainingUnitName || 'Chính quy',
-        displayText: `${item.code || ''} - ${item.fullName || ''}`
+        displayText: `${item.code || (item.student && item.student.code) || ''} - ${item.fullName || (item.student && item.student.fullName) || ''}`
       }))
     },
     canSave() {
@@ -422,7 +422,8 @@ export default {
           studentCode: this.selectedStudent?.studentCode,
           sessionId: this.form.sessionId,
           subjects: this.selectedSubjects,
-          totalPrice: this.calculatedTotalPrice
+          totalPrice: this.calculatedTotalPrice,
+          channel: 'CMS'
         }
 
         this.$emit('success', {

@@ -63,8 +63,13 @@ export default {
   },
 
   // QUAN TRỌNG: Đặt baseURL là '/' để gọi qua cơ chế định tuyến ngầm của Vercel, triệt tiêu lỗi CORS/Mixed Content
+  modules: [
+    '@nuxtjs/axios',
+    '@nuxtjs/style-resources',
+  ],
+
   axios: {
-    proxy: true, // Bật proxy lên khi chạy local
+    proxy: true, // Bật proxy cho môi trường dev/local
     baseURL: '/',
   },
 

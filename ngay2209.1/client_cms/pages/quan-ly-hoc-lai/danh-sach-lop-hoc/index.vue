@@ -1,15 +1,15 @@
 <template>
-  <v-container fluid class="pa-0 bg-white fill-height align-stretch flex-column overflow-hidden" :class="{ 'is-mobile-device': isMobileDevice }">
+  <v-container fluid class="pa-0 bg-white fill-height align-stretch flex-column overflow-hidden">
     <!-- Layout tổng thể Flexbox cố định full chiều cao viewport làm việc -->
     <div class="main-page-layout">
-      <!-- 1. THANH BỘ LỌC TÌM KIẾM (CỐ ĐỊNH PHÍA TRÊN) -->
+      <!-- 1. THANH BỘ LỌC TÌM KIẾM (CỐ ĐỊNH 1 HÀNG PHÍA TRÊN) -->
       <div class="sticky-filter-bar filter-bar-container px-4 py-3 bg-white shrink-0">
-        <div class="d-flex align-md-center justify-space-between flex-wrap gap-3 flex-column flex-md-row">
-          <div class="filter-title text-body-1 font-weight-medium text-gray-900 pb-1 pb-md-0">
+        <div class="d-flex align-center justify-space-between flex-nowrap gap-2 w-100">
+          <div class="filter-title text-body-1 font-weight-medium text-gray-900 text-no-wrap shrink-0">
             Danh sách lớp học lại <span class="count-number">({{ totalItems }})</span>
           </div>
 
-          <div class="d-flex align-center filter-controls flex-wrap">
+          <div class="d-flex align-center filter-controls flex-nowrap gap-2">
             <v-text-field
               v-model="filters.className"
               placeholder="Tên lớp học lại"
@@ -17,7 +17,7 @@
               dense
               clearable
               hide-details
-              class="custom-filter-input input-text-name flex-grow-1 flex-md-grow-0"
+              class="custom-filter-input input-text-name"
               @keyup.enter="handleSearch"
               @click:clear="handleSearch"
             ></v-text-field>
@@ -32,8 +32,8 @@
               dense
               clearable
               hide-details
-              class="custom-filter-input input-select-session flex-grow-1 flex-md-grow-0"
-              @change="handleSearch"
+              menu-props="auto"
+              class="custom-filter-input input-select-session"
             ></v-select>
 
             <v-select
@@ -44,23 +44,25 @@
               dense
               clearable
               hide-details
-              class="custom-filter-input input-select-course flex-grow-1 flex-md-grow-0"
-              @change="handleSearch"
+              menu-props="auto"
+              class="custom-filter-input input-select-course"
             ></v-select>
 
             <v-select
               v-model="filters.coefficient"
               :items="coefficientOptions"
+              item-text="text"
+              item-value="value"
               placeholder="Hệ số"
               outlined
               dense
               clearable
               hide-details
-              class="custom-filter-input input-select-coeff flex-grow-1 flex-md-grow-0"
-              @change="handleSearch"
+              menu-props="auto"
+              class="custom-filter-input input-select-coeff"
             ></v-select>
 
-            <div class="d-flex align-center filter-action-buttons gap-2 mt-2 mt-md-0 w-100 w-md-auto">
+            <div class="d-flex align-center filter-action-buttons gap-2 shrink-0">
               <RetakeCourseRetakeSessionFilter
                 ref="retakeSessionFilterModal"
                 @apply-filter="handleAdvancedFilter"
@@ -85,15 +87,16 @@
         </div>
       </div>
 
-      <!-- 2. KHU VỰC BẢNG DỮ LIỆU (CÓ THANH CUỘN LƯỚT XEM DANH SÁCH) -->
+      <!-- 2. KHU VỰC BẢNG DỮ LIỆU (CÓ THANH CUỘN LƯỚT XEM DANH SÁCH BÊN TRONG) -->
       <div class="scrollable-table-area flex-grow-1 overflow-y-auto">
         <BaseTable
           :headers="headers"
           :items="appliedData"
           :loading="loading"
+          :items-per-page="Number(itemsPerPage)"
+          :page="page"
           hide-default-footer
           fixed-header
-          :mobile-breakpoint="isMobileDevice ? 960 : 0"
           class="custom-table border-0"
         >
           <!-- GIAO DIỆN NO DATA -->
@@ -101,14 +104,14 @@
             <div class="py-10 text-center grey--text">Không có dữ liệu</div>
           </template>
 
-          <!-- STT -->
+          <!-- STT chuẩn theo phân trang -->
           <template v-slot:[`item.stt`]="{ index }">
             {{ (page - 1) * itemsPerPage + index + 1 }}
           </template>
 
           <!-- Mã lớp -->
           <template v-slot:[`item.maLop`]="{ item }">
-            <span class="font-weight-medium" :class="isMobileDevice ? 'text-red-bk' : 'text-gray-700'">{{ item.maLop }}</span>
+            <span class="font-weight-medium text-gray-700">{{ item.maLop }}</span>
           </template>
 
           <!-- Loại lớp -->
@@ -130,7 +133,7 @@
 
           <!-- Học phần -->
           <template v-slot:[`item.hocPhan`]="{ item }">
-            <div class="py-1" :class="isMobileDevice ? 'text-right' : 'text-left'">
+            <div class="py-1 text-left">
               <div class="font-weight-bold text-caption text-gray-800">{{ item.hocPhanCode }}</div>
               <div class="text-caption text-gray-600 line-clamp-2">{{ item.hocPhanName }}</div>
             </div>
@@ -138,7 +141,9 @@
 
           <!-- Số lượng sinh viên -->
           <template v-slot:[`item.soLuongSv`]="{ item }">
-            {{ item.minSv }}/{{ item.maxSv }}
+            <span :class="{ 'red--text font-weight-bold': item.svDangKy > item.maxSv }">
+              {{ item.svDangKy }}/{{ item.maxSv }}
+            </span>
           </template>
 
           <!-- Thời gian -->
@@ -151,7 +156,7 @@
 
           <!-- Trạng thái duyệt danh sách -->
           <template v-slot:[`item.trangThaiDuyet`]="{ item }">
-            <div :class="isMobileDevice ? 'd-flex justify-end' : ''">
+            <div>
               <v-select
                 v-model="item.trangThaiDuyet"
                 :items="approvalOptions"
@@ -161,8 +166,8 @@
                 outlined
                 hide-details
                 menu-props="auto"
-                append-icon="mdi-menu-down"
-                :disabled="updatingClassIds.includes(item.id)"
+                :append-icon="(item.trangThaiDuyet === 'Đã duyệt danh sách' && item.examStatus === 'Đã có điểm') ? '' : 'mdi-menu-down'"
+                :disabled="updatingClassIds.includes(item.id) || (item.trangThaiDuyet === 'Đã duyệt danh sách' && item.examStatus === 'Đã có điểm')"
                 :class="[
                   'status-pill-select',
                   item.trangThaiDuyet === 'Đã duyệt danh sách' ? 'pill-green-solid' : 'pill-orange-solid'
@@ -173,8 +178,8 @@
           </template>
 
           <!-- Trạng thái bảng điểm -->
-          <template v-slot:[`item.trangThaiBangDiem`]="{ item }">
-            <div :class="isMobileDevice ? 'd-flex justify-end' : ''">
+          <template v-slot:[`item.examStatus`]="{ item }">
+            <div>
               <v-select
                 v-model="item.examStatus"
                 :items="gradeOptions"
@@ -184,8 +189,8 @@
                 outlined
                 hide-details
                 menu-props="auto"
-                append-icon="mdi-menu-down"
-                :disabled="updatingClassIds.includes(item.id)"
+                :append-icon="(item.trangThaiDuyet === 'Đã duyệt danh sách' && item.examStatus === 'Đã có điểm') ? '' : 'mdi-menu-down'"
+                :disabled="updatingClassIds.includes(item.id) || (item.trangThaiDuyet === 'Đã duyệt danh sách' && item.examStatus === 'Đã có điểm')"
                 :class="[
                   'status-pill-select',
                   getGradePillClass(item.examStatus)
@@ -197,7 +202,7 @@
 
           <!-- Chức năng -->
           <template v-slot:[`item.chucNang`]="{ item }">
-            <div :class="isMobileDevice ? 'd-flex justify-end border-none' : ''">
+            <div>
               <v-menu offset-y left transition="scale-transition">
                 <template v-slot:activator="{ on, attrs }">
                   <v-btn icon small v-bind="attrs" class="action-dots-btn" v-on="on">
@@ -213,14 +218,14 @@
                     <v-list-item-title class="text-caption">Chi tiết</v-list-item-title>
                   </v-list-item>
 
-                  <v-list-item v-if="canExportApprovedClass(item)" @click="handleExportDSSV(item)">
+                  <v-list-item v-if="getPermissions(item).showExportSV" @click="handleExportDSSV(item)">
                     <v-list-item-icon class="mr-2 my-auto">
                       <v-icon size="20" small color="#52c41a">mdi-export</v-icon>
                     </v-list-item-icon>
                     <v-list-item-title class="text-caption">Xuất danh sách SV</v-list-item-title>
                   </v-list-item>
 
-                  <v-list-item v-if="canExportApprovedClass(item)" @click="navigateToGradeSheet(item)">
+                  <v-list-item v-if="getPermissions(item).showGradesSheet" @click="navigateToGradeSheet(item)">
                     <v-list-item-icon class="mr-2 my-auto">
                       <v-icon size="20" small color="#722ed1">mdi-table</v-icon>
                     </v-list-item-icon>
@@ -242,12 +247,12 @@
 
       <!-- 3. THANH FOOTER PHÂN TRANG (CỐ ĐỊNH PHÍA DƯỚI) -->
       <div class="custom-footer-bar pa-3 bg-white d-flex align-center justify-space-between flex-wrap gap-3 shrink-0">
-        <div class="d-flex align-center w-mobile-100">
+        <div class="d-flex align-center">
           <v-btn
             color="#42b858"
             dark
             elevation="0"
-            class="btn-export-green text-none font-weight-bold w-mobile-100"
+            class="btn-export-green text-none font-weight-bold"
             @click="exportSummaryToExcel"
           >
             <v-icon left size="18">mdi-export</v-icon>
@@ -255,7 +260,7 @@
           </v-btn>
         </div>
 
-        <div class="d-flex align-center flex-wrap justify-end gap-2 w-mobile-100">
+        <div class="d-flex align-center flex-wrap justify-end gap-2">
           <div class="d-flex align-center gap-2">
             <v-select
               v-model="itemsPerPage"
@@ -289,7 +294,7 @@
             </v-btn>
           </div>
 
-          <div class="d-flex align-center gap-1 mt-2 mt-sm-0">
+          <div class="d-flex align-center gap-1">
             <v-btn
               outlined
               small
@@ -326,59 +331,112 @@
       </div>
     </div>
 
-    <!-- DIALOGS VÀ TOAST -->
-    <div class="toast-queue-container">
-      <transition-group name="toast-list" tag="div">
-        <div
-          v-for="toast in toastList"
-          :key="toast.id"
-          class="custom-toast-item d-flex flex-column mb-2"
-          :class="toast.color === '#C62828' ? 'toast-error' : 'toast-success'"
-        >
-          <div class="toast-content d-flex align-center justify-space-between px-4 py-3">
-            <div class="d-flex align-center mr-3">
-              <v-icon left color="white" size="20">
-                {{ toast.color === '#C62828' ? 'mdi-alert-circle-outline' : 'mdi-check-circle-outline' }}
-              </v-icon>
-              <span class="toast-text font-weight-medium white--text">{{ toast.message }}</span>
-            </div>
-            <v-btn
-              icon
-              dark
-              x-small
-              class="ma-0 close-toast-btn"
-              aria-label="Đóng thông báo"
-              @click="removeToast(toast.id)"
-            >
-              <v-icon size="16">mdi-close</v-icon>
-            </v-btn>
-          </div>
-          <div class="toast-progress-bar-container">
-            <div class="toast-progress-bar" :style="{ width: toast.progress + '%' }"></div>
-          </div>
-        </div>
-      </transition-group>
-    </div>
-
+    <!-- DIALOGS -->
     <RetakeCourseDetailModal
       v-model="detailModal.show"
       :detail-data="detailModal.data"
       :loading="detailModal.loading"
       :error="detailModal.error"
     />
-    <RetakeCourseAssignTeacherModal
-      v-model="assignTeacherModal.show"
-      :class-item="assignTeacherModal.item"
-      :saving="assignTeacherModal.saving"
-      @assigned="saveTeacherAssignment"
-    />
+
+    <!-- MODAL GÁN GIẢNG VIÊN VỚI GIAO DIỆN 2 DÒNG -->
+    <v-dialog v-model="assignTeacherModal.show" max-width="600px" persistent>
+      <v-card class="rounded-lg">
+        <v-card-title class="headline white--text py-3 px-4 d-flex align-center justify-space-between" style="background-color: #a2212b;">
+          <span class="text-subtitle-1 font-weight-bold">Gán giảng viên</span>
+          <v-btn icon dark small class="ma-0" @click="assignTeacherModal.show = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-5 pt-7 bg-white">
+          <v-form ref="assignForm">
+            <!-- Giảng viên chính -->
+            <div class="mb-5">
+              <v-select
+                v-model="assignTeacherModal.mainTeacherId"
+                :items="teacherOptions"
+                item-text="fullName"
+                item-value="id"
+                label="Giảng viên chính (*)"
+                outlined
+                dense
+                clearable
+                hide-details="auto"
+                class="custom-teacher-select"
+                menu-props="auto"
+              >
+                <template v-slot:selection="{ item }">
+                  <span class="text-body-2 font-weight-medium text-gray-800">
+                    {{ item.fullName }} - {{ item.email }}
+                  </span>
+                </template>
+
+                <template v-slot:item="{ item }">
+                  <div class="py-2 w-100">
+                    <div class="font-weight-bold text-body-2 text-gray-900">
+                      {{ item.fullName }} - <span class="font-weight-regular text-lowercase">{{ item.email }}</span>
+                    </div>
+                    <div class="text-caption grey--text text--darken-1 mt-1">
+                      Mã GV: {{ item.code || '---' }} - {{ item.workUnitName || item.unitName || item.unit || '---' }}
+                    </div>
+                  </div>
+                </template>
+              </v-select>
+            </div>
+
+            <!-- Trợ giảng -->
+            <div>
+              <v-select
+                v-model="assignTeacherModal.assistantTeacherId"
+                :items="teacherOptions"
+                item-text="fullName"
+                item-value="id"
+                label="Trợ giảng (tùy chọn)"
+                outlined
+                dense
+                clearable
+                hide-details="auto"
+                class="custom-teacher-select"
+                menu-props="auto"
+              >
+                <template v-slot:selection="{ item }">
+                  <span class="text-body-2 font-weight-medium text-gray-800">
+                    {{ item.fullName }} - {{ item.email }}
+                  </span>
+                </template>
+
+                <template v-slot:item="{ item }">
+                  <div class="py-2 w-100">
+                    <div class="font-weight-bold text-body-2 text-gray-900">
+                      {{ item.fullName }} - <span class="font-weight-regular text-lowercase">{{ item.email }}</span>
+                    </div>
+                    <div class="text-caption grey--text text--darken-1 mt-1">
+                      Mã GV: {{ item.code || '---' }} - {{ item.workUnitName || item.unitName || item.unit || '---' }}
+                    </div>
+                  </div>
+                </template>
+              </v-select>
+            </div>
+          </v-form>
+        </v-card-text>
+
+        <v-card-actions class="px-5 pb-5 pt-0 justify-end bg-white">
+          <v-btn outlined small class="text-none px-4 border-btn" @click="assignTeacherModal.show = false">
+            Đóng <v-icon right small>mdi-close</v-icon>
+          </v-btn>
+          <v-btn color="#a2212b" dark small elevation="0" class="text-none px-5 font-weight-bold" :loading="assignTeacherModal.saving" @click="saveTeacherAssignment">
+            Lưu <v-icon right small>mdi-content-save</v-icon>
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
 <script>
 import * as XLSX from 'xlsx'
 import BaseTable from '~/components/Base/BaseTable.vue'
-import AssignTeacherModal from '~/components/RetakeCourse/AssignTeacherModal.vue'
 import RetakeCourseDetailModal from '~/components/RetakeCourse/RetakeCourseDetailModal.vue'
 import RetakeSessionFilterModal from '~/components/RetakeCourse/RetakeSessionFilterModal.vue'
 
@@ -386,7 +444,6 @@ export default {
   name: 'DanhSachLopHocLai',
   components: {
     BaseTable,
-    RetakeCourseAssignTeacherModal: AssignTeacherModal,
     RetakeCourseDetailModal,
     RetakeCourseRetakeSessionFilter: RetakeSessionFilterModal,
   },
@@ -400,8 +457,8 @@ export default {
       totalItems: 0,
 
       toastList: [],
-      toastDuration: 3000,
       updatingClassIds: [],
+      teacherOptions: [],
       userInfo: null,
       pageRoles: null,
 
@@ -415,6 +472,8 @@ export default {
         show: false,
         item: null,
         saving: false,
+        mainTeacherId: null,
+        assistantTeacherId: null,
       },
       approvalOptions: [
         { text: 'Chưa duyệt danh sách', value: 'Chưa duyệt danh sách' },
@@ -446,7 +505,7 @@ export default {
         { text: 'Thanh toán giảng dạy', value: 'thanhToan', width: '80px', align: 'center', sortable: false },
         { text: 'Đợt học lại', value: 'dotHocLai', width: '90px', align: 'center', sortable: false },
         { text: 'Học phần', value: 'hocPhan', width: '170px', sortable: false },
-        { text: 'Số lượng sinh viên', value: 'quantityText', width: '110px', align: 'center', sortable: false },
+        { text: 'Số lượng sinh viên', value: 'soLuongSv', width: '110px', align: 'center', sortable: false },
         { text: 'Số lượng SV đăng ký', value: 'svDangKy', width: '100px', align: 'center', sortable: false },
         { text: 'Thời gian', value: 'thoiGian', width: '130px', align: 'center', sortable: false },
         { text: 'Trạng thái duyệt danh sách', value: 'trangThaiDuyet', width: '210px', align: 'center', sortable: false },
@@ -470,7 +529,6 @@ export default {
       this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     }
 
-    // Gọi đúng toàn bộ các endpoint không bị trùng lặp
     await Promise.all([
       this.fetchUserInfo(),
       this.fetchPageRole(),
@@ -482,17 +540,199 @@ export default {
     ])
   },
 
-  beforeDestroy() {
-    this.toastList.forEach((toast) => clearInterval(toast.timer))
-  },
-
   methods: {
-    canExportApprovedClass(item) {
-      return (
-        item.hasBeenApproved ||
-        item.approvalStatus === 'ACTIVE' ||
-        item.trangThaiDuyet === 'Đã duyệt danh sách'
-      )
+    getPermissions(item) {
+      const isApproved = item.trangThaiDuyet === 'Đã duyệt danh sách' || item.hasBeenApproved === true
+      const hasTeacher = item.teacherId !== null && item.teacherId !== undefined && item.teacherId !== ''
+
+      return {
+        showDetail: true,
+        showExportSV: isApproved,
+        showGradesSheet: isApproved,
+        showAssignTeacher: !hasTeacher,
+      }
+    },
+
+    handleViewDetail(item) {
+      this.detailModal.show = true
+      this.detailModal.loading = false
+      this.detailModal.error = ''
+
+      const raw = item.original || item || {}
+      const studentTerms = raw.registerStudentTerms || []
+
+      // Trích xuất dữ liệu sinh viên từ JSON registerStudentTerms -> registerStudentExam
+      const studentList = studentTerms.map((termItem, index) => {
+        const studentInfo = termItem.registerStudentExam || {}
+        const courseObj = studentInfo.course || {}
+        const clazzObj = studentInfo.clazz || {}
+
+        const fullName = studentInfo.fullName || termItem.name || ''
+        const code = studentInfo.code || ''
+        const email = studentInfo.email || ''
+        const phone = studentInfo.phone || ''
+
+        // Map Enum gender từ tiếng Anh sang tiếng Việt
+        let gender = 'Khác'
+        if (studentInfo.gender === 'MALE') {
+          gender = 'Nam'
+        } else if (studentInfo.gender === 'FEMALE') {
+          gender = 'Nữ'
+        }
+
+        const courseName = courseObj.name || '---'
+        const className = clazzObj.name || clazzObj.code || '---'
+
+        return {
+          stt: index + 1,
+          fullName,
+          code,
+          email,
+          phone,
+          gender,
+          courseName,
+          className,
+        }
+      })
+
+      const mainTeacherName = item.mainTeacherName || raw.mainTeacher?.fullName || raw.teacher?.fullName || ''
+      const assistantTeacherName = item.assistantTeacherName || raw.assistantTeacher?.fullName || ''
+
+      this.detailModal.data = {
+        ...raw,
+        students: studentList,
+        teacherName: mainTeacherName,
+        assistantTeacherName,
+      }
+    },
+
+    async handleExportDSSV(item) {
+      const classIdentifier = item.code || item.maLop || item.id
+      try {
+        // Gọi API lấy danh sách sinh viên của lớp
+        const res = await this.$axios.$get(`/api/retakeCourse/${classIdentifier}/students`, {
+          params: { channel: 'CMS' }
+        })
+        const responseWrapper = res?.data || {}
+        const students = Array.isArray(responseWrapper.data)
+          ? responseWrapper.data
+          : (Array.isArray(responseWrapper) ? responseWrapper : (Array.isArray(res) ? res : []))
+
+        if (!students.length) {
+          alert('Lớp này chưa có sinh viên đăng ký!')
+          return
+        }
+
+        // Map dữ liệu chuẩn để xuất Excel
+        const excelData = students.map((sv, index) => ({
+          'STT': index + 1,
+          'Mã sinh viên': sv.studentCode || sv.code || sv.maSv || '',
+          'Họ và tên': sv.fullName || sv.name || '',
+          'Lớp sinh hoạt': sv.className || sv.class || '',
+          'Email': sv.email || '',
+          'Số điện thoại': sv.phone || sv.phoneNumber || '',
+          'Trạng thái': sv.status || 'Đã đăng ký'
+        }))
+
+        const worksheet = XLSX.utils.json_to_sheet(excelData)
+        const workbook = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách sinh viên')
+        
+        // Tên file xuất ra kèm theo mã lớp
+        XLSX.writeFile(workbook, `danh_sach_sinh_vien_${classIdentifier}.xlsx`)
+      } catch (err) {
+        console.error('Lỗi khi xuất danh sách sinh viên:', err)
+        alert('Không thể xuất danh sách sinh viên lúc này. Vui lòng thử lại sau!')
+      }
+    },
+
+    navigateToGradeSheet(item) {
+      // Dùng mã lớp (item.code hoặc item.maLop) thay cho item.id
+      const classCode = item.code || item.maLop
+      this.$router.push(`/quan-ly-hoc-lai/danh-sach-lop-hoc/${classCode}/bang-diem`)
+    },
+
+    async handleAssignTeacher(item) {
+      this.assignTeacherModal.item = item
+      this.assignTeacherModal.mainTeacherId = item.teacherId || null
+      this.assignTeacherModal.assistantTeacherId = item.assistantTeacherId || null
+      this.assignTeacherModal.show = true
+      this.assignTeacherModal.saving = false
+
+      try {
+        const res = await this.$axios.$get('/api/teacher', {
+          params: {
+            pageIndex: 1,
+            pageSize: 50,
+            search: '',
+            status: '',
+            gender: '',
+            lecturerStatus: '',
+            channel: 'CMS',
+          },
+        })
+        const responseWrapper = res?.data || {}
+        const rawItems = Array.isArray(responseWrapper.data)
+          ? responseWrapper.data
+          : Array.isArray(responseWrapper)
+          ? responseWrapper
+          : Array.isArray(res)
+          ? res
+          : []
+
+        this.teacherOptions = rawItems.map((t) => ({
+          id: t.id || t._id,
+          fullName: t.fullName || t.name || '',
+          email: t.email || '',
+          code: t.code || '',
+          workUnitName: t.workUnitName || t.unitName || t.unit || '',
+        }))
+      } catch (err) {
+        console.error('Lỗi khi tải danh sách giảng viên:', err)
+        this.teacherOptions = []
+      }
+    },
+
+    async saveTeacherAssignment() {
+      if (!this.assignTeacherModal.item) return
+      this.assignTeacherModal.saving = true
+
+      try {
+        const classId = this.assignTeacherModal.item.id
+        const mainTeacherId = this.assignTeacherModal.mainTeacherId
+        const assistantTeacherId = this.assignTeacherModal.assistantTeacherId
+
+        await this.$axios.$put(`/api/retakeCourse/${classId}/assign-teacher`, {
+          mainTeacherId,
+          assistantTeacherId,
+          channel: 'CMS',
+        })
+        
+        const selectedMain = this.teacherOptions.find((t) => t.id === mainTeacherId)
+        const selectedAssistant = this.teacherOptions.find((t) => t.id === assistantTeacherId)
+
+        if (selectedMain) {
+          this.assignTeacherModal.item.teacherId = selectedMain.id
+          this.assignTeacherModal.item.mainTeacherName = selectedMain.fullName
+          if (this.assignTeacherModal.item.original) {
+            this.assignTeacherModal.item.original.mainTeacher = selectedMain
+          }
+        }
+        if (selectedAssistant) {
+          this.assignTeacherModal.item.assistantTeacherId = selectedAssistant.id
+          this.assignTeacherModal.item.assistantTeacherName = selectedAssistant.fullName
+          if (this.assignTeacherModal.item.original) {
+            this.assignTeacherModal.item.original.assistantTeacher = selectedAssistant
+          }
+        }
+
+        this.assignTeacherModal.show = false
+        this.fetchData()
+      } catch (err) {
+        console.error('Lỗi khi gán giảng viên:', err)
+      } finally {
+        this.assignTeacherModal.saving = false
+      }
     },
 
     onChangeItemsPerPage() {
@@ -519,39 +759,36 @@ export default {
     },
 
     updatePaginationSlice() {
-      const start = (this.page - 1) * this.itemsPerPage
-      const end = start + this.itemsPerPage
+      const start = (this.page - 1) * Number(this.itemsPerPage)
+      const end = start + Number(this.itemsPerPage)
       this.appliedData = this.allRawData.slice(start, end)
     },
 
-    getPermissions(item) {
-      const isApproved = item.trangThaiDuyet === 'Đã duyệt danh sách'
-      const hasTeacher = item.teacherId !== null && item.teacherId !== undefined
-      return {
-        showDetail: true,
-        showExportExcel: isApproved,
-        showGrades: isApproved || hasTeacher,
-        showAssignTeacher: !hasTeacher,
-      }
-    },
-
     getLoaiLopColor(loaiLop) {
-      if (!loaiLop || typeof loaiLop !== 'string') return '#1890ff'
-      if (loaiLop.includes('Lớp ghép')) return '#8c8c8c'
-      if (loaiLop.includes('Lớp mở')) return '#52c41a'
-      if (loaiLop.includes('Đồ án môn học')) return '#f5222d'
-      return '#1890ff'
+      if (loaiLop && loaiLop.includes('Đồ án')) return '#f5222d'
+      if (loaiLop && loaiLop.includes('Lớp mở')) return '#52c41a'
+      return '#8c8c8c'
     },
 
     getGradePillClass(status) {
-      if (status === 'Chờ duyệt') return 'pill-lime-grade'
       if (status === 'Đã có điểm') return 'pill-blue-grade'
+      if (status === 'Chờ duyệt') return 'pill-lime-grade'
       return 'pill-orange-solid'
     },
 
-    onApprovalStatusChange(item, newVal) {
+    async onApprovalStatusChange(item, newVal) {
       item.trangThaiDuyet = newVal
-      item.approvalStatus = newVal
+      if (newVal === 'Đã duyệt danh sách') {
+        item.hasBeenApproved = true
+      }
+      try {
+        await this.$axios.$put(`/api/retakeCourse/${item.id}/status`, {
+          approvalStatus: newVal === 'Đã duyệt danh sách' ? 'APPROVED' : 'PENDING',
+          channel: 'CMS',
+        })
+      } catch (err) {
+        console.error('Lỗi khi cập nhật trạng thái duyệt:', err)
+      }
     },
 
     onGradeStatusChange(item, newVal) {
@@ -594,16 +831,29 @@ export default {
     async getCoefficients() {
       try {
         const res = await this.$axios.$get('/api/coefficient', {
-          params: { pageIndex: 1, pageSize: 100, channel: 'CMS' }
+          params: { pageIndex: 1, pageSize: 100, channel: 'CMS' },
         })
         const coefficients = Array.isArray(res?.data) ? res.data : res?.data?.items || res || []
         if (coefficients.length) {
           this.coefficientOptions = coefficients.map((c) => {
-            const value = typeof c === 'object'
-              ? c.thuHocPhiSv ?? c.coefficient ?? c.value
-              : c
-            return String(value)
-          }).filter(Boolean)
+            const val = Number(typeof c === 'object' ? (c.thuHocPhiSv ?? c.coefficient ?? c.value) : c)
+            let label = `Hệ số (${val})`
+            if (val === 1.7) {
+              label = `Lớp ghép (Chuyên ngành) (${val})`
+            } else if (val === 1.5) {
+              label = `Lớp ghép (Đại cương) (${val})`
+            } else if (val === 1.3) {
+              label = `Lớp mở (${val})`
+            } else if (val === 2.0 || val === 2) {
+              label = `Đồ án môn học (HP.DAMH) (${val})`
+            } else if (val === 1.0 || val === 1) {
+              label = `Đồ án môn học (HPTT) (${val})`
+            }
+            return {
+              text: label,
+              value: String(val),
+            }
+          })
         }
       } catch (err) {
         console.error('Lỗi khi tải hệ số:', err)
@@ -613,7 +863,7 @@ export default {
     async getCourseOptions() {
       try {
         const res = await this.$axios.$get('/api/term/list', {
-          params: { status: 'ACTIVE', channel: 'CMS' }
+          params: { status: 'ACTIVE', channel: 'CMS' },
         })
         const items = res?.data || res || []
         if (items.length) {
@@ -645,7 +895,7 @@ export default {
           search: this.filters.className || '',
           examId: this.filters.retakeSession,
           termId: this.filters.course,
-          classCoefficient: this.filters.coefficient,
+          classCoefficient: this.filters.coefficient ? Number(this.filters.coefficient) : null,
           channel: 'CMS',
         }
         const res = await this.$axios.$get('/api/retakeCourse', { params })
@@ -658,13 +908,27 @@ export default {
           const termObj = item.term || {}
           const examObj = item.exam || {}
           
-          const classCode = item.examClass || item.code || ''
-
+          const classCode = item.code || item.examClass || ''
+          const status = item.retakeCourseStatus || ''
+          const coefficient = Number(item.classCoefficient) || 1.5
           let loaiLopName = 'Lớp mở'
-          if (item.retakeCourseStatus === 'COMBINE_CLASS') {
-            loaiLopName = 'Lớp ghép (Đại cương)'
-          } else if (item.retakeCourseStatus === 'PROJECT_BASED_CLASS' || item.retakeCourseStatus === 'PROJECT' || classCode.startsWith('D_') || classCode.startsWith('M_')) {
-            loaiLopName = 'Đồ án môn học'
+
+          if (status === 'COMBINE_CLASS') {
+            if (coefficient === 1.7) {
+              loaiLopName = 'Lớp ghép (Chuyên ngành)'
+            } else {
+              loaiLopName = 'Lớp ghép (Đại cương)'
+            }
+          } else if (status === 'PROJECT_BASED_CLASS' || status === 'PROJECT' || classCode.startsWith('D_')) {
+            if (coefficient === 2.0) {
+              loaiLopName = 'Đồ án môn học (HP.DAMH)'
+            } else if (coefficient === 1.0) {
+              loaiLopName = 'Đồ án môn học (HPTT)'
+            } else {
+              loaiLopName = 'Đồ án môn học'
+            }
+          } else {
+            loaiLopName = 'Lớp mở'
           }
 
           const sessionStatus = (item.examSessionStatus || '').toUpperCase()
@@ -710,7 +974,10 @@ export default {
             thoiGian: item.fromTime && item.toTime ? `${item.fromTime.slice(0, 10)} đến ${item.toTime.slice(0, 10)}` : '01/09/2026 - 31/12/2026',
             trangThaiDuyet: trangThaiDuyetText,
             examStatus: mappedExamStatus,
-            original: item
+            hasBeenApproved: isApproved,
+            original: item,
+            teacherId: item.teacherId || item.mainTeacherId || null,
+            assistantTeacherId: item.assistantTeacherId || null,
           }
         })
 
@@ -767,7 +1034,7 @@ export default {
       } catch (err) {
         console.error('Lỗi xuất file Excel:', err)
       }
-    }
+    },
   },
 }
 </script>
@@ -783,9 +1050,9 @@ export default {
 }
 
 .scrollable-table-area {
-  flex: 1 1 auto;
-  overflow-y: auto;
-  min-height: 0;
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  min-height: 0 !important;
 }
 
 .filter-bar-container {
@@ -802,13 +1069,22 @@ export default {
   font-weight: 600;
 }
 
+.custom-filter-input {
+  width: 160px !important;
+  flex: 0 0 auto !important;
+}
+
+.input-text-name {
+  width: 180px !important;
+}
+
 .custom-filter-input >>> .v-input__slot {
   min-height: 38px !important;
   max-height: 38px !important;
   border-color: #a3a3a3 !important;
   border-radius: 4px !important;
   background-color: #ffffff !important;
-  padding: 0 12px !important;
+  padding: 0 10px !important;
   box-shadow: none !important;
 }
 
@@ -819,7 +1095,7 @@ export default {
 
 .custom-filter-input >>> .v-text-field__slot input,
 .custom-filter-input >>> .v-select__selection {
-  font-size: 14px !important;
+  font-size: 13px !important;
   color: #333333 !important;
 }
 
@@ -834,7 +1110,7 @@ export default {
 
 .custom-filter-input >>> .v-icon {
   color: #6b7280 !important;
-  font-size: 20px !important;
+  font-size: 18px !important;
 }
 
 .filter-controls {
@@ -1001,5 +1277,16 @@ export default {
 
 .pill-blue-grade >>> .v-input__slot {
   background-color: #3b82f6 !important;
+}
+
+.custom-teacher-select >>> .v-input__slot {
+  min-height: 42px !important;
+  border-radius: 4px !important;
+}
+.custom-teacher-select >>> .v-label {
+  font-size: 13px !important;
+}
+.border-btn {
+  border-color: #d9d9d9 !important;
 }
 </style>
