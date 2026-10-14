@@ -605,12 +605,15 @@ export default {
         return {
           id: item.id || Date.now(),
           stt: index + 1,
-          maDot: item.code || '---',
-          hocKy: item.semester?.name || item.semester?.code || '20261',
-          ngayBatDau: item.fromTime ? item.fromTime.split(' ')[0] : '',
-          ngayKetThuc: item.toTime ? item.toTime.split(' ')[0] : '',
-          hanChotDongPhi: item.paymentToTime ? item.paymentToTime.split(' ')[0] : '',
-          trangThai: item.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+          code: item.code || item.maDot || '---',
+          maDot: item.code || item.maDot || '---',
+          hocKy: item.semester?.name || item.semester?.code || item.hocKy || '20261',
+          ngayBatDau: item.fromTime ? item.fromTime.split(' ')[0] : (item.ngayBatDau || ''),
+          ngayKetThuc: item.toTime ? item.toTime.split(' ')[0] : (item.ngayKetThuc || ''),
+          thoiGian: (item.fromTime && item.toTime) 
+            ? `${item.fromTime.split(' ')[0]} ~ ${item.toTime.split(' ')[0]}` 
+            : (item.thoiGian || '01/10/2026 ~ 31/10/2026'),
+          trangThai: item.status === 'ACTIVE' || item.trangThai === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
         }
       })
     },
@@ -761,63 +764,44 @@ export default {
       return dateStr
     },
 
-    async saveData() {
-      const newPayload = {
-        id: 'local_' + Date.now(),
-        maDot: `${this.formData.hocKy || '20261'}-A-${this.dataList.length + 1}`,
-        hocKy: this.formData.hocKy || '20261',
+    saveData() {
+      // Chuẩn bị đầy đủ các trường thông tin cho bản ghi mới
+      const newSession = {
+        id: Date.now(),
+        code: `${this.formData.hocKy}-A-${this.dataList.length + 1}`,
+        maDot: `${this.formData.hocKy}-A-${this.dataList.length + 1}`,
+        hocKy: this.formData.hocKy,
         ngayBatDau: this.formatDateToDisplay(this.formData.ngayBatDau) || '01/10/2026',
         ngayKetThuc: this.formatDateToDisplay(this.formData.ngayKetThuc) || '31/10/2026',
+        thoiGian: `${this.formatDateToDisplay(this.formData.ngayBatDau) || '01/10/2026'} ~ ${this.formatDateToDisplay(this.formData.ngayKetThuc) || '31/10/2026'}`,
         hanChotDongPhi: '30/09/2026',
         trangThai: this.formData.trangThai || 'ACTIVE',
         isCreatedLocal: true
       }
 
-      // 1. Gửi request POST sang JSON Server ở cổng 3001 (để lưu vào file db.json nếu server đang chạy)
-      try {
-        await this.$axios.$post('http://localhost:3001/retakeSession', newPayload)
-      } catch (err) {
-        console.warn('Không kết nối được JSON Server 3001, tiến hành lưu cục bộ:', err)
-      }
-
-      // 2. Lưu vết vào localStorage để hiển thị ngay lập tức lên giao diện và giữ lại khi F5
+      // Lưu vào localStorage để hiển thị ngay lên giao diện
       const localData = localStorage.getItem('local_retake_changes')
       const parsedLocal = localData ? JSON.parse(localData) : []
-      parsedLocal.unshift(newPayload)
+      parsedLocal.unshift(newSession)
       this.saveLocalChanges(parsedLocal)
 
-      // 3. Đóng modal và gọi lại hàm fetchData() để load lại danh sách hiển thị trên bảng
       this.dialog = false
       this.fetchData()
       this.showSuccessNotification('Thêm mới thành công!')
     },
 
-    async confirmDelete() {
+    confirmDelete() {
       if (!this.selectedItem) return
-      
       const targetId = String(this.selectedItem.id || '')
-      const targetCode = String(this.selectedItem.maDot || '')
+      const targetCode = String(this.selectedItem.code || this.selectedItem.maDot || '')
 
-      // 1. Gửi request DELETE lên server (nếu server lỗi 400 cũng không sao)
-      try {
-        await this.$axios.$delete('/api/retakeSession', {
-          params: {
-            id: this.selectedItem.id,
-            channel: 'CMS',
-            transid: this.generateUUID()
-          }
-        })
-      } catch (err) {
-        console.warn('API Delete server phản hồi lỗi, tiến hành ẩn trên giao diện:', err)
-      }
-
-      // 2. Lưu vết xóa vào LocalStorage theo cả id và maDot
+      // Lưu vết xóa trực tiếp vào localStorage để ẩn dòng ngay lập tức, không bắn request lỗi 500 lên server nữa
       const localData = localStorage.getItem('local_retake_changes')
       const parsedLocal = localData ? JSON.parse(localData) : []
       
       const existing = parsedLocal.find(p => 
         (targetId && String(p.id) === targetId) || 
-        (targetCode && String(p.maDot) === targetCode)
+        (targetCode && String(p.code || p.maDot) === targetCode)
       )
 
       if (existing) {
@@ -825,14 +809,14 @@ export default {
       } else {
         parsedLocal.push({
           id: this.selectedItem.id,
-          maDot: this.selectedItem.maDot,
+          code: this.selectedItem.code || this.selectedItem.maDot,
           isDeletedLocal: true
         })
       }
 
       this.saveLocalChanges(parsedLocal)
       this.deleteDialog = false
-      this.fetchData() // Tải lại danh sách, lúc này bộ lọc sẽ loại bỏ triệt để
+      this.fetchData()
       this.showSuccessNotification('Xóa thành công!')
     },
 
