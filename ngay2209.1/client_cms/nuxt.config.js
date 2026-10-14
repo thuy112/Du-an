@@ -81,6 +81,7 @@ proxy: process.env.NODE_ENV !== 'production' ? {
     changeOrigin: true,
   }
 } : undefined,
+
   vuetify: {
     customVariables: ['~/assets/variables.scss'],
     treeShake: true,
