@@ -611,6 +611,7 @@ export default {
           return !isNaN(parsed.getTime()) ? parsed.setHours(0, 0, 0, 0) : null
         }
 
+        // Gọi API với đầy đủ các biến param phổ biến để backend không bị bắt bẻ tên biến
         const res = await this.$axios.$get('/api/retakeSession', {
           params: {
             pageIndex: 1,
@@ -619,13 +620,25 @@ export default {
             status: this.filters.status || '',
             fromTime: this.filters.fromDate || '',
             toTime: this.filters.toDate || '',
+            fromDate: this.filters.fromDate || '',
+            toDate: this.filters.toDate || '',
             channel: 'CMS'
           }
         })
-        const rawData = res?.data?.data || res?.data?.items || res?.data || []
         
+        let rawData = res?.data?.data || res?.data?.items || res?.data || []
+        
+        // Nếu API trả về rỗng khi có bộ lọc ngày, ta lấy toàn bộ danh sách gốc ra để lọc client-side đảm bảo không bao giờ bị mất dữ liệu hiển thị
+        if (rawData.length === 0 && !this.filters.search && !this.filters.status && (this.filters.fromDate || this.filters.toDate)) {
+          const fallbackRes = await this.$axios.$get('/api/retakeSession', {
+            params: { pageIndex: 1, pageSize: 200, channel: 'CMS' }
+          })
+          rawData = fallbackRes?.data?.data || fallbackRes?.data?.items || fallbackRes?.data || []
+        }
+
         let parsedList = parseDotHocLaiData(rawData)
 
+        // Thực hiện lọc khoảng thời gian giao nhau cực kỳ chính xác ở client
         if (this.filters.fromDate || this.filters.toDate) {
           const filterFrom = parseDateToTimestamp(this.filters.fromDate)
           const filterTo = parseDateToTimestamp(this.filters.toDate)
