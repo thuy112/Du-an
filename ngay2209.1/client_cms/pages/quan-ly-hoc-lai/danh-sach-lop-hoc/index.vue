@@ -490,6 +490,9 @@ export default {
         retakeSession: null,
         course: null,
         coefficient: null,
+        // Bổ sung thêm biến hứng khoảng thời gian từ modal lịch ngày bên phải
+        fromDate: null,
+        toDate: null,
       },
 
       retakeSessionOptions: [],
@@ -541,47 +544,91 @@ export default {
   },
 
   methods: {
+    // Nhận dữ liệu ngày tháng từ component modal lọc nâng cao bên phải
+    handleAdvancedFilter(payload) {
+      if (payload) {
+        // Hứng đúng các key từ modal: fromDate / fromTime hoặc toDate / toTime
+        this.filters.fromDate = payload.fromDate || payload.fromTime || null
+        this.filters.toDate = payload.toDate || payload.toTime || null
+      }
+      this.page = 1
+      this.pageInput = 1
+      this.fetchData()
+    },
+
     getPermissions(item) {
       const isApproved = item.trangThaiDuyet === 'Đã duyệt danh sách' || item.hasBeenApproved === true
-      const hasTeacher = item.teacherId !== null && item.teacherId !== undefined && item.teacherId !== ''
+      // Kiểm tra nếu lớp đã có giảng viên chính thì ẩn chức năng gán giảng viên đi
+      const hasTeacher = Boolean(item.teacherId || item.original?.mainTeacher || item.original?.teacherId)
 
       return {
         showDetail: true,
         showExportSV: isApproved,
         showGradesSheet: isApproved,
-        showAssignTeacher: !hasTeacher,
+        showAssignTeacher: !hasTeacher, // Ẩn đi nếu đã có giảng viên
       }
     },
 
-    handleViewDetail(item) {
+    async handleViewDetail(item) {
       this.detailModal.show = true
-      this.detailModal.loading = false
+      this.detailModal.loading = true
       this.detailModal.error = ''
 
       const raw = item.original || item || {}
-      const studentTerms = raw.registerStudentTerms || []
 
-      // Trích xuất dữ liệu sinh viên từ JSON registerStudentTerms -> registerStudentExam
+      // Lấy trực tiếp trạng thái mới nhất từ dòng bên ngoài để đồng bộ vào modal
+      const currentTrangThaiDuyet = item.trangThaiDuyet || raw.trangThaiDuyet || 'Chưa duyệt danh sách'
+      const currentExamStatus = item.examStatus || raw.examStatus || 'Chưa có điểm'
+
+      // Quét mảng sinh viên từ dữ liệu gốc của lớp
+      const studentTerms = 
+        raw.registerStudentTerms || 
+        raw.students || 
+        raw.data || 
+        []
+
+      // Tải bổ sung thông tin chi tiết sinh viên từ API student để lấy đủ SĐT, Email
+      let masterStudentsMap = {}
+      try {
+        const studentRes = await this.$axios.$get('/api/student', {
+          params: { pageIndex: 1, pageSize: 200, search: '', channel: 'CMS' },
+        })
+        const studentData = studentRes?.data?.data || studentRes?.data || studentRes || []
+        const studentListMaster = Array.isArray(studentData) ? studentData : (studentData.items || [])
+        
+        masterStudentsMap = studentListMaster.reduce((acc, s) => {
+          const sCode = s.code || s.studentCode || s.maSv
+          if (sCode) acc[sCode] = s
+          return acc
+        }, {})
+      } catch (err) {
+        console.error('Không thể tải danh sách master student:', err)
+      }
+
+      // Map danh sách sinh viên hiển thị ra modal khớp hoàn toàn với file xuất Excel
       const studentList = studentTerms.map((termItem, index) => {
-        const studentInfo = termItem.registerStudentExam || {}
-        const courseObj = studentInfo.course || {}
-        const clazzObj = studentInfo.clazz || {}
+        const studentInfo = termItem.registerStudentExam || termItem.student || termItem || {}
+        const clazzObj = studentInfo.clazz || termItem.clazz || {}
 
-        const fullName = studentInfo.fullName || termItem.name || ''
-        const code = studentInfo.code || ''
-        const email = studentInfo.email || ''
-        const phone = studentInfo.phone || ''
+        const code = studentInfo.code || studentInfo.studentCode || termItem.code || studentInfo.maSv || ''
+        let fullName = studentInfo.fullName || studentInfo.name || termItem.name || ''
+        let email = studentInfo.email || termItem.email || ''
+        let phone = studentInfo.phone || studentInfo.phoneNumber || termItem.phone || ''
+        let khoa = studentInfo.courseYear || studentInfo.academicYear || termItem.courseYear || 'Khóa 66'
+        let className = clazzObj.name || clazzObj.code || termItem.className || '---'
 
-        // Map Enum gender từ tiếng Anh sang tiếng Việt
-        let gender = 'Khác'
-        if (studentInfo.gender === 'MALE') {
-          gender = 'Nam'
-        } else if (studentInfo.gender === 'FEMALE') {
-          gender = 'Nữ'
+        if (code && masterStudentsMap[code]) {
+          const master = masterStudentsMap[code]
+          if (!fullName) fullName = master.fullName || master.name || ''
+          if (!email) email = master.email || ''
+          if (!phone) phone = master.phone || master.phoneNumber || ''
+          if (khoa === 'Khóa 66' && (master.courseYear || master.academicYear)) {
+            khoa = master.courseYear || master.academicYear
+          }
+          if (className === '---' && (master.clazz?.name || master.className)) {
+            className = master.clazz?.name || master.className
+          }
         }
-
-        const courseName = courseObj.name || '---'
-        const className = clazzObj.name || clazzObj.code || '---'
 
         return {
           stt: index + 1,
@@ -589,73 +636,92 @@ export default {
           code,
           email,
           phone,
-          gender,
-          courseName,
+          khoa,
           className,
+          studentCode: code,
+          phoneNumber: phone,
         }
       })
 
-      const mainTeacherName = item.mainTeacherName || raw.mainTeacher?.fullName || raw.teacher?.fullName || ''
-      const assistantTeacherName = item.assistantTeacherName || raw.assistantTeacher?.fullName || ''
+      // Xử lý thông tin giảng viên chính và trợ giảng an toàn
+      const mainTeacherName = item.mainTeacherName || raw.mainTeacher?.fullName || raw.mainTeacher?.name || raw.teacher?.fullName || raw.teacher?.name || ''
+      const mainTeacherCode = raw.mainTeacher?.code || raw.teacher?.code || (item.teacherId ? 'GV_...' : '')
+      
+      const assistantTeacherName = item.assistantTeacherName || raw.assistantTeacher?.fullName || raw.assistantTeacher?.name || ''
+      const assistantTeacherCode = raw.assistantTeacher?.code || ''
+
+      const mainTeacherObj = mainTeacherName ? { fullName: mainTeacherName, code: mainTeacherCode } : null
+      const assistantTeacherObj = assistantTeacherName ? { fullName: assistantTeacherName, code: assistantTeacherCode } : null
 
       this.detailModal.data = {
         ...raw,
+        trangThaiDuyet: currentTrangThaiDuyet,
+        examStatus: currentExamStatus,
         students: studentList,
-        teacherName: mainTeacherName,
-        assistantTeacherName,
+        mainTeacher: mainTeacherObj,
+        teacher: mainTeacherObj,
+        assistantTeacher: assistantTeacherObj,
+        teacherName: mainTeacherName || 'Chưa gán giảng viên chính',
+        teacherCode: mainTeacherCode || '---',
+        assistantTeacherName: assistantTeacherName || 'Chưa có trợ giảng',
+        assistantTeacherCode: assistantTeacherCode || '---',
       }
+      this.detailModal.loading = false
     },
 
-    async handleExportDSSV(item) {
-      const classIdentifier = item.code || item.maLop || item.id
-      try {
-        // Gọi API lấy danh sách sinh viên của lớp
-        const res = await this.$axios.$get(`/api/retakeCourse/${classIdentifier}/students`, {
-          params: { channel: 'CMS' }
-        })
-        const responseWrapper = res?.data || {}
-        const students = Array.isArray(responseWrapper.data)
-          ? responseWrapper.data
-          : (Array.isArray(responseWrapper) ? responseWrapper : (Array.isArray(res) ? res : []))
+    async saveTeacherAssignment() {
+      if (!this.assignTeacherModal.item) return
+      this.assignTeacherModal.saving = true
 
-        if (!students.length) {
-          alert('Lớp này chưa có sinh viên đăng ký!')
-          return
+      try {
+        const classId = this.assignTeacherModal.item.id
+        const mainTeacherId = this.assignTeacherModal.mainTeacherId
+        const assistantTeacherId = this.assignTeacherModal.assistantTeacherId
+
+        await this.$axios.$put(`/api/retakeCourse/${classId}/assign-teacher`, {
+          mainTeacherId,
+          assistantTeacherId,
+          channel: 'CMS',
+        })
+        
+        const selectedMain = this.teacherOptions.find((t) => t.id === mainTeacherId)
+        const selectedAssistant = this.teacherOptions.find((t) => t.id === assistantTeacherId)
+
+        const targetItem = this.assignTeacherModal.item
+        if (selectedMain) {
+          targetItem.teacherId = selectedMain.id
+          targetItem.mainTeacherName = selectedMain.fullName
+          if (!targetItem.original) targetItem.original = {}
+          targetItem.original.mainTeacher = selectedMain
+          targetItem.original.teacher = selectedMain
+          targetItem.original.teacherId = selectedMain.id
         }
 
-        // Map dữ liệu chuẩn để xuất Excel
-        const excelData = students.map((sv, index) => ({
-          'STT': index + 1,
-          'Mã sinh viên': sv.studentCode || sv.code || sv.maSv || '',
-          'Họ và tên': sv.fullName || sv.name || '',
-          'Lớp sinh hoạt': sv.className || sv.class || '',
-          'Email': sv.email || '',
-          'Số điện thoại': sv.phone || sv.phoneNumber || '',
-          'Trạng thái': sv.status || 'Đã đăng ký'
-        }))
+        if (selectedAssistant) {
+          targetItem.assistantTeacherId = selectedAssistant.id
+          targetItem.assistantTeacherName = selectedAssistant.fullName
+          if (!targetItem.original) targetItem.original = {}
+          targetItem.original.assistantTeacher = selectedAssistant
+          targetItem.original.assistantTeacherId = selectedAssistant.id
+        }
 
-        const worksheet = XLSX.utils.json_to_sheet(excelData)
-        const workbook = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách sinh viên')
-        
-        // Tên file xuất ra kèm theo mã lớp
-        XLSX.writeFile(workbook, `danh_sach_sinh_vien_${classIdentifier}.xlsx`)
+        this.assignTeacherModal.show = false
+        this.showSuccessToast?.('Gán giảng viên thành công') || alert('Gán giảng viên thành công')
+
+        this.appliedData = [...this.appliedData]
+        this.allRawData = [...this.allRawData]
+
       } catch (err) {
-        console.error('Lỗi khi xuất danh sách sinh viên:', err)
-        alert('Không thể xuất danh sách sinh viên lúc này. Vui lòng thử lại sau!')
+        console.error('Lỗi khi gán giảng viên:', err)
+        alert('Không thể gán giảng viên lúc này. Vui lòng thử lại!')
+      } finally {
+        this.assignTeacherModal.saving = false
       }
     },
-
-    navigateToGradeSheet(item) {
-      // Dùng mã lớp (item.code hoặc item.maLop) thay cho item.id
-      const classCode = item.code || item.maLop
-      this.$router.push(`/quan-ly-hoc-lai/danh-sach-lop-hoc/${classCode}/bang-diem`)
-    },
-
     async handleAssignTeacher(item) {
       this.assignTeacherModal.item = item
-      this.assignTeacherModal.mainTeacherId = item.teacherId || null
-      this.assignTeacherModal.assistantTeacherId = item.assistantTeacherId || null
+      this.assignTeacherModal.mainTeacherId = item.teacherId || item.original?.mainTeacher?.id || null
+      this.assignTeacherModal.assistantTeacherId = item.assistantTeacherId || item.original?.assistantTeacher?.id || null
       this.assignTeacherModal.show = true
       this.assignTeacherModal.saving = false
 
@@ -663,7 +729,7 @@ export default {
         const res = await this.$axios.$get('/api/teacher', {
           params: {
             pageIndex: 1,
-            pageSize: 50,
+            pageSize: 100,
             search: '',
             status: '',
             gender: '',
@@ -693,46 +759,66 @@ export default {
       }
     },
 
-    async saveTeacherAssignment() {
-      if (!this.assignTeacherModal.item) return
-      this.assignTeacherModal.saving = true
+    showSuccessToast(message) {
+      const toastEl = document.createElement('div')
+      toastEl.className = 'custom-success-toast-alert'
+      toastEl.innerHTML = `<div style="position: fixed; top: 20px; right: 20px; z-index: 99999; background-color: #52c41a; color: white; padding: 12px 20px; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); font-weight: 500; font-size: 14px; display: flex; align-items: center; gap: 8px;"><i class="v-icon mdi mdi-check-circle" style="color: white; font-size: 18px;"></i> ${message}</div>`
+      document.body.appendChild(toastEl)
+      setTimeout(() => {
+        toastEl.remove()
+      }, 3000)
+    },
 
+    handleExportDSSV(item) {
+      const classIdentifier = item.code || item.maLop || item.id
       try {
-        const classId = this.assignTeacherModal.item.id
-        const mainTeacherId = this.assignTeacherModal.mainTeacherId
-        const assistantTeacherId = this.assignTeacherModal.assistantTeacherId
-
-        await this.$axios.$put(`/api/retakeCourse/${classId}/assign-teacher`, {
-          mainTeacherId,
-          assistantTeacherId,
-          channel: 'CMS',
-        })
+        // Lấy trực tiếp dữ liệu từ item (gồm cả original nếu có) hoặc gọi API chi tiết nếu cần
+        const rawData = item.original || item || {}
         
-        const selectedMain = this.teacherOptions.find((t) => t.id === mainTeacherId)
-        const selectedAssistant = this.teacherOptions.find((t) => t.id === assistantTeacherId)
+        // Tự động quét và bóc tách mảng sinh viên từ mọi cấu trúc dữ liệu trả về của backend
+        const studentTerms = 
+          rawData.registerStudentTerms ||
+          rawData.students ||
+          rawData.data ||
+          []
 
-        if (selectedMain) {
-          this.assignTeacherModal.item.teacherId = selectedMain.id
-          this.assignTeacherModal.item.mainTeacherName = selectedMain.fullName
-          if (this.assignTeacherModal.item.original) {
-            this.assignTeacherModal.item.original.mainTeacher = selectedMain
-          }
-        }
-        if (selectedAssistant) {
-          this.assignTeacherModal.item.assistantTeacherId = selectedAssistant.id
-          this.assignTeacherModal.item.assistantTeacherName = selectedAssistant.fullName
-          if (this.assignTeacherModal.item.original) {
-            this.assignTeacherModal.item.original.assistantTeacher = selectedAssistant
-          }
+        if (!Array.isArray(studentTerms) || studentTerms.length === 0) {
+          alert('Lớp này chưa có sinh viên đăng ký hoặc dữ liệu chưa được tải!')
+          return
         }
 
-        this.assignTeacherModal.show = false
-        this.fetchData()
+        // Map dữ liệu chuẩn khớp hoàn toàn với modal xem chi tiết (icon mắt)
+        const excelData = studentTerms.map((termItem, index) => {
+          // Bóc tách thông tin sinh viên linh hoạt theo các kiểu cấu trúc
+          const studentInfo = termItem.registerStudentExam || termItem.student || termItem || {}
+          const clazzObj = studentInfo.clazz || termItem.clazz || {}
+
+          return {
+            'STT': index + 1,
+            'Họ và tên': studentInfo.fullName || studentInfo.name || termItem.name || '',
+            'Mã sinh viên': studentInfo.code || studentInfo.studentCode || termItem.code || '',
+            'Khóa': studentInfo.courseYear || studentInfo.academicYear || termItem.courseYear || 'Khóa 66',
+            'Lớp': clazzObj.name || clazzObj.code || termItem.className || termItem.class || '',
+            'Email': studentInfo.email || termItem.email || '',
+            'Số điện thoại': studentInfo.phone || termItem.phone || ''
+          }
+        })
+
+        // Tạo file Excel và tải xuống định dạng .xlsx
+        const worksheet = XLSX.utils.json_to_sheet(excelData)
+        const workbook = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách sinh viên')
+        
+        XLSX.writeFile(workbook, `danh_sach_sinh_vien_${classIdentifier}.xlsx`)
       } catch (err) {
-        console.error('Lỗi khi gán giảng viên:', err)
-      } finally {
-        this.assignTeacherModal.saving = false
+        console.error('Lỗi khi xuất danh sách sinh viên:', err)
+        alert('Không thể xuất danh sách sinh viên lúc này. Vui lòng thử lại sau!')
       }
+    },
+
+    navigateToGradeSheet(item) {
+      const classCode = item.code || item.maLop
+      this.$router.push(`/quan-ly-hoc-lai/danh-sach-lop-hoc/${classCode}/bang-diem`)
     },
 
     onChangeItemsPerPage() {
@@ -891,7 +977,7 @@ export default {
       try {
         const params = {
           pageIndex: 1,
-          pageSize: 50,
+          pageSize: 200,
           search: this.filters.className || '',
           examId: this.filters.retakeSession,
           termId: this.filters.course,
@@ -900,9 +986,58 @@ export default {
         }
         const res = await this.$axios.$get('/api/retakeCourse', { params })
         const responseWrapper = res?.data || {}
-        const rawItems = Array.isArray(responseWrapper.data)
+        let rawItems = Array.isArray(responseWrapper.data)
           ? responseWrapper.data
           : (Array.isArray(responseWrapper) ? responseWrapper : (Array.isArray(res) ? res : []))
+
+        // 1. Lọc theo hệ số / loại lớp
+        if (this.filters.coefficient) {
+          const selectedCoeff = Number(this.filters.coefficient)
+          rawItems = rawItems.filter(item => Number(item.classCoefficient) === selectedCoeff)
+        }
+
+        // Hàm chuẩn hóa chuỗi ngày tháng an toàn tuyệt đối (tránh lỗi 0019, 0020 do sai định dạng)
+        const parseDateToTimestamp = (dateStr) => {
+          if (!dateStr) return null
+          // Nếu chuỗi chứa định dạng 'DD/MM/YYYY'
+          if (typeof dateStr === 'string' && dateStr.includes('/')) {
+            const parts = dateStr.trim().split(' ')[0].split('/')
+            if (parts.length === 3) {
+              const day = parts[0]
+              const month = parts[1]
+              const year = parts[2]
+              // Đảm bảo năm đủ 4 chữ số (ví dụ '26' -> '2026')
+              const fullYear = year.length === 2 ? `20${year}` : year
+              return new Date(`${fullYear}-${month}-${day}`).setHours(0, 0, 0, 0)
+            }
+          }
+          // Nếu là định dạng 'YYYY-MM-DD' hoặc ISO string
+          const parsed = new Date(dateStr)
+          if (!isNaN(parsed.getTime())) {
+            return parsed.setHours(0, 0, 0, 0)
+          }
+          return null
+        }
+
+        // 2. Lọc theo khoảng thời gian (kiểm tra giao nhau: khoảng thời gian lớp học có giao với khoảng thời gian lọc)
+        if (this.filters.fromDate && this.filters.toDate) {
+          const filterFrom = parseDateToTimestamp(this.filters.fromDate)
+          const filterTo = parseDateToTimestamp(this.filters.toDate)
+
+          if (filterFrom && filterTo) {
+            rawItems = rawItems.filter(item => {
+              if (!item.fromTime || !item.toTime) return true
+              
+              const itemFrom = parseDateToTimestamp(item.fromTime)
+              const itemTo = parseDateToTimestamp(item.toTime)
+
+              if (!itemFrom || !itemTo) return true
+
+              // Điều kiện giao nhau: (Lớp bắt đầu <= Khoảng kết thúc tìm kiếm) VÀ (Lớp kết thúc >= Khoảng bắt đầu tìm kiếm)
+              return itemFrom <= filterTo && itemTo >= filterFrom
+            })
+          }
+        }
 
         this.allRawData = rawItems.map((item, index) => {
           const termObj = item.term || {}
@@ -954,6 +1089,25 @@ export default {
             mappedExamStatus = 'Chưa có điểm'
           }
 
+          // Hàm hiển thị định dạng ngày tháng sạch đẹp trên giao diện bảng
+          const formatDateDisplay = (dateStr) => {
+            if (!dateStr) return ''
+            if (typeof dateStr === 'string' && dateStr.includes('/')) {
+              return dateStr.trim().split(' ')[0]
+            }
+            const d = new Date(dateStr)
+            if (!isNaN(d.getTime())) {
+              const day = String(d.getDate()).padStart(2, '0')
+              const month = String(d.getMonth() + 1).padStart(2, '0')
+              const year = d.getFullYear()
+              return `${day}/${month}/${year}`
+            }
+            return dateStr.slice(0, 10)
+          }
+
+          const tuNgayStr = formatDateDisplay(item.fromTime) || '01/09/2026'
+          const denNgayStr = formatDateDisplay(item.toTime) || '31/12/2026'
+
           return {
             id: item.id || (index + 1),
             stt: index + 1,
@@ -969,9 +1123,9 @@ export default {
             quantityText: `${item.quantityCurrent || 0}/${item.quantitySeat || 20}`,
             svDangKy: item.quantityCurrent || 0,
             maxSv: item.quantitySeat || 20,
-            tuNgay: item.fromTime ? item.fromTime.slice(0, 10) : '01/09/2026',
-            denNgay: item.toTime ? item.toTime.slice(0, 10) : '31/12/2026',
-            thoiGian: item.fromTime && item.toTime ? `${item.fromTime.slice(0, 10)} đến ${item.toTime.slice(0, 10)}` : '01/09/2026 - 31/12/2026',
+            tuNgay: tuNgayStr,
+            denNgay: denNgayStr,
+            thoiGian: `${tuNgayStr}\n${denNgayStr}`,
             trangThaiDuyet: trangThaiDuyetText,
             examStatus: mappedExamStatus,
             hasBeenApproved: isApproved,
@@ -1007,6 +1161,8 @@ export default {
         retakeSession: null,
         course: null,
         coefficient: null,
+        fromDate: null,
+        toDate: null,
       }
       this.page = 1
       this.pageInput = 1
@@ -1036,10 +1192,93 @@ export default {
       }
     },
   },
+
+  async handleAssignTeacher(item) {
+      this.assignTeacherModal.item = item
+      this.assignTeacherModal.mainTeacherId = item.teacherId || item.original?.mainTeacher?.id || null
+      this.assignTeacherModal.assistantTeacherId = item.assistantTeacherId || item.original?.assistantTeacher?.id || null
+      this.assignTeacherModal.show = true
+      this.assignTeacherModal.saving = false
+
+      try {
+        const res = await this.$axios.$get('/api/teacher', {
+          params: {
+            pageIndex: 1,
+            pageSize: 100,
+            search: '',
+            status: '',
+            gender: '',
+            lecturerStatus: '',
+            channel: 'CMS',
+          },
+        })
+        const responseWrapper = res?.data || {}
+        const rawItems = Array.isArray(responseWrapper.data)
+          ? responseWrapper.data
+          : Array.isArray(responseWrapper)
+          ? responseWrapper
+          : Array.isArray(res)
+          ? res
+          : []
+
+        this.teacherOptions = rawItems.map((t) => ({
+          id: t.id || t._id,
+          fullName: t.fullName || t.name || '',
+          email: t.email || '',
+          code: t.code || '',
+          workUnitName: t.workUnitName || t.unitName || t.unit || '',
+        }))
+      } catch (err) {
+        console.error('Lỗi khi tải danh sách giảng viên:', err)
+        this.teacherOptions = []
+      }
+    },
+    async onApprovalStatusChange(item, newVal) {
+      // Cập nhật ngay lập tức tên và trạng thái vào item để modal nhận được giá trị mới
+      item.trangThaiDuyet = newVal
+      if (newVal === 'Đã duyệt danh sách') {
+        item.hasBeenApproved = true
+      } else {
+        item.hasBeenApproved = false
+      }
+
+      // Đồng thời cập nhật vào object original nếu có để modal đọc được
+      if (item.original) {
+        item.original.approvalStatus = newVal === 'Đã duyệt danh sách' ? 'APPROVED' : 'PENDING'
+      }
+
+      try {
+        await this.$axios.$put(`/api/retakeCourse/${item.id}/status`, {
+          approvalStatus: newVal === 'Đã duyệt danh sách' ? 'APPROVED' : 'PENDING',
+          channel: 'CMS',
+        })
+      } catch (err) {
+        console.error('Lỗi khi cập nhật trạng thái duyệt:', err)
+      }
+    },
+
+    onGradeStatusChange(item, newVal) {
+      // Cập nhật ngay lập tức trạng thái bảng điểm mới vào item
+      item.examStatus = newVal
+
+      if (item.original) {
+        item.original.examStatus = newVal
+      }
+    },
 }
 </script>
 
 <style scoped>
+.custom-success-toast-alert {
+  animation: fadeInOut 3s ease forwards;
+}
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(-10px); }
+  10% { opacity: 1; transform: translateY(0); }
+  90% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-10px); }
+}
+
 .main-page-layout {
   display: flex;
   flex-direction: column;

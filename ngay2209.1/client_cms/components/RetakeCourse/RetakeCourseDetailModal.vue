@@ -20,77 +20,62 @@
           <v-row dense class="info-grid text-body-2 mb-4">
             <v-col cols="6">
               <span class="text-grey-color">Mã lớp học lại:</span>
-              <span class="font-weight-medium ml-1 text-red-bold">{{ detailData.classCode || 'G_20252_1_041' }}</span>
+              <span class="font-weight-medium ml-1 text-red-bold">{{ displayClassCode }}</span>
             </v-col>
             <v-col cols="6">
               <span class="text-grey-color">Loại lớp:</span>
-              <span class="font-weight-medium ml-1 text-red-bold">{{ detailData.classType || 'Lớp ghép (Chuyên ngành)' }}</span>
+              <span class="font-weight-medium ml-1 text-red-bold">{{ displayClassType }}</span>
             </v-col>
 
             <v-col cols="6">
               <span class="text-grey-color">Hệ số lớp:</span>
-              <span class="font-weight-medium ml-1">{{ detailData.coefficient || '1.7' }}</span>
+              <span class="font-weight-medium ml-1">{{ displayCoefficient }}</span>
             </v-col>
             <v-col cols="6">
               <span class="text-grey-color">Tổng sinh viên:</span>
-              <span class="font-weight-medium ml-1">{{ detailData.totalStudents || 10 }}</span>
+              <span class="font-weight-medium ml-1">{{ studentList.length }}</span>
             </v-col>
 
             <v-col cols="6">
               <span class="text-grey-color">Thời gian học lại:</span>
-              <span class="font-weight-medium ml-1 text-red-bold">{{ detailData.duration || '01/06/2026 - 09/06/2026' }}</span>
+              <span class="font-weight-medium ml-1 text-red-bold">{{ displayDuration }}</span>
             </v-col>
             <v-col cols="6">
-              <span class="text-grey-color">Học kỳ:</span>
-              <span class="font-weight-medium ml-1 text-red-bold">{{ detailData.semester || 'Học Kỳ II (2025)' }}</span>
+              <span class="text-grey-color">Đợt học lại / Học kỳ:</span>
+              <span class="font-weight-medium ml-1 text-red-bold">{{ displaySemester }}</span>
             </v-col>
 
-            <v-col cols="6">
-              <span class="text-grey-color">Mã lớp:</span>
-              <span class="font-weight-medium ml-1">{{ detailData.classCode }}</span>
-            </v-col>
             <v-col cols="6">
               <span class="text-grey-color">Mã học phần:</span>
-              <span class="font-weight-medium ml-1 text-red-bold">{{ detailData.subjectCode || 'ET4235' }}</span>
+              <span class="font-weight-medium ml-1 text-red-bold">{{ displaySubjectCode }}</span>
             </v-col>
-
             <v-col cols="6">
               <span class="text-grey-color">Tên học phần:</span>
-              <span class="font-weight-medium ml-1 text-red-bold">{{ detailData.subjectName || 'IoT trong y tế' }}</span>
+              <span class="font-weight-medium ml-1 text-red-bold">{{ displaySubjectName }}</span>
             </v-col>
+
             <v-col cols="6">
               <span class="text-grey-color">Tín chỉ:</span>
-              <span class="font-weight-medium ml-1 text-red-bold">{{ detailData.credits || 3 }}</span>
+              <span class="font-weight-medium ml-1 text-red-bold">{{ displayCredits }}</span>
             </v-col>
-
             <v-col cols="6">
               <span class="text-grey-color">Thời lượng:</span>
-              <span class="font-weight-medium ml-1 text-red-bold">{{ detailData.timeAllocation || '0.6' }}</span>
+              <span class="font-weight-medium ml-1 text-red-bold">{{ displayTimeAllocation }}</span>
             </v-col>
             
-            <v-col cols="6" class="d-flex align-center">
+            <!-- TRẠNG THÁI DUYỆT DANH SÁCH -->
+            <v-col cols="6" class="d-flex align-center mt-2">
               <span class="text-grey-color mr-1">Trạng thái duyệt danh sách:</span>
-              <span :class="['status-pill', detailData.approvalStatus === 'ACTIVE' ? 'bg-green' : 'bg-orange']">
-                {{ detailData.approvalStatus === 'ACTIVE' ? 'Đã duyệt danh sách' : 'Chưa duyệt danh sách' }}
+              <span :class="['status-pill', isApprovedModal ? 'bg-green' : 'bg-orange']">
+                {{ displayTrangThaiDuyet }}
               </span>
             </v-col>
 
-            <v-col cols="6" class="d-flex align-center">
+            <!-- TRẠNG THÁI BẢNG ĐIỂM -->
+            <v-col cols="6" class="d-flex align-center mt-2">
               <span class="text-grey-color mr-1">Trạng thái bảng điểm:</span>
-              <span :class="['status-pill', detailData.gradeStatus === 'ACTIVE' ? 'bg-blue' : 'bg-orange']">
-                {{ detailData.gradeStatus === 'ACTIVE' ? 'Đã có điểm' : 'Chưa có điểm' }}
-              </span>
-            </v-col>
-
-            <!-- HÌNH THỨC GIẢNG DẠY: CHỈ HIỆN KHI ĐÃ GÁN GIẢNG VIÊN HOẶC ĐÃ DUYỆT DANH SÁCH -->
-            <v-col
-              v-if="isTeachingModeVisible"
-              cols="6"
-              class="d-flex align-center"
-            >
-              <span class="text-grey-color mr-2">Hình thức giảng dạy:</span>
-              <span class="teaching-mode-pill">
-                {{ detailData.teachingMode || 'Trực tiếp' }}
+              <span :class="['status-pill', getExamStatusBg(displayExamStatus)]">
+                {{ displayExamStatus }}
               </span>
             </v-col>
           </v-row>
@@ -103,33 +88,38 @@
           </div>
 
           <v-row dense class="text-body-2 mb-4">
-            <template v-if="detailData.primaryTeacher">
+            <template v-if="hasPrimaryTeacher">
               <v-col cols="12" class="font-weight-bold mb-2">Giảng viên chính:</v-col>
               <v-col cols="6">
                 <span class="text-grey-color">Mã giảng viên:</span>
-                <span class="font-weight-medium ml-1 text-red-bold">{{ detailData.primaryTeacher.code }}</span>
+                <span class="font-weight-medium ml-1 text-red-bold">{{ primaryTeacherCode }}</span>
               </v-col>
               <v-col cols="6">
                 <span class="text-grey-color">Tên giảng viên:</span>
-                <span class="font-weight-medium ml-1 text-red-bold">{{ detailData.primaryTeacher.fullName }}</span>
+                <span class="font-weight-medium ml-1 text-red-bold">{{ primaryTeacherName }}</span>
               </v-col>
             </template>
             <template v-else>
-              <v-col cols="12" class="text-grey-color italic">
+              <v-col cols="12" class="text-grey-color font-italic">
                 Chưa gán giảng viên chính
               </v-col>
             </template>
 
-            <!-- TRỢ GIẢNG (NẾU CÓ) -->
-            <template v-if="detailData.assistantTeacher">
+            <!-- TRỢ GIẢNG -->
+            <template v-if="hasAssistantTeacher">
               <v-col cols="12" class="font-weight-bold mt-2 mb-1">Trợ giảng:</v-col>
               <v-col cols="6">
                 <span class="text-grey-color">Mã trợ giảng:</span>
-                <span class="font-weight-medium ml-1 text-red-bold">{{ detailData.assistantTeacher.code }}</span>
+                <span class="font-weight-medium ml-1 text-red-bold">{{ assistantTeacherCode }}</span>
               </v-col>
               <v-col cols="6">
                 <span class="text-grey-color">Tên trợ giảng:</span>
-                <span class="font-weight-medium ml-1 text-red-bold">{{ detailData.assistantTeacher.fullName }}</span>
+                <span class="font-weight-medium ml-1 text-red-bold">{{ assistantTeacherName }}</span>
+              </v-col>
+            </template>
+            <template v-else>
+              <v-col cols="12" class="text-grey-color font-italic mt-2">
+                Chưa có trợ giảng
               </v-col>
             </template>
           </v-row>
@@ -146,10 +136,10 @@
               <template v-slot:default>
                 <thead>
                   <tr>
-                    <th class="text-left font-weight-bold gray-head-text" style="width: 80px;">STT</th>
+                    <th class="text-left font-weight-bold gray-head-text" style="width: 60px;">STT</th>
                     <th class="text-left font-weight-bold gray-head-text">Thông tin sinh viên</th>
-                    <th class="text-left font-weight-bold gray-head-text" style="width: 150px;">Khóa</th>
-                    <th class="text-left font-weight-bold gray-head-text" style="width: 200px;">Lớp</th>
+                    <th class="text-left font-weight-bold gray-head-text" style="width: 140px;">Khóa</th>
+                    <th class="text-left font-weight-bold gray-head-text" style="width: 180px;">Lớp</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -157,12 +147,12 @@
                     <tr v-for="(std, idx) in studentList" :key="std.id || idx" class="student-row">
                       <td class="align-top py-3">{{ idx + 1 }}</td>
                       <td class="py-3">
-                        <div class="font-weight-bold text-red-bold mb-1">{{ std.fullName }}</div>
-                        <div class="text-caption text-grey-color">Mã số sinh viên: <strong class="black--text">{{ std.studentCode }}</strong></div>
-                        <div class="text-caption text-grey-color">Số điện thoại: <span class="text-red-bold">{{ std.phone }}</span></div>
+                        <div class="font-weight-bold text-red-bold mb-1">{{ std.fullName || '---' }}</div>
+                        <div class="text-caption text-grey-color">Mã số sinh viên: <strong class="black--text">{{ std.code || std.studentCode || '---' }}</strong></div>
+                        <div class="text-caption text-grey-color">Số điện thoại: <span class="text-red-bold">{{ std.phone || std.phoneNumber || '---' }}</span></div>
                       </td>
-                      <td class="align-top py-3 text-body-2">{{ std.cohort || 'Khóa 66' }}</td>
-                      <td class="align-top py-3 text-body-2">{{ std.className || 'Tin học kinh tế' }}</td>
+                      <td class="align-top py-3 text-body-2">{{ std.khoa || 'Khóa 66' }}</td>
+                      <td class="align-top py-3 text-body-2">{{ std.className || '---' }}</td>
                     </tr>
                   </template>
                   <tr v-else>
@@ -213,20 +203,104 @@ export default {
     studentList() {
       return this.detailData?.students || []
     },
-    // COMPUTED ĐIỀU KIỆN HIỂN THỊ HÌNH THỨC GIẢNG DẠY
-    isTeachingModeVisible() {
-      if (!this.detailData) return false
+    
+    // HỨNG ĐA DẠNG KEY ĐỂ KHÔNG BỊ TRỐNG (---)
+    displayClassCode() {
+      return this.detailData?.classCode || this.detailData?.code || this.detailData?.maLop || this.detailData?.original?.code || '---'
+    },
+    displayClassType() {
+      return this.detailData?.classType || this.detailData?.loaiLop || this.detailData?.original?.classType || 'Lớp ghép (Chuyên ngành)'
+    },
+    displayCoefficient() {
+      return this.detailData?.coefficient || this.detailData?.classCoefficient || this.detailData?.original?.coefficient || '1.7'
+    },
+    displayDuration() {
+      return this.detailData?.duration || this.detailData?.thoiGian || this.detailData?.time || this.detailData?.original?.thoiGian || '01/06/2026 - 09/06/2026'
+    },
+    displaySemester() {
+      return this.detailData?.semester || this.detailData?.dotHocLai || this.detailData?.hocKy || this.detailData?.original?.dotHocLai || 'Học Kỳ II (2025)'
+    },
+    displaySubjectCode() {
+      return this.detailData?.subjectCode || this.detailData?.hocPhanCode || this.detailData?.maHocPhan || this.detailData?.original?.subjectCode || 'ET4235'
+    },
+    displaySubjectName() {
+      return this.detailData?.subjectName || this.detailData?.hocPhanName || this.detailData?.tenHocPhan || this.detailData?.original?.subjectName || 'IoT trong y tế'
+    },
+    displayCredits() {
+      return this.detailData?.credits || this.detailData?.tinChi || this.detailData?.original?.credits || 3
+    },
+    displayTimeAllocation() {
+      return this.detailData?.timeAllocation || this.detailData?.thoiLuong || this.detailData?.original?.timeAllocation || '0.6'
+    },
 
-      const hasTeacherAssigned = !!this.detailData.primaryTeacher
-      const isApproved =
-        this.detailData.approvalStatus === 'ACTIVE' || !!this.detailData.hasBeenApproved
+    // ĐỒNG BỘ TRẠNG THÁI DUYỆT
+    displayTrangThaiDuyet() {
+      return this.detailData?.trangThaiDuyet || this.detailData?.approvalStatusText || 'Chưa duyệt danh sách'
+    },
+    isApprovedModal() {
+      const status = this.displayTrangThaiDuyet
+      return status === 'Đã duyệt danh sách' || status === 'APPROVED' || status === 'ACTIVE'
+    },
 
-      return hasTeacherAssigned || isApproved
+    // ĐỒNG BỘ TRẠNG THÁI BẢNG ĐIỂM
+    displayExamStatus() {
+      return this.detailData?.examStatus || this.detailData?.gradeStatusText || 'Chưa có điểm'
+    },
+
+    // XỬ LÝ THÔNG TIN GIẢNG VIÊN CHÍNH
+    hasPrimaryTeacher() {
+      const name = this.primaryTeacherName
+      return name && name !== 'Chưa gán giảng viên chính' && name !== '---'
+    },
+    primaryTeacherName() {
+      return (
+        this.detailData?.teacherName ||
+        this.detailData?.mainTeacherName ||
+        this.detailData?.mainTeacher?.fullName ||
+        this.detailData?.mainTeacher?.name ||
+        this.detailData?.teacher?.fullName ||
+        this.detailData?.original?.mainTeacherName ||
+        ''
+      )
+    },
+    primaryTeacherCode() {
+      return (
+        this.detailData?.teacherCode ||
+        this.detailData?.mainTeacher?.code ||
+        this.detailData?.teacher?.code ||
+        '---'
+      )
+    },
+
+    // XỬ LÝ THÔNG TIN TRỢ GIẢNG
+    hasAssistantTeacher() {
+      const name = this.assistantTeacherName
+      return name && name !== 'Chưa có trợ giảng' && name !== '---'
+    },
+    assistantTeacherName() {
+      return (
+        this.detailData?.assistantTeacherName ||
+        this.detailData?.assistantTeacher?.fullName ||
+        this.detailData?.assistantTeacher?.name ||
+        ''
+      )
+    },
+    assistantTeacherCode() {
+      return (
+        this.detailData?.assistantTeacherCode ||
+        this.detailData?.assistantTeacher?.code ||
+        '---'
+      )
     },
   },
   methods: {
     closeModal() {
       this.internalShow = false
+    },
+    getExamStatusBg(status) {
+      if (status === 'Đã có điểm') return 'bg-blue'
+      if (status === 'Chờ duyệt') return 'bg-lime'
+      return 'bg-orange'
     },
   },
 }
@@ -270,19 +344,10 @@ export default {
   color: white;
 }
 
-.teaching-mode-pill {
-  display: inline-block;
-  padding: 3px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  background-color: #2196F3 !important;
-  color: white;
-}
-
-.bg-orange { background-color: #FF8F00 !important; }
-.bg-green { background-color: #4CAF50 !important; }
-.bg-blue { background-color: #2196F3 !important; }
+.bg-orange { background-color: #f59e0b !important; }
+.bg-green { background-color: #42b858 !important; }
+.bg-blue { background-color: #3b82f6 !important; }
+.bg-lime { background-color: #a3e635 !important; }
 
 .student-table-wrapper {
   border: 1px solid #E0E0E0;

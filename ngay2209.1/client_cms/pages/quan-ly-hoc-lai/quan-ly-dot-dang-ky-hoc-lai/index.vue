@@ -592,6 +592,25 @@ export default {
     async fetchData() {
       this.loading = true
       try {
+        const parseDateToTimestamp = (dateStr) => {
+          if (!dateStr) return null
+          const cleanStr = String(dateStr).trim().split(' ')[0]
+          if (cleanStr.includes('-')) {
+            const parts = cleanStr.split('-')
+            if (parts.length === 3) {
+              return new Date(`${parts[0]}-${parts[1]}-${parts[2]}`).setHours(0, 0, 0, 0)
+            }
+          } else if (cleanStr.includes('/')) {
+            const parts = cleanStr.split('/')
+            if (parts.length === 3) {
+              const fullYear = parts[2].length === 2 ? `20${parts[2]}` : parts[2]
+              return new Date(`${fullYear}-${parts[1]}-${parts[0]}`).setHours(0, 0, 0, 0)
+            }
+          }
+          const parsed = new Date(cleanStr)
+          return !isNaN(parsed.getTime()) ? parsed.setHours(0, 0, 0, 0) : null
+        }
+
         const res = await this.$axios.$get('/api/retakeSession', {
           params: {
             pageIndex: 1,
@@ -604,7 +623,33 @@ export default {
           }
         })
         const rawData = res?.data?.data || res?.data?.items || res?.data || []
-        this.dataList = parseDotHocLaiData(rawData)
+        
+        let parsedList = parseDotHocLaiData(rawData)
+
+        if (this.filters.fromDate || this.filters.toDate) {
+          const filterFrom = parseDateToTimestamp(this.filters.fromDate)
+          const filterTo = parseDateToTimestamp(this.filters.toDate)
+
+          parsedList = parsedList.filter(item => {
+            const itemFrom = parseDateToTimestamp(item.ngayBatDau)
+            const itemTo = parseDateToTimestamp(item.ngayKetThuc)
+
+            if (!itemFrom || !itemTo) return true
+
+            if (filterFrom && filterTo) {
+              return itemFrom <= filterTo && itemTo >= filterFrom
+            }
+            if (filterFrom && !filterTo) {
+              return itemTo >= filterFrom
+            }
+            if (!filterFrom && filterTo) {
+              return itemFrom <= filterTo
+            }
+            return true
+          })
+        }
+
+        this.dataList = parsedList
         this.appliedData = [...this.dataList]
       } catch (err) {
         console.error('Lỗi tải dữ liệu đợt học lại:', err)
@@ -712,7 +757,7 @@ export default {
     showSuccessNotification(message, color = '#4caf50', timeout = 3000) {
       const id = Date.now() + Math.random()
       const newToast = { id, message, color, timeout, show: true }
-      
+
       this.toasts.unshift(newToast)
 
       setTimeout(() => {

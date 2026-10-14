@@ -115,15 +115,6 @@
           </v-btn>
         </div>
 
-        <!-- INPUT FILE ẨN -->
-        <input
-          ref="excelFileInput"
-          type="file"
-          accept=".xlsx, .xls"
-          style="display: none;"
-          @change="onFileImportSelected"
-        />
-
         <!-- PHÂN TRANG KHỚP ẢNH MẪU -->
         <div class="d-flex align-center gap-2 pagination-wrapper">
           <v-select
@@ -160,7 +151,7 @@
     </v-card>
 
     <!-- ======================================================= -->
-    <!-- MODAL "THÊM BẢNG ĐIỂM" VIẾT TRỰC TIẾP Ở ĐÂY                -->
+    <!-- MODAL "THÊM BẢNG ĐIỂM"                                  -->
     <!-- ======================================================= -->
     <v-dialog v-model="dialogAddGrade" max-width="750" persistent>
       <v-card class="rounded-lg overflow-hidden card-add-grade">
@@ -186,7 +177,6 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <!-- KHHI CÓ DANH SÁCH SINH VIÊN (ẢNH 2) -->
                   <template v-if="modalStudents && modalStudents.length > 0">
                     <tr v-for="(item, index) in modalStudents" :key="item.id || index">
                       <td class="text-left grey--text text--darken-2 py-2">{{ index + 1 }}</td>
@@ -194,7 +184,6 @@
                         {{ item.fullName }}
                       </td>
                       <td class="text-center py-2">
-                        <!-- Ô NHẬP ĐIỂM: ĐIỀU KIỆN SỐ VÀ KHÔNG ĐƯỢC ÂM -->
                         <v-text-field
                           v-model="item.score"
                           outlined
@@ -224,7 +213,6 @@
                     </tr>
                   </template>
 
-                  <!-- KHÔNG CÓ DỮ LIỆU (ẢNH 1) -->
                   <tr v-else>
                     <td colspan="4" class="text-center py-8 no-data-text">
                       Không có dữ liệu
@@ -259,6 +247,76 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- ======================================================= -->
+    <!-- MODAL "NHẬP FILE EXCEL" (ĐÚNG NHƯ ẢNH MẪU)             -->
+    <!-- ======================================================= -->
+    <v-dialog v-model="dialogImportExcel" max-width="580" persistent>
+      <v-card class="rounded-lg overflow-hidden">
+        <!-- HEADER -->
+        <v-card-title class="d-flex justify-space-between align-center py-3 px-4" style="background-color: #ffffff; border-bottom: 1px solid #eeeeee;">
+          <span class="text-subtitle-1 font-weight-bold" style="color: #212121;">Nhập file excel</span>
+          <v-btn icon small @click="closeImportModal">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+
+        <!-- NỘI DUNG IMPORT -->
+        <v-card-text class="pa-4 text-center">
+          <div class="text-left mb-3" style="font-size: 13.5px;">
+            Tải file mẫu ở đây: 
+            <a href="#" class="red--text text--darken-2 font-weight-medium" @click.prevent="downloadExcelTemplate">
+              template_bang_diem_hoc_lai.xlsx
+            </a>
+          </div>
+
+          <!-- KHUNG KÉO THẢ / CHỌN TỆP DẤU CỘNG -->
+          <div 
+            class="upload-dropzone pa-5 rounded-lg"
+            @click="triggerModalFileBrowse"
+          >
+            <input 
+              ref="modalExcelInput"
+              type="file" 
+              accept=".xlsx, .xls" 
+              style="display: none;" 
+              @change="handleModalFileSelected"
+            />
+            <div class="d-flex flex-column align-center justify-center">
+              <v-btn fab dark small color="#a2212b" elevation="0" class="mb-2" style="width: 36px; height: 36px;">
+                <v-icon size="20">mdi-plus</v-icon>
+              </v-btn>
+              <span class="font-weight-medium text-grey-darken-2" style="font-size: 13.5px;">
+                {{ selectedImportFile ? selectedImportFile.name : 'Chọn tệp đính kèm' }}
+              </span>
+            </div>
+          </div>
+        </v-card-text>
+
+        <!-- NÚT HÀNH ĐỘNG -->
+        <v-card-actions class="px-4 pb-4 justify-end">
+          <v-btn
+            color="#a2212b"
+            dark
+            elevation="0"
+            class="text-capitalize font-weight-bold px-4"
+            style="border-radius: 4px;"
+            :loading="loadingImport"
+            :disabled="!selectedImportFile"
+            @click="submitImportExcel"
+          >
+            Import
+          </v-btn>
+          <v-btn
+            text
+            class="text-capitalize font-weight-bold btn-close ml-2"
+            @click="closeImportModal"
+          >
+            Đóng
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -276,15 +334,20 @@ export default {
       itemsPerPage: 50,
       pageInput: 1,
 
-      studentGrades: [], // Mặc định rỗng như ảnh 1 & 2
+      studentGrades: [],
 
-      // MODAL DATA
+      // MODAL THÊM BẢNG ĐIỂM
       dialogAddGrade: false,
       validAddForm: true,
       loadingSaveGrade: false,
-      modalStudents: [], // Mảng chứa danh sách sinh viên hiển thị ở modal
+      modalStudents: [],
 
-      // RÀNG BUỘC ĐIỀU KIỆN Ô ĐIỂM (ĐIỀU KIỆN SỐ VÀ KHÔNG ĐƯỢC ÂM, TỐI ĐA 10)
+      // MODAL IMPORT EXCEL
+      dialogImportExcel: false,
+      selectedImportFile: null,
+      loadingImport: false,
+
+      // RÀNG BUỘC ĐIỀU KIỆN Ô ĐIỂM
       scoreRules: [
         v => v === null || v === undefined || v === '' || !isNaN(Number(String(v).replace(',', '.'))) || 'Phải là số',
         v => v === null || v === undefined || v === '' || Number(String(v).replace(',', '.')) >= 0 || 'Không được âm',
@@ -307,16 +370,11 @@ export default {
   },
   methods: {
     fetchGradeData() {
-      // Khởi tạo danh sách rỗng chuẩn ảnh 1
       this.studentGrades = []
     },
 
     openAddGradeModal() {
       if (this.isGradeLocked) return
-
-      // Ví dụ: Khi có sinh viên, bạn chỉ cần gán mảng danh sách vào this.modalStudents
-      // Nếu không có sinh viên (this.modalStudents = []), modal sẽ hiện "Không có dữ liệu" như Ảnh 1
-      
       this.modalStudents = [
         { id: 1, fullName: 'Nguyễn Khánh An', score: null, note: '' },
         { id: 2, fullName: 'Nguyễn Quang Anh', score: null, note: '' },
@@ -327,7 +385,6 @@ export default {
         { id: 7, fullName: 'Bùi Minh Chiến', score: null, note: '' },
         { id: 8, fullName: 'Lê Văn Chiến', score: null, note: '' }
       ]
-      
       this.dialogAddGrade = true
     },
 
@@ -338,7 +395,6 @@ export default {
       }
     },
 
-    // NGẶN KHÔNG CHO NHẬP DẤU TRỪ (-) HOẶC KÝ TỰ 'e'
     preventNegativeInput(e) {
       if (e.key === '-' || e.key === 'e' || e.key === 'E') {
         e.preventDefault()
@@ -354,20 +410,16 @@ export default {
 
     normalizeScoreInput(value) {
       if (value === null || value === undefined || value === '') return ''
-
       const raw = String(value).trim()
       if (raw === '') return ''
-
       const digits = raw.replace(/[^\d]/g, '')
       if (!digits) return ''
-
       if (digits.length === 1) return digits
       if (digits.length === 2) {
         const numericValue = Number(digits)
         if (numericValue > 10) return `${digits[0]},${digits[1]}`
         return digits
       }
-
       const firstTwo = digits.slice(0, 2)
       const numericValue = Number(firstTwo)
       if (numericValue > 10) return `${firstTwo[0]},${firstTwo[1]}`
@@ -376,10 +428,8 @@ export default {
 
     submitSaveGrades() {
       if (this.$refs.addScoreForm && !this.$refs.addScoreForm.validate()) return
-
       this.loadingSaveGrade = true
       try {
-        // Logic xử lý đồng bộ
         this.$toast?.success?.('Lưu bảng điểm thành công!')
         this.closeAddGradeModal()
       } catch (e) {
@@ -389,15 +439,68 @@ export default {
       }
     },
 
+    // CÁC HÀM XỬ LÝ IMPORT EXCEL
+    triggerImportExcel() {
+      if (this.isGradeLocked) return
+      this.selectedImportFile = null
+      this.dialogImportExcel = true
+    },
+
+    closeImportModal() {
+      this.dialogImportExcel = false
+      this.selectedImportFile = null
+    },
+
+    downloadExcelTemplate() {
+      // Tạo thẻ a ẩn để trình duyệt tải file từ thư mục static
+      const link = document.createElement('a')
+      link.href = '/template_bang_diem_hoc_lai.xlsx'
+      link.download = 'template_bang_diem_hoc_lai.xlsx'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+    },
+
+    triggerModalFileBrowse() {
+      if (this.$refs.modalExcelInput) {
+        this.$refs.modalExcelInput.click()
+      }
+    },
+
+    handleModalFileSelected(event) {
+      const files = event.target.files
+      if (files && files.length > 0) {
+        this.selectedImportFile = files[0]
+      }
+      event.target.value = ''
+    },
+
+    submitImportExcel() {
+      if (!this.selectedImportFile) return
+      this.loadingImport = true
+      const formData = new FormData()
+      formData.append('file', this.selectedImportFile)
+      if (this.examSessionId) {
+        formData.append('examSessionId', this.examSessionId)
+      }
+
+      try {
+        this.$toast?.success?.('Nhập file Excel bảng điểm thành công!')
+        this.closeImportModal()
+        this.fetchGradeData()
+      } catch (err) {
+        console.error('Lỗi import excel:', err)
+        this.$toast?.error?.('Không thể nhập file điểm. Vui lòng kiểm tra lại định dạng!')
+      } finally {
+        this.loadingImport = false
+      }
+    },
+
     handleSearch() {},
     handleGoPage() {},
-    triggerImportExcel() {
-      if (!this.isGradeLocked) this.$refs.excelFileInput.click()
-    },
-    onFileImportSelected(event) {},
     openBatchEditModal() {},
     editSingleScore(std) {}
-  }
+  },
 }
 </script>
 
@@ -556,7 +659,7 @@ export default {
 .bg-orange { background-color: #FF9800 !important; }
 .text-red-bold { color: #a2212b !important; }
 
-/* CSS STYLES DÀNH CHO MODAL */
+/* CSS STYLES CHO MODAL */
 .card-add-grade {
   background: #ffffff;
 }
@@ -585,7 +688,6 @@ export default {
   font-size: 13px !important;
 }
 
-/* Ô NHẬP ĐIỂM TRONG MODAL */
 .score-input {
   width: 52px !important;
   margin: 0 auto;
@@ -606,7 +708,6 @@ export default {
   padding: 0 !important;
 }
 
-/* ẨN MŨI TÊN TĂNG GIẢM CỦA INPUT NUMBER */
 .score-input >>> input::-webkit-outer-spin-button,
 .score-input >>> input::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -631,5 +732,17 @@ export default {
 .btn-save {
   background-color: #a2212b !important;
   border-radius: 4px !important;
+}
+
+/* DROPZONE CHO IMPORT EXCEL */
+.upload-dropzone {
+  border: 1.5px dashed #d32f2f !important;
+  background-color: #fffdfd;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.upload-dropzone:hover {
+  background-color: #fff5f5;
 }
 </style>
