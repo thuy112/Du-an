@@ -3,7 +3,7 @@ import Cookies from 'js-cookie'
 
 export const state = () => ({
   user: null,
-  token: null
+  token: null,
 })
 
 export const mutations = {
@@ -17,10 +17,10 @@ export const mutations = {
     state.user = null
     state.token = null
     Cookies.remove('token')
-  }
+  },
 }
 
 export const getters = {
   isAuthenticated: (state) => !!state.token || !!Cookies.get('token'),
-  currentUser: (state) => state.user
+  currentUser: (state) => state.user,
 }

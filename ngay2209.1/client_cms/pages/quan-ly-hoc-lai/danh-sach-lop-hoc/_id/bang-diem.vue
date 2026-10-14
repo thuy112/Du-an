@@ -4,7 +4,9 @@
     <div class="d-flex align-center justify-space-between mb-4">
       <div class="page-title text-h6 font-weight-medium">
         Bảng điểm lớp học lại: {{ classCode || 'TEST_999' }}
-        <span class="red-count font-weight-bold ml-1">( {{ studentGrades.length }} )</span>
+        <span class="red-count font-weight-bold ml-1"
+          >( {{ studentGrades.length }} )</span
+        >
       </div>
 
       <!-- THANH TÌM KIẾM VÀ CÁC NÚT ICON GÓC PHẢI -->
@@ -20,12 +22,23 @@
         ></v-text-field>
 
         <!-- NÚT RESET / RELOAD -->
-        <v-btn icon color="#a2212b" class="btn-action-icon" @click="fetchGradeData">
+        <v-btn
+          icon
+          color="#a2212b"
+          class="btn-action-icon"
+          @click="fetchGradeData"
+        >
           <v-icon size="24">mdi-refresh</v-icon>
         </v-btn>
 
         <!-- NÚT TÌM KIẾM (ĐỎ) -->
-        <v-btn color="#a2212b" dark class="btn-action-square" elevation="0" @click="handleSearch">
+        <v-btn
+          color="#a2212b"
+          dark
+          class="btn-action-square"
+          elevation="0"
+          @click="handleSearch"
+        >
           <v-icon size="24">mdi-magnify</v-icon>
         </v-btn>
 
@@ -42,7 +55,13 @@
         </v-btn>
 
         <!-- NÚT THÊM/SỬA ĐIỂM HÀNG LOẠT (CAM) -->
-        <v-btn color="#f57c00" dark class="btn-action-square" elevation="0" @click="openBatchEditModal">
+        <v-btn
+          color="#f57c00"
+          dark
+          class="btn-action-square"
+          elevation="0"
+          @click="openBatchEditModal"
+        >
           <v-icon size="24">mdi-checkbox-marked-circle-plus-outline</v-icon>
         </v-btn>
       </div>
@@ -51,37 +70,67 @@
     <!-- BẢNG DỮ LIỆU ĐIỂM SINH VIÊN -->
     <v-card flat class="table-card">
       <v-simple-table class="custom-table">
-        <template v-slot:default>
+        <template #default>
           <thead>
             <tr>
-              <th class="text-left font-weight-bold" style="width: 70px;">STT</th>
-              <th class="text-left font-weight-bold" style="width: 170px;">Mã số sinh viên</th>
+              <th class="text-left font-weight-bold" style="width: 70px">
+                STT
+              </th>
+              <th class="text-left font-weight-bold" style="width: 170px">
+                Mã số sinh viên
+              </th>
               <th class="text-left font-weight-bold">Họ và tên</th>
-              <th class="text-left font-weight-bold" style="width: 170px;">Lớp SV</th>
-              <th class="text-center font-weight-bold" style="width: 110px;">Điểm</th>
-              <th class="text-left font-weight-bold" style="width: 200px;">Ghi chú</th>
-              <th class="text-center font-weight-bold" style="width: 140px;">Trạng thái</th>
-              <th class="text-center font-weight-bold" style="width: 130px;">Chức năng</th>
+              <th class="text-left font-weight-bold" style="width: 170px">
+                Lớp SV
+              </th>
+              <th class="text-center font-weight-bold" style="width: 110px">
+                Điểm
+              </th>
+              <th class="text-left font-weight-bold" style="width: 200px">
+                Ghi chú
+              </th>
+              <th class="text-center font-weight-bold" style="width: 140px">
+                Trạng thái
+              </th>
+              <th class="text-center font-weight-bold" style="width: 130px">
+                Chức năng
+              </th>
             </tr>
           </thead>
           <tbody>
             <template v-if="studentGrades && studentGrades.length > 0">
               <tr v-for="(std, idx) in studentGrades" :key="std.id || idx">
                 <td class="text-left">{{ idx + 1 }}</td>
-                <td class="text-left font-weight-medium">{{ std.studentCode }}</td>
+                <td class="text-left font-weight-medium">
+                  {{ std.studentCode }}
+                </td>
                 <td class="text-left font-weight-medium">{{ std.fullName }}</td>
                 <td class="text-left">{{ std.className }}</td>
                 <td class="text-center font-weight-bold text-red-bold">
-                  {{ std.score !== null && std.score !== undefined ? std.score : '-' }}
+                  {{
+                    std.score !== null && std.score !== undefined
+                      ? std.score
+                      : '-'
+                  }}
                 </td>
                 <td class="text-left">{{ std.note || '' }}</td>
                 <td class="text-center">
-                  <span :class="['status-badge', std.status === 'PASSED' ? 'bg-green' : 'bg-orange']">
+                  <span
+                    :class="[
+                      'status-badge',
+                      std.status === 'PASSED' ? 'bg-green' : 'bg-orange',
+                    ]"
+                  >
                     {{ std.status === 'PASSED' ? 'Đã đạt' : 'Chưa nhập' }}
                   </span>
                 </td>
                 <td class="text-center">
-                  <v-btn icon small color="#1565C0" @click="editSingleScore(std)">
+                  <v-btn
+                    icon
+                    small
+                    color="#1565C0"
+                    @click="editSingleScore(std)"
+                  >
                     <v-icon size="18">mdi-pencil-outline</v-icon>
                   </v-btn>
                 </td>
@@ -136,7 +185,13 @@
             class="pagination-page-input"
           ></v-text-field>
 
-          <v-btn color="#a2212b" dark elevation="0" class="btn-go font-weight-bold" @click="handleGoPage">
+          <v-btn
+            color="#a2212b"
+            dark
+            elevation="0"
+            class="btn-go font-weight-bold"
+            @click="handleGoPage"
+          >
             Đi
           </v-btn>
 
@@ -156,8 +211,12 @@
     <v-dialog v-model="dialogAddGrade" max-width="750" persistent>
       <v-card class="rounded-lg overflow-hidden card-add-grade">
         <!-- HEADER MÀU ĐỎ BÁCH KHOA -->
-        <v-card-title class="d-flex justify-space-between align-center py-3 px-4 dialog-header">
-          <span class="text-subtitle-1 font-weight-bold white--text">Thêm bảng điểm</span>
+        <v-card-title
+          class="d-flex justify-space-between align-center py-3 px-4 dialog-header"
+        >
+          <span class="text-subtitle-1 font-weight-bold white--text"
+            >Thêm bảng điểm</span
+          >
           <v-btn icon dark small @click="closeAddGradeModal">
             <v-icon>mdi-close</v-icon>
           </v-btn>
@@ -167,20 +226,36 @@
         <v-card-text class="pa-4">
           <v-form ref="addScoreForm" v-model="validAddForm">
             <v-simple-table class="modal-table">
-              <template v-slot:default>
+              <template #default>
                 <thead>
                   <tr>
-                    <th class="text-left font-weight-bold" style="width: 80px;">STT</th>
-                    <th class="text-left font-weight-bold" style="width: 220px;">Họ và tên</th>
-                    <th class="text-center font-weight-bold" style="width: 130px;">Điểm</th>
+                    <th class="text-left font-weight-bold" style="width: 80px">
+                      STT
+                    </th>
+                    <th class="text-left font-weight-bold" style="width: 220px">
+                      Họ và tên
+                    </th>
+                    <th
+                      class="text-center font-weight-bold"
+                      style="width: 130px"
+                    >
+                      Điểm
+                    </th>
                     <th class="text-left font-weight-bold">Ghi chú</th>
                   </tr>
                 </thead>
                 <tbody>
                   <template v-if="modalStudents && modalStudents.length > 0">
-                    <tr v-for="(item, index) in modalStudents" :key="item.id || index">
-                      <td class="text-left grey--text text--darken-2 py-2">{{ index + 1 }}</td>
-                      <td class="text-left font-weight-medium grey--text text--darken-3 py-2">
+                    <tr
+                      v-for="(item, index) in modalStudents"
+                      :key="item.id || index"
+                    >
+                      <td class="text-left grey--text text--darken-2 py-2">
+                        {{ index + 1 }}
+                      </td>
+                      <td
+                        class="text-left font-weight-medium grey--text text--darken-3 py-2"
+                      >
                         {{ item.fullName }}
                       </td>
                       <td class="text-center py-2">
@@ -254,8 +329,13 @@
     <v-dialog v-model="dialogImportExcel" max-width="580" persistent>
       <v-card class="rounded-lg overflow-hidden">
         <!-- HEADER -->
-        <v-card-title class="d-flex justify-space-between align-center py-3 px-4" style="background-color: #ffffff; border-bottom: 1px solid #eeeeee;">
-          <span class="text-subtitle-1 font-weight-bold" style="color: #212121;">Nhập file excel</span>
+        <v-card-title
+          class="d-flex justify-space-between align-center py-3 px-4"
+          style="background-color: #ffffff; border-bottom: 1px solid #eeeeee"
+        >
+          <span class="text-subtitle-1 font-weight-bold" style="color: #212121"
+            >Nhập file excel</span
+          >
           <v-btn icon small @click="closeImportModal">
             <v-icon>mdi-close</v-icon>
           </v-btn>
@@ -263,31 +343,50 @@
 
         <!-- NỘI DUNG IMPORT -->
         <v-card-text class="pa-4 text-center">
-          <div class="text-left mb-3" style="font-size: 13.5px;">
-            Tải file mẫu ở đây: 
-            <a href="#" class="red--text text--darken-2 font-weight-medium" @click.prevent="downloadExcelTemplate">
+          <div class="text-left mb-3" style="font-size: 13.5px">
+            Tải file mẫu ở đây:
+            <a
+              href="#"
+              class="red--text text--darken-2 font-weight-medium"
+              @click.prevent="downloadExcelTemplate"
+            >
               template_bang_diem_hoc_lai.xlsx
             </a>
           </div>
 
           <!-- KHUNG KÉO THẢ / CHỌN TỆP DẤU CỘNG -->
-          <div 
+          <div
             class="upload-dropzone pa-5 rounded-lg"
             @click="triggerModalFileBrowse"
           >
-            <input 
+            <input
               ref="modalExcelInput"
-              type="file" 
-              accept=".xlsx, .xls" 
-              style="display: none;" 
+              type="file"
+              accept=".xlsx, .xls"
+              style="display: none"
               @change="handleModalFileSelected"
             />
             <div class="d-flex flex-column align-center justify-center">
-              <v-btn fab dark small color="#a2212b" elevation="0" class="mb-2" style="width: 36px; height: 36px;">
+              <v-btn
+                fab
+                dark
+                small
+                color="#a2212b"
+                elevation="0"
+                class="mb-2"
+                style="width: 36px; height: 36px"
+              >
                 <v-icon size="20">mdi-plus</v-icon>
               </v-btn>
-              <span class="font-weight-medium text-grey-darken-2" style="font-size: 13.5px;">
-                {{ selectedImportFile ? selectedImportFile.name : 'Chọn tệp đính kèm' }}
+              <span
+                class="font-weight-medium text-grey-darken-2"
+                style="font-size: 13.5px"
+              >
+                {{
+                  selectedImportFile
+                    ? selectedImportFile.name
+                    : 'Chọn tệp đính kèm'
+                }}
               </span>
             </div>
           </div>
@@ -300,7 +399,7 @@
             dark
             elevation="0"
             class="text-capitalize font-weight-bold px-4"
-            style="border-radius: 4px;"
+            style="border-radius: 4px"
             :loading="loadingImport"
             :disabled="!selectedImportFile"
             @click="submitImportExcel"
@@ -349,18 +448,38 @@ export default {
 
       // RÀNG BUỘC ĐIỀU KIỆN Ô ĐIỂM
       scoreRules: [
-        v => v === null || v === undefined || v === '' || !isNaN(Number(String(v).replace(',', '.'))) || 'Phải là số',
-        v => v === null || v === undefined || v === '' || Number(String(v).replace(',', '.')) >= 0 || 'Không được âm',
-        v => v === null || v === undefined || v === '' || Number(String(v).replace(',', '.')) <= 10 || 'Điểm tối đa là 10'
-      ]
+        (v) =>
+          v === null ||
+          v === undefined ||
+          v === '' ||
+          !isNaN(Number(String(v).replace(',', '.'))) ||
+          'Phải là số',
+        (v) =>
+          v === null ||
+          v === undefined ||
+          v === '' ||
+          Number(String(v).replace(',', '.')) >= 0 ||
+          'Không được âm',
+        (v) =>
+          v === null ||
+          v === undefined ||
+          v === '' ||
+          Number(String(v).replace(',', '.')) <= 10 ||
+          'Điểm tối đa là 10',
+      ],
     }
   },
   computed: {
     isGradeLocked() {
-      const status = this.$route.query.examStatus || this.$route.query.gradeStatus || ''
-      const normalizedStatus = String(Array.isArray(status) ? status[0] : status).trim().toUpperCase()
+      const status =
+        this.$route.query.examStatus || this.$route.query.gradeStatus || ''
+      const normalizedStatus = String(
+        Array.isArray(status) ? status[0] : status
+      )
+        .trim()
+        .toUpperCase()
       return ['ANNOUNCED', 'ACTIVE', 'ĐÃ CÓ ĐIỂM'].includes(normalizedStatus)
-    }
+    },
   },
   mounted() {
     if (this.$route.params.id) {
@@ -383,7 +502,7 @@ export default {
         { id: 5, fullName: 'Đỗ Tiến Tây Anh', score: null, note: '' },
         { id: 6, fullName: 'Nguyễn Hữu Cường', score: null, note: '' },
         { id: 7, fullName: 'Bùi Minh Chiến', score: null, note: '' },
-        { id: 8, fullName: 'Lê Văn Chiến', score: null, note: '' }
+        { id: 8, fullName: 'Lê Văn Chiến', score: null, note: '' },
       ]
       this.dialogAddGrade = true
     },
@@ -490,7 +609,9 @@ export default {
         this.fetchGradeData()
       } catch (err) {
         console.error('Lỗi import excel:', err)
-        this.$toast?.error?.('Không thể nhập file điểm. Vui lòng kiểm tra lại định dạng!')
+        this.$toast?.error?.(
+          'Không thể nhập file điểm. Vui lòng kiểm tra lại định dạng!'
+        )
       } finally {
         this.loadingImport = false
       }
@@ -499,7 +620,7 @@ export default {
     handleSearch() {},
     handleGoPage() {},
     openBatchEditModal() {},
-    editSingleScore(std) {}
+    editSingleScore(std) {},
   },
 }
 </script>
@@ -655,9 +776,15 @@ export default {
   font-weight: 500;
   color: white;
 }
-.bg-green { background-color: #4CAF50 !important; }
-.bg-orange { background-color: #FF9800 !important; }
-.text-red-bold { color: #a2212b !important; }
+.bg-green {
+  background-color: #4caf50 !important;
+}
+.bg-orange {
+  background-color: #ff9800 !important;
+}
+.text-red-bold {
+  color: #a2212b !important;
+}
 
 /* CSS STYLES CHO MODAL */
 .card-add-grade {

@@ -1,4 +1,4 @@
-import Api from '~/api/Api.js' 
+import Api from '~/api/Api.js'
 
 export default {
   // Gọi API đăng nhập[cite: 1]
@@ -19,6 +19,5 @@ export default {
   // Đăng xuất[cite: 1, 6]
   logout() {
     return Api.post('/api/auth/logout')
-  }
+  },
 }
-

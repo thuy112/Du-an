@@ -2,11 +2,11 @@
   <div class="base-table-container bg-white">
     <v-data-table
       v-bind="$attrs"
-      v-on="$listeners"
       :headers="headers"
       :items="items"
       mobile-breakpoint="600"
       class="custom-table"
+      v-on="$listeners"
     >
       <template v-for="(_, name) in $scopedSlots" #[name]="slotData">
         <slot :name="name" v-bind="slotData"></slot>
@@ -20,8 +20,8 @@ export default {
   name: 'BaseTable',
   props: {
     headers: { type: Array, required: true, default: () => [] },
-    items: { type: Array, required: true, default: () => [] }
-  }
+    items: { type: Array, required: true, default: () => [] },
+  },
 }
 </script>
 
@@ -30,7 +30,9 @@ export default {
   position: relative;
   width: 100%;
 }
-.custom-table { background-color: transparent !important; }
+.custom-table {
+  background-color: transparent !important;
+}
 .custom-table >>> th {
   background-color: #f8f9fa !important;
   font-weight: bold !important;
@@ -41,9 +43,15 @@ export default {
 
 /* DÀNH CHO ĐIỆN THOẠI (< 600px) */
 @media (max-width: 599px) {
-  .base-table-container { overflow: visible !important; }
-  .custom-table { min-width: 100% !important; }
-  .custom-table >>> .v-data-table__wrapper { overflow: visible !important; }
+  .base-table-container {
+    overflow: visible !important;
+  }
+  .custom-table {
+    min-width: 100% !important;
+  }
+  .custom-table >>> .v-data-table__wrapper {
+    overflow: visible !important;
+  }
   .custom-table >>> .v-data-table__mobile-row {
     align-items: flex-start !important;
     padding: 12px 16px !important;
@@ -94,11 +102,22 @@ export default {
 
 /* Style cho Scrollbar */
 .custom-table >>> .v-data-table__wrapper::-webkit-scrollbar,
-.base-table-container::-webkit-scrollbar { height: 8px; width: 6px; }
+.base-table-container::-webkit-scrollbar {
+  height: 8px;
+  width: 6px;
+}
 .custom-table >>> .v-data-table__wrapper::-webkit-scrollbar-track,
-.base-table-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+.base-table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
 .custom-table >>> .v-data-table__wrapper::-webkit-scrollbar-thumb,
-.base-table-container::-webkit-scrollbar-thumb { background: #a2212b; border-radius: 4px; }
+.base-table-container::-webkit-scrollbar-thumb {
+  background: #a2212b;
+  border-radius: 4px;
+}
 .custom-table >>> .v-data-table__wrapper::-webkit-scrollbar-thumb:hover,
-.base-table-container::-webkit-scrollbar-thumb:hover { background: #83161f; }
+.base-table-container::-webkit-scrollbar-thumb:hover {
+  background: #83161f;
+}
 </style>

@@ -158,11 +158,7 @@
         </v-card-text>
 
         <v-card-actions class="px-6 pb-6 pt-0 justify-end">
-          <v-btn
-            text
-            class="text-capitalize mr-2"
-            @click="closePasswordDialog"
-          >
+          <v-btn text class="text-capitalize mr-2" @click="closePasswordDialog">
             Đóng <v-icon small class="ml-1">mdi-close</v-icon>
           </v-btn>
           <v-btn
@@ -187,7 +183,7 @@ import { removeCookies } from '~/utils/heppers'
 
 export default {
   name: 'ThongTinCaNhanPage',
-  middleware: 'authenticated', 
+  middleware: 'authenticated',
   data() {
     return {
       userInfo: {},
@@ -216,7 +212,9 @@ export default {
           return
         }
       } catch (e) {
-        console.log('Chưa gọi được API Backend, chuyển sang lấy từ localStorage')
+        console.log(
+          'Chưa gọi được API Backend, chuyển sang lấy từ localStorage'
+        )
       }
 
       // 2. Nếu Backend chưa có, đọc dữ liệu lưu tạm ở localStorage
@@ -257,7 +255,7 @@ export default {
     },
     async submitChangePassword() {
       if (!this.$refs.changePasswordForm.validate()) return
-      
+
       try {
         const res = await authServices.changePassword(this.passwordForm)
         if (res && res.success) {
@@ -265,7 +263,6 @@ export default {
             this.$showSuccess('Đổi mật khẩu thành công!')
           }
           this.closePasswordDialog()
-          
         }
       } catch (e) {
         // Mock thông báo khi chưa kết nối API Đổi mật khẩu

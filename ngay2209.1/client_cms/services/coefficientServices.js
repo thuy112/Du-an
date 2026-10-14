@@ -1,4 +1,4 @@
-/*Quản lý hệ số lớp, hệ số quy đổi*/
+/* Quản lý hệ số lớp, hệ số quy đổi */
 import Api from '~/api/Api'
 
 export default {

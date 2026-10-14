@@ -1,15 +1,35 @@
 <template>
-  <div class="page-layout-wrapper d-flex flex-column pa-2 pa-md-4 system-bg" :class="{ 'is-mobile-device': isMobileDevice }">
+  <div
+    class="page-layout-wrapper d-flex flex-column pa-2 pa-md-4 system-bg"
+    :class="{ 'is-mobile-device': isMobileDevice }"
+  >
     <!-- THANH THÔNG BÁO BANNER NỔI (MÀU VÀNG KHI TRÙNG, MÀU XANH KHI THÀNH CÔNG) -->
-    <div v-if="alertMessage" :style="{ backgroundColor: alertColor + ' !important' }" class="custom-alert-banner px-4 py-3 d-flex align-center justify-space-between mb-3 elevation-2">
+    <div
+      v-if="alertMessage"
+      :style="{ backgroundColor: alertColor + ' !important' }"
+      class="custom-alert-banner px-4 py-3 d-flex align-center justify-space-between mb-3 elevation-2"
+    >
       <div class="d-flex align-center">
-        <v-icon :color="alertColor === '#ffc107' ? 'black' : 'white'" class="mr-2">
-          {{ alertColor === '#ffc107' ? 'mdi-alert-circle-outline' : 'mdi-check-circle-outline' }}
+        <v-icon
+          :color="alertColor === '#ffc107' ? 'black' : 'white'"
+          class="mr-2"
+        >
+          {{
+            alertColor === '#ffc107'
+              ? 'mdi-alert-circle-outline'
+              : 'mdi-check-circle-outline'
+          }}
         </v-icon>
-        <span :class="alertColor === '#ffc107' ? 'black--text' : 'white--text'" class="font-weight-medium text-body-2">{{ alertMessage }}</span>
+        <span
+          :class="alertColor === '#ffc107' ? 'black--text' : 'white--text'"
+          class="font-weight-medium text-body-2"
+          >{{ alertMessage }}</span
+        >
       </div>
       <v-btn icon x-small dark @click="alertMessage = ''">
-        <v-icon :color="alertColor === '#ffc107' ? 'black' : 'white'">mdi-close</v-icon>
+        <v-icon :color="alertColor === '#ffc107' ? 'black' : 'white'"
+          >mdi-close</v-icon
+        >
       </v-btn>
     </div>
 
@@ -18,12 +38,17 @@
       <v-row align="center" justify="space-between" no-gutters>
         <v-col cols="12" md="auto" class="mb-3 mb-md-0 pb-1 pb-md-0">
           <div class="text-h6 font-weight-bold d-flex align-center">
-            Danh sách hệ số lớp&nbsp;(<span style="color: #a2212b">{{ totalItems }}</span>)
+            Danh sách hệ số lớp&nbsp;(<span style="color: #a2212b">{{
+              totalItems
+            }}</span
+            >)
           </div>
         </v-col>
 
         <v-col cols="12" md="auto">
-          <div class="d-flex align-center justify-start justify-md-end flex-wrap gap-2">
+          <div
+            class="d-flex align-center justify-start justify-md-end flex-wrap gap-2"
+          >
             <v-text-field
               v-model="filters.search"
               label="Tìm kiếm"
@@ -82,7 +107,9 @@
     </div>
 
     <!-- 2. BẢNG DỮ LIỆU TÍCH HỢP BaseTable -->
-    <div class="main-content-block table-scroll-container flex-grow-1 bg-white pa-3 rounded-0">
+    <div
+      class="main-content-block table-scroll-container flex-grow-1 bg-white pa-3 rounded-0"
+    >
       <BaseTable
         :headers="headers"
         :items="paginatedData"
@@ -91,24 +118,36 @@
         disable-pagination
         class="elevation-0 bg-transparent custom-table"
       >
-        <template v-slot:[`item.stt`]="{ index }">
-          <span class="font-weight-medium">{{ (page - 1) * itemsPerPage + index + 1 }}</span>
+        <template #[`item.stt`]="{ index }">
+          <span class="font-weight-medium">{{
+            (page - 1) * itemsPerPage + index + 1
+          }}</span>
         </template>
 
-        <template v-slot:[`item.loaiLop`]="{ item }">
+        <template #[`item.loaiLop`]="{ item }">
           <span>{{ item.loaiLop }}</span>
         </template>
 
-        <template v-slot:[`item.soLuongSv`]="{ item }">
+        <template #[`item.soLuongSv`]="{ item }">
           {{ item.minSv }} - {{ item.maxSv }}
         </template>
 
-        <template v-slot:[`item.actions`]="{ item }">
+        <template #[`item.actions`]="{ item }">
           <div class="d-flex align-center gap-3 justify-center">
-            <v-icon size="22" color="#fa8c16" class="action-icon-btn" @click="openEditModal(item)">
+            <v-icon
+              size="22"
+              color="#fa8c16"
+              class="action-icon-btn"
+              @click="openEditModal(item)"
+            >
               mdi-pencil
             </v-icon>
-            <v-icon size="22" color="#f5222d" class="action-icon-btn" @click="openDeleteModal(item)">
+            <v-icon
+              size="22"
+              color="#f5222d"
+              class="action-icon-btn"
+              @click="openDeleteModal(item)"
+            >
               mdi-trash-can
             </v-icon>
           </div>
@@ -117,7 +156,9 @@
     </div>
 
     <!-- 3. THANH PHÂN TRANG -->
-    <div class="custom-pagination-bar flex-shrink-0 d-flex align-center justify-end flex-wrap gap-2 py-3 px-3 bg-white mt-2 rounded-0">
+    <div
+      class="custom-pagination-bar flex-shrink-0 d-flex align-center justify-end flex-wrap gap-2 py-3 px-3 bg-white mt-2 rounded-0"
+    >
       <div class="d-flex align-center flex-wrap justify-end gap-2 w-100">
         <div class="d-flex align-center gap-2">
           <v-select
@@ -152,7 +193,12 @@
         </div>
 
         <div class="d-flex align-center gap-1 mt-2 mt-sm-0">
-          <v-btn outlined class="btn-page-nav mx-1 bg-white" :disabled="page <= 1" @click="changePage(page - 1)">
+          <v-btn
+            outlined
+            class="btn-page-nav mx-1 bg-white"
+            :disabled="page <= 1"
+            @click="changePage(page - 1)"
+          >
             <v-icon small color="grey darken-1">mdi-chevron-left</v-icon>
           </v-btn>
 
@@ -168,7 +214,12 @@
             {{ p }}
           </v-btn>
 
-          <v-btn outlined class="btn-page-nav mx-1 bg-white" :disabled="page >= totalPages" @click="changePage(page + 1)">
+          <v-btn
+            outlined
+            class="btn-page-nav mx-1 bg-white"
+            :disabled="page >= totalPages"
+            @click="changePage(page + 1)"
+          >
             <v-icon small color="grey darken-1">mdi-chevron-right</v-icon>
           </v-btn>
         </div>
@@ -178,11 +229,16 @@
     <!-- DIALOG THÊM MỚI / CHỈNH SỬA -->
     <v-dialog v-model="formDialog" max-width="600px" persistent>
       <v-card class="rounded-0 overflow-hidden elevation-0">
-        <div class="px-5 py-3 d-flex align-center justify-space-between" style="background-color: #a2212b;">
+        <div
+          class="px-5 py-3 d-flex align-center justify-space-between"
+          style="background-color: #a2212b"
+        >
           <span class="white--text font-weight-bold text-h6">
             {{ isEdit ? 'Cập nhật hệ số lớp' : 'Thêm mới hệ số lớp' }}
           </span>
-          <v-btn icon dark x-small @click="formDialog = false"><v-icon>mdi-close</v-icon></v-btn>
+          <v-btn icon dark x-small @click="formDialog = false"
+            ><v-icon>mdi-close</v-icon></v-btn
+          >
         </div>
 
         <v-card-text class="pa-6">
@@ -197,12 +253,16 @@
                   dense
                   outlined
                   hide-details="auto"
-                  :rules="[v => !!v || 'Vui lòng chọn loại lớp']"
+                  :rules="[(v) => !!v || 'Vui lòng chọn loại lớp']"
                 ></v-select>
               </v-col>
 
               <!-- Nếu chọn Lớp ghép: Hiện thêm Loại học phần (Đại cương / Chuyên ngành) -->
-              <v-col cols="12" class="mt-3" v-if="formData.baseLoaiLop === 'Lớp ghép'">
+              <v-col
+                v-if="formData.baseLoaiLop === 'Lớp ghép'"
+                cols="12"
+                class="mt-3"
+              >
                 <v-select
                   v-model="formData.loaiHocPhan"
                   :items="['Đại cương', 'Chuyên ngành']"
@@ -214,23 +274,77 @@
               </v-col>
 
               <v-col cols="12" class="mt-3">
-                <v-text-field v-model.number="formData.thuHocPhiSv" label="Thu học phí SV (*)" type="number" dense outlined hide-details="auto" :rules="[v => (v !== null && v !== '') || 'Vui lòng nhập giá trị']"></v-text-field>
+                <v-text-field
+                  v-model.number="formData.thuHocPhiSv"
+                  label="Thu học phí SV (*)"
+                  type="number"
+                  dense
+                  outlined
+                  hide-details="auto"
+                  :rules="[
+                    (v) => (v !== null && v !== '') || 'Vui lòng nhập giá trị',
+                  ]"
+                ></v-text-field>
               </v-col>
               <v-col cols="12" class="mt-3">
-                <v-text-field v-model.number="formData.thanhToanGiangDay" label="Thanh toán giảng dạy (*)" type="number" dense outlined hide-details="auto" :rules="[v => (v !== null && v !== '') || 'Vui lòng nhập giá trị']"></v-text-field>
+                <v-text-field
+                  v-model.number="formData.thanhToanGiangDay"
+                  label="Thanh toán giảng dạy (*)"
+                  type="number"
+                  dense
+                  outlined
+                  hide-details="auto"
+                  :rules="[
+                    (v) => (v !== null && v !== '') || 'Vui lòng nhập giá trị',
+                  ]"
+                ></v-text-field>
               </v-col>
               <v-col cols="12" class="mt-3">
-                <v-text-field v-model="formData.description" label="Mô tả" dense outlined hide-details="auto"></v-text-field>
+                <v-text-field
+                  v-model="formData.description"
+                  label="Mô tả"
+                  dense
+                  outlined
+                  hide-details="auto"
+                ></v-text-field>
               </v-col>
               <v-col cols="12" class="mt-3">
-                <v-text-field v-model.number="formData.minSv" label="Số lượng tối thiểu (*)" type="number" dense outlined hide-details="auto" :rules="[v => (v !== null && v !== '') || 'Vui lòng nhập số lượng tối thiểu']"></v-text-field>
+                <v-text-field
+                  v-model.number="formData.minSv"
+                  label="Số lượng tối thiểu (*)"
+                  type="number"
+                  dense
+                  outlined
+                  hide-details="auto"
+                  :rules="[
+                    (v) =>
+                      (v !== null && v !== '') ||
+                      'Vui lòng nhập số lượng tối thiểu',
+                  ]"
+                ></v-text-field>
               </v-col>
               <v-col cols="12" class="mt-3">
-                <v-text-field v-model.number="formData.maxSv" label="Số lượng tối đa (*)" type="number" dense outlined hide-details="auto" :rules="[v => (v !== null && v !== '') || 'Vui lòng nhập số lượng tối đa']"></v-text-field>
+                <v-text-field
+                  v-model.number="formData.maxSv"
+                  label="Số lượng tối đa (*)"
+                  type="number"
+                  dense
+                  outlined
+                  hide-details="auto"
+                  :rules="[
+                    (v) =>
+                      (v !== null && v !== '') ||
+                      'Vui lòng nhập số lượng tối đa',
+                  ]"
+                ></v-text-field>
               </v-col>
 
               <!-- Nếu chọn Đồ án môn học: Hiện nút gạt Học phần thường (HPTT) để phân biệt với HP.DAMH -->
-              <v-col cols="12" class="mt-4" v-if="formData.baseLoaiLop === 'Đồ án môn học'">
+              <v-col
+                v-if="formData.baseLoaiLop === 'Đồ án môn học'"
+                cols="12"
+                class="mt-4"
+              >
                 <v-switch
                   v-model="formData.isCourseNormal"
                   label="Học phần thường"
@@ -243,8 +357,20 @@
         </v-card-text>
 
         <v-card-actions class="pa-5 pt-0 d-flex justify-end gap-2">
-          <v-btn outlined class="text-capitalize px-4 rounded-0" @click="formDialog = false">Đóng</v-btn>
-          <v-btn color="#a2212b" dark elevation="0" class="text-capitalize px-4 rounded-0" @click="saveData">Lưu</v-btn>
+          <v-btn
+            outlined
+            class="text-capitalize px-4 rounded-0"
+            @click="formDialog = false"
+            >Đóng</v-btn
+          >
+          <v-btn
+            color="#a2212b"
+            dark
+            elevation="0"
+            class="text-capitalize px-4 rounded-0"
+            @click="saveData"
+            >Lưu</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -252,16 +378,35 @@
     <!-- DIALOG XÓA -->
     <v-dialog v-model="deleteDialog" max-width="450px" persistent>
       <v-card class="rounded-0 overflow-hidden elevation-0">
-        <div class="px-4 py-3 d-flex align-center justify-space-between" style="background-color: #a2212b;">
-          <span class="white--text font-weight-bold text-subtitle-1">Xác nhận</span>
-          <v-btn icon dark x-small @click="deleteDialog = false"><v-icon>mdi-close</v-icon></v-btn>
+        <div
+          class="px-4 py-3 d-flex align-center justify-space-between"
+          style="background-color: #a2212b"
+        >
+          <span class="white--text font-weight-bold text-subtitle-1"
+            >Xác nhận</span
+          >
+          <v-btn icon dark x-small @click="deleteDialog = false"
+            ><v-icon>mdi-close</v-icon></v-btn
+          >
         </div>
         <v-card-text class="pa-5 text-body-2 text--primary">
           Xác nhận xóa hệ số lớp này?
         </v-card-text>
         <v-card-actions class="pa-4 pt-0 d-flex justify-end gap-2">
-          <v-btn outlined class="text-capitalize px-4 rounded-0" @click="deleteDialog = false">Đóng</v-btn>
-          <v-btn color="#a2212b" dark elevation="0" class="text-capitalize px-4 rounded-0" @click="confirmDelete">Xác Nhận</v-btn>
+          <v-btn
+            outlined
+            class="text-capitalize px-4 rounded-0"
+            @click="deleteDialog = false"
+            >Đóng</v-btn
+          >
+          <v-btn
+            color="#a2212b"
+            dark
+            elevation="0"
+            class="text-capitalize px-4 rounded-0"
+            @click="confirmDelete"
+            >Xác Nhận</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -274,7 +419,7 @@ import BaseTable from '@/components/Base/BaseTable.vue'
 const parseCoefficientData = (apiData) => {
   return (apiData || []).map((item) => {
     if (!item) return {}
-    
+
     let loaiLopVN = 'Lớp mở'
     if (item.classType === 'COMBINE_CLASS') {
       if (item.courseType === 'SPECIALIZED') {
@@ -283,7 +428,9 @@ const parseCoefficientData = (apiData) => {
         loaiLopVN = 'Lớp ghép (Đại cương)'
       }
     } else if (item.classType === 'PROJECT_BASED_CLASS') {
-      loaiLopVN = item.isCourseNormal ? 'Đồ án môn học (HPTT)' : 'Đồ án môn học (HP.DAMH)'
+      loaiLopVN = item.isCourseNormal
+        ? 'Đồ án môn học (HPTT)'
+        : 'Đồ án môn học (HP.DAMH)'
     } else {
       loaiLopVN = 'Lớp mở'
     }
@@ -301,7 +448,7 @@ const parseCoefficientData = (apiData) => {
       maxSv: max,
       classType: item.classType,
       courseType: item.courseType,
-      isCourseNormal: item.isCourseNormal
+      isCourseNormal: item.isCourseNormal,
     }
   })
 }
@@ -336,16 +483,43 @@ export default {
         description: '',
         minSv: 1,
         maxSv: 10,
-        isCourseNormal: false
+        isCourseNormal: false,
       },
 
       headers: [
-        { text: 'STT', value: 'stt', sortable: false, width: '70px', align: 'left' },
+        {
+          text: 'STT',
+          value: 'stt',
+          sortable: false,
+          width: '70px',
+          align: 'left',
+        },
         { text: 'Loại lớp', value: 'loaiLop', sortable: false, align: 'left' },
-        { text: 'Thu học phí SV', value: 'thuHocPhiSv', sortable: false, align: 'center' },
-        { text: 'Thanh toán giảng dạy', value: 'thanhToanGiangDay', sortable: false, align: 'center' },
-        { text: 'Số lượng sinh viên', value: 'soLuongSv', sortable: false, align: 'center' },
-        { text: 'Chức năng', value: 'actions', sortable: false, align: 'center', width: '130px' },
+        {
+          text: 'Thu học phí SV',
+          value: 'thuHocPhiSv',
+          sortable: false,
+          align: 'center',
+        },
+        {
+          text: 'Thanh toán giảng dạy',
+          value: 'thanhToanGiangDay',
+          sortable: false,
+          align: 'center',
+        },
+        {
+          text: 'Số lượng sinh viên',
+          value: 'soLuongSv',
+          sortable: false,
+          align: 'center',
+        },
+        {
+          text: 'Chức năng',
+          value: 'actions',
+          sortable: false,
+          align: 'center',
+          width: '130px',
+        },
       ],
 
       dataList: [],
@@ -354,8 +528,12 @@ export default {
     }
   },
   computed: {
-    totalItems() { return this.appliedData.length },
-    totalPages() { return Math.ceil(this.totalItems / this.itemsPerPage) || 1 },
+    totalItems() {
+      return this.appliedData.length
+    },
+    totalPages() {
+      return Math.ceil(this.totalItems / this.itemsPerPage) || 1
+    },
     paginatedData() {
       const start = (this.page - 1) * this.itemsPerPage
       return this.appliedData.slice(start, start + this.itemsPerPage)
@@ -365,28 +543,34 @@ export default {
       const maxVisible = 5
       let start = Math.max(1, this.page - Math.floor(maxVisible / 2))
       const end = Math.min(this.totalPages, start + maxVisible - 1)
-      if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1)
+      if (end - start + 1 < maxVisible)
+        start = Math.max(1, end - maxVisible + 1)
       for (let i = start; i <= end; i++) pages.push(i)
       return pages
     },
   },
   async mounted() {
     if (typeof navigator !== 'undefined') {
-      this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      this.isMobileDevice =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        )
     }
     if (this.$store) {
-      this.$store.commit('SET_PAGE_TITLE', 'Quản lý hệ số lớp');
+      this.$store.commit('SET_PAGE_TITLE', 'Quản lý hệ số lớp')
     }
     await Promise.all([
       this.fetchUserInfo(),
       this.fetchPageRole(),
-      this.fetchData()
-    ]);
+      this.fetchData(),
+    ])
   },
   methods: {
     async fetchUserInfo() {
       try {
-        const res = await this.$axios.$get('/api/user/info', { params: { channel: 'CMS' } })
+        const res = await this.$axios.$get('/api/user/info', {
+          params: { channel: 'CMS' },
+        })
         this.userInfo = res?.data || res
       } catch (err) {
         console.error('Lỗi tải thông tin user:', err)
@@ -395,7 +579,9 @@ export default {
 
     async fetchPageRole() {
       try {
-        await this.$axios.$get('/api/auth/getPageRole', { params: { channel: 'CMS' } })
+        await this.$axios.$get('/api/auth/getPageRole', {
+          params: { channel: 'CMS' },
+        })
       } catch (err) {
         console.error('Lỗi kiểm tra quyền trang:', err)
       }
@@ -409,8 +595,8 @@ export default {
             pageIndex: 1,
             pageSize: 50,
             search: this.filters.search || '',
-            channel: 'CMS'
-          }
+            channel: 'CMS',
+          },
         })
         const rawData = res?.data?.data || res?.data?.items || res?.data || []
         this.dataList = parseCoefficientData(rawData)
@@ -429,25 +615,42 @@ export default {
       const coeff = (this.filters.coefficient || '').trim()
 
       this.appliedData = this.dataList.filter((item) => {
-        const matchSearch = !keyword || (item.loaiLop || '').toLowerCase().includes(keyword)
-        const matchCoeff = !coeff || String(item.thuHocPhiSv).includes(coeff) || String(item.thanhToanGiangDay).includes(coeff)
+        const matchSearch =
+          !keyword || (item.loaiLop || '').toLowerCase().includes(keyword)
+        const matchCoeff =
+          !coeff ||
+          String(item.thuHocPhiSv).includes(coeff) ||
+          String(item.thanhToanGiangDay).includes(coeff)
         return matchSearch && matchCoeff
       })
 
-      if (resetPage) { this.page = 1; this.pageInput = 1 }
+      if (resetPage) {
+        this.page = 1
+        this.pageInput = 1
+      }
     },
     handleGoBtnClick() {
       this.handleExecuteSearch(false)
       const targetPage = parseInt(this.pageInput, 10)
-      if (targetPage && targetPage >= 1 && targetPage <= this.totalPages) this.page = targetPage
-      else { this.page = 1; this.pageInput = 1 }
+      if (targetPage && targetPage >= 1 && targetPage <= this.totalPages)
+        this.page = targetPage
+      else {
+        this.page = 1
+        this.pageInput = 1
+      }
     },
     resetFilters() {
       this.filters = { search: '', coefficient: '' }
       this.appliedData = [...this.dataList]
-      this.page = 1; this.pageInput = 1
+      this.page = 1
+      this.pageInput = 1
     },
-    changePage(p) { if (p >= 1 && p <= this.totalPages) { this.page = p; this.pageInput = p } },
+    changePage(p) {
+      if (p >= 1 && p <= this.totalPages) {
+        this.page = p
+        this.pageInput = p
+      }
+    },
     openCreateModal() {
       this.isEdit = false
       this.alertMessage = ''
@@ -460,7 +663,7 @@ export default {
         description: '',
         minSv: 1,
         maxSv: 10,
-        isCourseNormal: false
+        isCourseNormal: false,
       }
       if (this.$refs.classCoeffForm) this.$refs.classCoeffForm.resetValidation()
       this.formDialog = true
@@ -474,7 +677,9 @@ export default {
       let hocPhan = 'Đại cương'
       if (item.loaiLop.includes('Lớp ghép')) {
         baseLop = 'Lớp ghép'
-        hocPhan = item.loaiLop.includes('Chuyên ngành') ? 'Chuyên ngành' : 'Đại cương'
+        hocPhan = item.loaiLop.includes('Chuyên ngành')
+          ? 'Chuyên ngành'
+          : 'Đại cương'
       } else if (item.loaiLop.includes('Đồ án')) {
         baseLop = 'Đồ án môn học'
       }
@@ -488,13 +693,14 @@ export default {
         description: item.description,
         minSv: item.minSv,
         maxSv: item.maxSv,
-        isCourseNormal: item.isCourseNormal || false
+        isCourseNormal: item.isCourseNormal || false,
       }
       if (this.$refs.classCoeffForm) this.$refs.classCoeffForm.resetValidation()
       this.formDialog = true
     },
     saveData() {
-      if (this.$refs.classCoeffForm && !this.$refs.classCoeffForm.validate()) return
+      if (this.$refs.classCoeffForm && !this.$refs.classCoeffForm.validate())
+        return
 
       const newMin = Number(this.formData.minSv)
       const newMax = Number(this.formData.maxSv)
@@ -503,15 +709,21 @@ export default {
 
       if (newMin > newMax) {
         this.alertColor = '#ffc107'
-        this.alertMessage = 'Số lượng tối thiểu không được lớn hơn số lượng tối đa!'
+        this.alertMessage =
+          'Số lượng tối thiểu không được lớn hơn số lượng tối đa!'
         return
       }
 
       let calculatedLoaiLop = 'Lớp mở'
       if (this.formData.baseLoaiLop === 'Lớp ghép') {
-        calculatedLoaiLop = this.formData.loaiHocPhan === 'Chuyên ngành' ? 'Lớp ghép (Chuyên ngành)' : 'Lớp ghép (Đại cương)'
+        calculatedLoaiLop =
+          this.formData.loaiHocPhan === 'Chuyên ngành'
+            ? 'Lớp ghép (Chuyên ngành)'
+            : 'Lớp ghép (Đại cương)'
       } else if (this.formData.baseLoaiLop === 'Đồ án môn học') {
-        calculatedLoaiLop = this.formData.isCourseNormal ? 'Đồ án môn học (HPTT)' : 'Đồ án môn học (HP.DAMH)'
+        calculatedLoaiLop = this.formData.isCourseNormal
+          ? 'Đồ án môn học (HPTT)'
+          : 'Đồ án môn học (HP.DAMH)'
       }
 
       const isOverlap = this.dataList.some((item) => {
@@ -541,7 +753,7 @@ export default {
         description: this.formData.description || '',
         minSv: newMin,
         maxSv: newMax,
-        isCourseNormal: this.formData.isCourseNormal
+        isCourseNormal: this.formData.isCourseNormal,
       }
 
       if (this.isEdit) {
@@ -558,9 +770,14 @@ export default {
       }
       this.formDialog = false
     },
-    openDeleteModal(item) { this.selectedItem = item; this.deleteDialog = true },
+    openDeleteModal(item) {
+      this.selectedItem = item
+      this.deleteDialog = true
+    },
     confirmDelete() {
-      const index = this.dataList.findIndex(x => x.id === this.selectedItem.id)
+      const index = this.dataList.findIndex(
+        (x) => x.id === this.selectedItem.id
+      )
       if (index !== -1) {
         this.dataList.splice(index, 1)
         this.appliedData = [...this.dataList]
@@ -579,9 +796,15 @@ export default {
   min-height: calc(100vh - 64px);
 }
 
-.rounded-0 { border-radius: 0px !important; }
-.gap-2 { gap: 8px; }
-.gap-3 { gap: 12px; }
+.rounded-0 {
+  border-radius: 0px !important;
+}
+.gap-2 {
+  gap: 8px;
+}
+.gap-3 {
+  gap: 12px;
+}
 
 /* Banner thông báo động (Màu vàng cảnh báo / Màu xanh thành công) */
 .custom-alert-banner {
@@ -589,16 +812,34 @@ export default {
   transition: background-color 0.3s ease;
 }
 
-.filter-input-box { min-width: 180px; flex: 1 1 140px; }
-@media (min-width: 960px) { .filter-input-box { max-width: 160px; } }
+.filter-input-box {
+  min-width: 180px;
+  flex: 1 1 140px;
+}
+@media (min-width: 960px) {
+  .filter-input-box {
+    max-width: 160px;
+  }
+}
 
 ::v-deep .filter-input-box.v-text-field--outlined .v-input__control,
 ::v-deep .filter-input-box.v-text-field--outlined .v-input__slot {
-  min-height: 40px !important; height: 40px !important; padding: 0 10px !important;
+  min-height: 40px !important;
+  height: 40px !important;
+  padding: 0 10px !important;
 }
 
-.btn-action-icon { width: 40px !important; height: 40px !important; }
-.btn-action-square { width: 48px !important; min-width: 48px !important; height: 40px !important; border-radius: 4px !important; padding: 0 !important; }
+.btn-action-icon {
+  width: 40px !important;
+  height: 40px !important;
+}
+.btn-action-square {
+  width: 48px !important;
+  min-width: 48px !important;
+  height: 40px !important;
+  border-radius: 4px !important;
+  padding: 0 !important;
+}
 
 .select-records.v-text-field--outlined,
 .select-records.v-text-field--outlined .v-input__control,
@@ -644,11 +885,23 @@ export default {
   border-radius: 4px !important;
 }
 
-.action-icon-btn { cursor: pointer; transition: transform 0.15s ease, opacity 0.15s ease; }
-.action-icon-btn:hover { opacity: 0.8; transform: scale(1.15); }
+.action-icon-btn {
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.action-icon-btn:hover {
+  opacity: 0.8;
+  transform: scale(1.15);
+}
 
-.page-layout-wrapper:not(.is-mobile-device) { height: calc(100vh - 64px); }
-.page-layout-wrapper:not(.is-mobile-device) .main-content-block { display: flex; flex-direction: column; overflow: auto; }
+.page-layout-wrapper:not(.is-mobile-device) {
+  height: calc(100vh - 64px);
+}
+.page-layout-wrapper:not(.is-mobile-device) .main-content-block {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
 /* Banner thông báo thu gọn ở góc trên bên phải, kéo dài ra đến chỗ Admin */
 .custom-alert-banner {
   position: fixed;

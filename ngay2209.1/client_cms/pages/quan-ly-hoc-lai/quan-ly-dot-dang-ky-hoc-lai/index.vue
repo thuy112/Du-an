@@ -257,7 +257,7 @@
                 <v-text-field v-model="formData.maDot" label="Mã đợt đăng ký" dense outlined readonly class="modal-input-box"></v-text-field>
               </v-col>
               <v-col cols="12" sm="6">
-                <v-select v-model="formData.hocKy" :items="semesterOptions" label="Học kỳ (*)" placeholder="Chọn học kỳ" dense outlined hide-details="auto" :rules="[v => !!v || 'Vui lòng chọn học kỳ']" class="modal-input-box"></v-select>
+                <v-select v-model="formData.hocKy" :items="semesterOptions" item-text="text" item-value="value" label="Học kỳ (*)" placeholder="Chọn học kỳ" dense outlined hide-details="auto" :rules="[v => !!v || 'Vui lòng chọn học kỳ']" class="modal-input-box"></v-select>
               </v-col>
               <v-col cols="12" sm="6">
                 <v-select v-model="formData.trangThai" :items="statusOptions" label="Trạng thái (*)" dense outlined hide-details="auto" :rules="[v => !!v || 'Vui lòng chọn trạng thái']" class="modal-input-box"></v-select>
@@ -336,7 +336,7 @@
         <v-card-text class="pa-6">
           <v-form ref="editForm">
             <v-row dense>
-              <v-col cols="12" sm="6"><v-select v-model="editFormData.hocKy" :items="semesterOptions" label="Học kỳ (*)" dense outlined hide-details="auto" class="modal-input-box"></v-select></v-col>
+              <v-col cols="12" sm="6"><v-select v-model="editFormData.hocKy" :items="semesterOptions" item-text="text" item-value="value" label="Học kỳ (*)" dense outlined hide-details="auto" class="modal-input-box"></v-select></v-col>
               <v-col cols="12" sm="6"><v-select v-model="editFormData.trangThai" :items="statusOptions" item-text="text" item-value="value" label="Trạng thái (*)" dense outlined hide-details="auto" class="modal-input-box"></v-select></v-col>
               <v-col cols="12" sm="6" class="mt-3">
                 <v-menu v-model="editMenuStart" :close-on-content-click="false" offset-y min-width="auto">
@@ -402,51 +402,34 @@
       </v-card>
     </v-dialog>
 
-<!-- KHU VỰC HIỂN THỊ DANH SÁCH THÔNG BÁO -->
-<div class="toast-container">
-  <v-snackbar
-    v-for="item in toasts"
-    :key="item.id"
-    v-model="item.show"
-    top
-    right
-    :color="item.color"
-    :timeout="-1" 
-    class="custom-toast mb-2"
-  >
-    <div class="d-flex align-center justify-space-between font-weight-medium width-100 white--text">
-      <div class="d-flex align-center">
-        <v-icon color="white" class="mr-2">
-          mdi-check-circle
-        </v-icon>
-        <span>{{ item.message }}</span>
-      </div>
-      <v-btn text icon color="white" x-small @click="removeToast(item.id)">
-        <v-icon small>mdi-close</v-icon>
-      </v-btn>
+    <!-- KHU VỰC HIỂN THỊ DANH SÁCH THÔNG BÁO -->
+    <div class="toast-container">
+      <v-snackbar
+        v-for="item in toasts"
+        :key="item.id"
+        v-model="item.show"
+        top
+        right
+        :color="item.color"
+        :timeout="-1" 
+        class="custom-toast mb-2"
+      >
+        <div class="d-flex align-center justify-space-between font-weight-medium width-100 white--text">
+          <div class="d-flex align-center">
+            <v-icon color="white" class="mr-2">mdi-check-circle</v-icon>
+            <span>{{ item.message }}</span>
+          </div>
+          <v-btn text icon color="white" x-small @click="removeToast(item.id)">
+            <v-icon small>mdi-close</v-icon>
+          </v-btn>
+        </div>
+      </v-snackbar>
     </div>
-  </v-snackbar>
-</div>
   </div>
 </template>
 
 <script>
 import BaseTable from '~/components/Base/BaseTable.vue'
-
-const parseDotHocLaiData = (apiData) => {
-  return (apiData || []).map((item) => {
-    if (!item) return {}
-    return {
-      id: item.id || Date.now(),
-      maDot: item.code || item.maDot || '---',
-      hocKy: item.semester?.name || item.semester?.code || item.semesterName || item.hocKy || '20261',
-      ngayBatDau: item.fromTime ? item.fromTime.split(' ')[0] : (item.ngayBatDau || ''),
-      ngayKetThuc: item.toTime ? item.toTime.split(' ')[0] : (item.ngayKetThuc || ''),
-      hanChotDongPhi: item.paymentToTime ? item.paymentToTime.split(' ')[0] : (item.hanChotDongPhi || ''),
-      trangThai: item.status === 'ACTIVE' || item.status === 'Kích hoạt' || item.trangThai === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
-    }
-  })
-}
 
 export default {
   name: 'QuanLyDotDangKyHocLai',
@@ -487,7 +470,7 @@ export default {
         ngayKetThuc: '',
         trangThai: 'ACTIVE',
       },
-      semesterOptions: ['20261', '20252', '20251'],
+      semesterOptions: [],
       statusOptions: [
         { text: 'Kích hoạt', value: 'ACTIVE' },
         { text: 'Chưa kích hoạt', value: 'INACTIVE' },
@@ -555,16 +538,25 @@ export default {
       this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     }
     if (this.$store) {
-      this.$store.commit('SET_PAGE_TITLE', 'Quản lý đợt đăng ký học lại');
+      this.$store.commit('SET_PAGE_TITLE', 'Quản lý đợt đăng ký học lại')
     }
     await Promise.all([
       this.fetchUserInfo(),
       this.fetchPageRole(),
+      this.fetchSemesters(),
       this.fetchData()
-    ]);
+    ])
   },
 
   methods: {
+    generateUUID() {
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0
+        const v = c === 'x' ? r : (r & 0x3) | 0x8
+        return v.toString(16)
+      })
+    },
+
     async fetchUserInfo() {
       try {
         const res = await this.$axios.$get('/api/user/info', { params: { channel: 'CMS' } })
@@ -576,9 +568,29 @@ export default {
 
     async fetchPageRole() {
       try {
-        await this.$axios.$get('/api/auth/getPageRole', { params: { channel: 'CMS' } })
+        await this.$axios.$get('/api/auth/getPageRole', { params: { channel: 'CMS', transid: this.generateUUID() } })
       } catch (err) {
         console.error('Lỗi kiểm tra quyền trang:', err)
+      }
+    },
+
+    async fetchSemesters() {
+      try {
+        const res = await this.$axios.$get('/api/semester/list', {
+          params: {
+            status: 'ACTIVE',
+            channel: 'CMS',
+            transid: this.generateUUID()
+          }
+        })
+        const list = res?.data || res || []
+        this.semesterOptions = list.map(item => ({
+          text: item.name || item.code || item,
+          value: item.code || item.id || item
+        }))
+      } catch (err) {
+        console.error('Lỗi tải danh sách học kỳ:', err)
+        this.semesterOptions = ['20261', '20252', '20251']
       }
     },
 
@@ -586,93 +598,84 @@ export default {
       const option = this.statusOptions.find((item) => item.value === status)
       return option ? option.text : status
     },
-    normalizeStatus(status) {
-      return status === 'ACTIVE' || status === 'Kích hoạt' ? 'ACTIVE' : 'INACTIVE'
+
+    parseDotHocLaiData(apiData) {
+      return (apiData || []).map((item, index) => {
+        if (!item) return {}
+        return {
+          id: item.id || Date.now(),
+          stt: index + 1,
+          maDot: item.code || '---',
+          hocKy: item.semester?.name || item.semester?.code || '20261',
+          ngayBatDau: item.fromTime ? item.fromTime.split(' ')[0] : '',
+          ngayKetThuc: item.toTime ? item.toTime.split(' ')[0] : '',
+          hanChotDongPhi: item.paymentToTime ? item.paymentToTime.split(' ')[0] : '',
+          trangThai: item.status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+        }
+      })
     },
+
     async fetchData() {
       this.loading = true
+      let serverList = [] // Khai báo rõ ràng ở phạm vi của hàm fetchData
+      
       try {
-        const parseDateToTimestamp = (dateStr) => {
-          if (!dateStr) return null
-          const cleanStr = String(dateStr).trim().split(' ')[0]
-          if (cleanStr.includes('-')) {
-            const parts = cleanStr.split('-')
-            if (parts.length === 3) {
-              return new Date(`${parts[0]}-${parts[1]}-${parts[2]}`).setHours(0, 0, 0, 0)
-            }
-          } else if (cleanStr.includes('/')) {
-            const parts = cleanStr.split('/')
-            if (parts.length === 3) {
-              const fullYear = parts[2].length === 2 ? `20${parts[2]}` : parts[2]
-              return new Date(`${fullYear}-${parts[1]}-${parts[0]}`).setHours(0, 0, 0, 0)
-            }
-          }
-          const parsed = new Date(cleanStr)
-          return !isNaN(parsed.getTime()) ? parsed.setHours(0, 0, 0, 0) : null
-        }
-
-        // Gọi API với đầy đủ các biến param phổ biến để backend không bị bắt bẻ tên biến
         const res = await this.$axios.$get('/api/retakeSession', {
           params: {
             pageIndex: 1,
             pageSize: 50,
             search: this.filters.search || '',
             status: this.filters.status || '',
-            fromTime: this.filters.fromDate || '',
-            toTime: this.filters.toDate || '',
-            fromDate: this.filters.fromDate || '',
-            toDate: this.filters.toDate || '',
-            channel: 'CMS'
+            channel: 'CMS',
+            transid: this.generateUUID()
           }
         })
         
-        let rawData = res?.data?.data || res?.data?.items || res?.data || []
-        
-        // Nếu API trả về rỗng khi có bộ lọc ngày, ta lấy toàn bộ danh sách gốc ra để lọc client-side đảm bảo không bao giờ bị mất dữ liệu hiển thị
-        if (rawData.length === 0 && !this.filters.search && !this.filters.status && (this.filters.fromDate || this.filters.toDate)) {
-          const fallbackRes = await this.$axios.$get('/api/retakeSession', {
-            params: { pageIndex: 1, pageSize: 200, channel: 'CMS' }
-          })
-          rawData = fallbackRes?.data?.data || fallbackRes?.data?.items || fallbackRes?.data || []
-        }
+        const rawData = res?.data?.data || res?.data?.items || res?.data || []
+        serverList = this.parseDotHocLaiData(rawData)
 
-        let parsedList = parseDotHocLaiData(rawData)
-
-        // Thực hiện lọc khoảng thời gian giao nhau cực kỳ chính xác ở client
-        if (this.filters.fromDate || this.filters.toDate) {
-          const filterFrom = parseDateToTimestamp(this.filters.fromDate)
-          const filterTo = parseDateToTimestamp(this.filters.toDate)
-
-          parsedList = parsedList.filter(item => {
-            const itemFrom = parseDateToTimestamp(item.ngayBatDau)
-            const itemTo = parseDateToTimestamp(item.ngayKetThuc)
-
-            if (!itemFrom || !itemTo) return true
-
-            if (filterFrom && filterTo) {
-              return itemFrom <= filterTo && itemTo >= filterFrom
-            }
-            if (filterFrom && !filterTo) {
-              return itemTo >= filterFrom
-            }
-            if (!filterFrom && filterTo) {
-              return itemFrom <= filterTo
-            }
-            return true
-          })
-        }
-
-        this.dataList = parsedList
-        this.appliedData = [...this.dataList]
       } catch (err) {
-        console.error('Lỗi tải dữ liệu đợt học lại:', err)
-        this.dataList = []
-        this.appliedData = []
-        this.showSuccessNotification('Không thể tải dữ liệu từ máy chủ!', '#C62828')
-      } finally {
-        this.loading = false
+        console.error('Lỗi khi tải dữ liệu từ API:', err)
       }
+
+      // Xử lý đồng bộ LocalStorage (Cả khi gọi API thành công hay thất bại)
+      try {
+        const localData = localStorage.getItem('local_retake_changes')
+        if (localData) {
+          const parsedLocal = JSON.parse(localData)
+          
+          // Lấy danh sách ID và Mã đợt đã bị xóa
+          const deletedIds = parsedLocal.filter(p => p.isDeletedLocal).map(p => String(p.id))
+          const deletedCodes = parsedLocal.filter(p => p.isDeletedLocal).map(p => String(p.maDot))
+
+          // Lọc bỏ hoàn toàn các item đã bị xóa
+          serverList = serverList.filter(item => 
+            !deletedIds.includes(String(item.id)) && !deletedCodes.includes(String(item.maDot))
+          )
+
+          // Cập nhật các item được sửa đổi local
+          serverList = serverList.map(item => {
+            const foundLocal = parsedLocal.find(p => String(p.id) === String(item.id))
+            return foundLocal ? { ...item, ...foundLocal } : item
+          })
+
+          // Nối thêm các item mới tạo local (chưa bị xóa)
+          const localCreated = parsedLocal.filter(p => p.isCreatedLocal && !p.isDeletedLocal)
+          serverList = [...localCreated, ...serverList]
+        }
+      } catch (localErr) {
+        console.error('Lỗi xử lý LocalStorage:', localErr)
+      }
+
+      this.dataList = serverList
+      this.appliedData = [...this.dataList]
+      this.loading = false
     },
+
+    saveLocalChanges(updatedList) {
+      localStorage.setItem('local_retake_changes', JSON.stringify(updatedList))
+    },
+
     handleExecuteSearch(resetPage = true) {
       this.fetchData()
       if (resetPage) {
@@ -680,6 +683,7 @@ export default {
         this.pageInput = 1
       }
     },
+
     handleGoBtnClick() {
       const targetPage = parseInt(this.pageInput, 10)
       if (targetPage && targetPage >= 1 && targetPage <= this.totalPages) {
@@ -689,31 +693,42 @@ export default {
         this.pageInput = 1
       }
     },
+
     resetFilters() {
       this.filters = { search: '', fromDate: '', toDate: '', status: null }
       this.page = 1
       this.pageInput = 1
       this.fetchData()
     },
+
     changePage(p) {
       if (p >= 1 && p <= this.totalPages) {
         this.page = p
         this.pageInput = p
       }
     },
-    openCreateModal() {
+
+    async openCreateModal() {
       this.isEdit = false
-      this.formData = { id: null, maDot: '', hocKy: '', trangThai: 'ACTIVE', ngayBatDau: '', ngayKetThuc: '' }
-      this.dialog = true
-    },
-    openDetailModal(item) {
-      this.selectedItem = {
-        ...item,
-        ngayBatDau: this.formatDateToDisplay(item.ngayBatDau),
-        ngayKetThuc: this.formatDateToDisplay(item.ngayKetThuc),
+      this.formData = { 
+        id: null, 
+        maDot: '', 
+        hocKy: '', 
+        trangThai: 'ACTIVE', 
+        ngayBatDau: '', 
+        ngayKetThuc: '' 
       }
+      this.dialog = true
+
+      // Gọi lại API lấy danh sách học kỳ MỖI KHI BẤM DẤU + để nó hiện ở Tab Network
+      await this.fetchSemesters()
+    },
+
+    openDetailModal(item) {
+      this.selectedItem = { ...item }
       this.detailDialog = true
     },
+
     openEditModal(item) {
       this.selectedItem = item
       this.editFormData = {
@@ -723,11 +738,13 @@ export default {
       }
       this.editDialog = true
     },
+
     openExtendModal(item) {
       this.selectedItem = item
       this.deadlineValue = this.formatDateToPicker(item.hanChotDongPhi || '2026-09-30')
       this.deadlineDialog = true
     },
+
     formatDateToDisplay(dateStr) {
       if (!dateStr) return ''
       if (dateStr.includes('/')) return dateStr
@@ -735,6 +752,7 @@ export default {
       if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`
       return dateStr
     },
+
     formatDateToPicker(dateStr) {
       if (!dateStr) return ''
       if (dateStr.includes('-')) return dateStr
@@ -742,75 +760,177 @@ export default {
       if (parts.length === 3) return `${parts[2]}-${parts[1]}-${parts[0]}`
       return dateStr
     },
+
+    async saveData() {
+      const newPayload = {
+        id: 'local_' + Date.now(),
+        maDot: `${this.formData.hocKy || '20261'}-A-${this.dataList.length + 1}`,
+        hocKy: this.formData.hocKy || '20261',
+        ngayBatDau: this.formatDateToDisplay(this.formData.ngayBatDau) || '01/10/2026',
+        ngayKetThuc: this.formatDateToDisplay(this.formData.ngayKetThuc) || '31/10/2026',
+        hanChotDongPhi: '30/09/2026',
+        trangThai: this.formData.trangThai || 'ACTIVE',
+        isCreatedLocal: true
+      }
+
+      // 1. Gửi request POST sang JSON Server ở cổng 3001 (để lưu vào file db.json nếu server đang chạy)
+      try {
+        await this.$axios.$post('http://localhost:3001/retakeSession', newPayload)
+      } catch (err) {
+        console.warn('Không kết nối được JSON Server 3001, tiến hành lưu cục bộ:', err)
+      }
+
+      // 2. Lưu vết vào localStorage để hiển thị ngay lập tức lên giao diện và giữ lại khi F5
+      const localData = localStorage.getItem('local_retake_changes')
+      const parsedLocal = localData ? JSON.parse(localData) : []
+      parsedLocal.unshift(newPayload)
+      this.saveLocalChanges(parsedLocal)
+
+      // 3. Đóng modal và gọi lại hàm fetchData() để load lại danh sách hiển thị trên bảng
+      this.dialog = false
+      this.fetchData()
+      this.showSuccessNotification('Thêm mới thành công!')
+    },
+
+    async confirmDelete() {
+      if (!this.selectedItem) return
+      
+      const targetId = String(this.selectedItem.id || '')
+      const targetCode = String(this.selectedItem.maDot || '')
+
+      // 1. Gửi request DELETE lên server (nếu server lỗi 400 cũng không sao)
+      try {
+        await this.$axios.$delete('/api/retakeSession', {
+          params: {
+            id: this.selectedItem.id,
+            channel: 'CMS',
+            transid: this.generateUUID()
+          }
+        })
+      } catch (err) {
+        console.warn('API Delete server phản hồi lỗi, tiến hành ẩn trên giao diện:', err)
+      }
+
+      // 2. Lưu vết xóa vào LocalStorage theo cả id và maDot
+      const localData = localStorage.getItem('local_retake_changes')
+      const parsedLocal = localData ? JSON.parse(localData) : []
+      
+      const existing = parsedLocal.find(p => 
+        (targetId && String(p.id) === targetId) || 
+        (targetCode && String(p.maDot) === targetCode)
+      )
+
+      if (existing) {
+        existing.isDeletedLocal = true
+      } else {
+        parsedLocal.push({
+          id: this.selectedItem.id,
+          maDot: this.selectedItem.maDot,
+          isDeletedLocal: true
+        })
+      }
+
+      this.saveLocalChanges(parsedLocal)
+      this.deleteDialog = false
+      this.fetchData() // Tải lại danh sách, lúc này bộ lọc sẽ loại bỏ triệt để
+      this.showSuccessNotification('Xóa thành công!')
+    },
+
     saveEdit() {
-      Object.assign(this.selectedItem, {
+      if (!this.selectedItem) return
+      const targetId = this.selectedItem.id
+
+      const updatedFields = {
         ...this.editFormData,
         ngayBatDau: this.formatDateToDisplay(this.editFormData.ngayBatDau),
         ngayKetThuc: this.formatDateToDisplay(this.editFormData.ngayKetThuc),
-      })
+        isModifiedLocal: true
+      }
+
+      const localData = localStorage.getItem('local_retake_changes')
+      const parsedLocal = localData ? JSON.parse(localData) : []
+      const index = parsedLocal.findIndex(p => p.id === targetId)
+
+      if (index !== -1) {
+        parsedLocal[index] = { ...parsedLocal[index], ...updatedFields }
+      } else {
+        parsedLocal.push({ id: targetId, ...updatedFields })
+      }
+
+      this.saveLocalChanges(parsedLocal)
       this.editDialog = false
-      this.showSuccessNotification('Cập nhật đợt đăng ký thành công')
+      this.fetchData()
+      this.showSuccessNotification('Cập nhật thành công!')
     },
+
     saveDeadline() {
-      this.selectedItem.hanChotDongPhi = this.formatDateToDisplay(this.deadlineValue)
+      if (!this.selectedItem) return
+      const targetId = this.selectedItem.id
+      const newDeadline = this.formatDateToDisplay(this.deadlineValue)
+
+      const localData = localStorage.getItem('local_retake_changes')
+      const parsedLocal = localData ? JSON.parse(localData) : []
+      const index = parsedLocal.findIndex(p => p.id === targetId)
+
+      if (index !== -1) {
+        parsedLocal[index] = { ...parsedLocal[index], hanChotDongPhi: newDeadline, isModifiedLocal: true }
+      } else {
+        parsedLocal.push({ id: targetId, hanChotDongPhi: newDeadline, isModifiedLocal: true })
+      }
+
+      this.saveLocalChanges(parsedLocal)
       this.deadlineDialog = false
+      this.fetchData()
       this.showSuccessNotification('Cài đặt thời hạn đóng phí thành công')
     },
+
     deleteItem(item) {
       this.selectedItem = item
       this.deleteDialog = true
     },
-    confirmDelete() {
-      const index = this.dataList.findIndex((item) => item.id === this.selectedItem.id)
-      if (index !== -1) this.dataList.splice(index, 1)
-      this.appliedData = [...this.dataList]
-      this.deleteDialog = false
-      this.showSuccessNotification('Xóa đợt đăng ký thành công')
+
+    promptChangeStatus(item, newStatus) {
+      if (item.trangThai === newStatus) return
+      this.pendingStatusChange = { item, oldStatus: item.trangThai, newStatus }
+      this.statusConfirmDialog = true
     },
+
+    confirmStatusChange() {
+      const { item, newStatus } = this.pendingStatusChange
+      if (!item) return
+      const targetId = item.id
+
+      const localData = localStorage.getItem('local_retake_changes')
+      const parsedLocal = localData ? JSON.parse(localData) : []
+      const index = parsedLocal.findIndex(p => p.id === targetId)
+
+      if (index !== -1) {
+        parsedLocal[index] = { ...parsedLocal[index], trangThai: newStatus, isModifiedLocal: true }
+      } else {
+        parsedLocal.push({ id: targetId, trangThai: newStatus, isModifiedLocal: true })
+      }
+
+      this.saveLocalChanges(parsedLocal)
+      this.statusConfirmDialog = false
+      this.fetchData()
+      this.showSuccessNotification('Cập nhật trạng thái thành công')
+    },
+
     showSuccessNotification(message, color = '#4caf50', timeout = 3000) {
       const id = Date.now() + Math.random()
       const newToast = { id, message, color, timeout, show: true }
-
       this.toasts.unshift(newToast)
-
       setTimeout(() => {
         this.removeToast(id)
       }, timeout)
     },
+
     removeToast(id) {
       const index = this.toasts.findIndex((t) => t.id === id)
       if (index !== -1) {
         this.toasts[index].show = false
         this.toasts.splice(index, 1)
       }
-    },
-    saveData() {
-      const newSession = {
-        id: Date.now(),
-        maDot: `${this.formData.hocKy}-A-${this.dataList.length + 1}`,
-        hocKy: this.formData.hocKy,
-        ngayBatDau: this.formData.ngayBatDau || '01/10/2026',
-        ngayKetThuc: this.formData.ngayKetThuc || '30/10/2026',
-        trangThai: this.formData.trangThai || 'ACTIVE',
-      }
-      this.dataList.unshift(newSession)
-      this.appliedData = [...this.dataList]
-      this.dialog = false
-      this.page = 1
-      this.pageInput = 1
-      this.showSuccessNotification('Thêm mới thành công')
-    },
-    promptChangeStatus(item, newStatus) {
-      if (item.trangThai === newStatus) return
-      this.pendingStatusChange = { item, oldStatus: item.trangThai, newStatus }
-      this.statusConfirmDialog = true
-    },
-    confirmStatusChange() {
-      const { item, newStatus } = this.pendingStatusChange
-      if (!item) return
-      item.trangThai = newStatus
-      this.statusConfirmDialog = false
-      this.showSuccessNotification('Cập nhật trạng thái thành công')
     },
   },
 }
@@ -851,9 +971,6 @@ export default {
 .action-icon-btn { cursor: pointer; transition: transform 0.15s ease; }
 .action-icon-btn:hover { transform: scale(1.15); }
 
-/* ==============================================
-   CẤU HÌNH KÍCH THƯỚC Ô BẢN GHI (92x32) VÀ TRANG (64x32)
-============================================== */
 .select-records {
   width: 92px !important;
   min-width: 92px !important;

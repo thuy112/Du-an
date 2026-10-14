@@ -1,13 +1,23 @@
 <template>
-  <div class="must-retake-page pa-3 pa-md-4 bg-white" :class="{ 'is-mobile-device': isMobileDevice }">
+  <div
+    class="must-retake-page pa-3 pa-md-4 bg-white"
+    :class="{ 'is-mobile-device': isMobileDevice }"
+  >
     <!-- TIÊU ĐỀ TRANG -->
     <div class="text-h6 font-weight-bold black--text mb-3">
-      Danh sách sinh viên phải học lại (<span class="text-red-bold">{{ totalRecords }}</span>)
+      Danh sách sinh viên phải học lại (<span class="text-red-bold">{{
+        totalRecords
+      }}</span
+      >)
     </div>
 
     <!-- 1. BỘ LỌC TÌM KIẾM VÀ CỤM NÚT ICON -->
-    <div class="d-flex align-center justify-space-between mb-3 gap-2 flex-wrap flex-md-nowrap">
-      <div class="d-flex align-center gap-2 flex-grow-1 flex-wrap flex-md-nowrap">
+    <div
+      class="d-flex align-center justify-space-between mb-3 gap-2 flex-wrap flex-md-nowrap"
+    >
+      <div
+        class="d-flex align-center gap-2 flex-grow-1 flex-wrap flex-md-nowrap"
+      >
         <v-text-field
           v-model="filters.keyword"
           placeholder="Tìm kiếm"
@@ -16,7 +26,7 @@
           hide-details
           clearable
           class="filter-input"
-          style="min-width: 160px;"
+          style="min-width: 160px"
           @keyup.enter="handleSearch"
           @click:clear="handleClearKeyword"
         ></v-text-field>
@@ -30,7 +40,7 @@
           hide-details
           clearable
           class="filter-input"
-          style="min-width: 130px;"
+          style="min-width: 130px"
         ></v-select>
 
         <v-select
@@ -42,7 +52,7 @@
           hide-details
           clearable
           class="filter-input"
-          style="min-width: 130px;"
+          style="min-width: 130px"
         ></v-select>
 
         <v-select
@@ -54,7 +64,7 @@
           hide-details
           clearable
           class="filter-input"
-          style="min-width: 130px;"
+          style="min-width: 130px"
         ></v-select>
 
         <v-select
@@ -66,16 +76,27 @@
           hide-details
           clearable
           class="filter-input"
-          style="min-width: 130px;"
+          style="min-width: 130px"
         ></v-select>
       </div>
 
       <div class="d-flex align-center gap-2">
-        <v-btn icon color="#A62229" class="btn-square-action" @click="refreshData">
+        <v-btn
+          icon
+          color="#A62229"
+          class="btn-square-action"
+          @click="refreshData"
+        >
           <v-icon size="22">mdi-refresh</v-icon>
         </v-btn>
 
-        <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" @click="handleSearch">
+        <v-btn
+          color="#A62229"
+          dark
+          class="btn-square-action min-w-0 px-3"
+          elevation="0"
+          @click="handleSearch"
+        >
           <v-icon size="22">mdi-magnify</v-icon>
         </v-btn>
 
@@ -90,17 +111,30 @@
           <v-btn
             elevation="0"
             :disabled="selectedItems.length === 0"
-            :class="selectedItems.length > 0 ? 'btn-email-active' : 'btn-email-disabled'"
+            :class="
+              selectedItems.length > 0
+                ? 'btn-email-active'
+                : 'btn-email-disabled'
+            "
             class="btn-email-custom"
             @click="sendEmailDirectly"
           >
-            <v-icon :color="selectedItems.length > 0 ? '#FFFFFF' : '#8C8C8C'" small>
+            <v-icon
+              :color="selectedItems.length > 0 ? '#FFFFFF' : '#8C8C8C'"
+              small
+            >
               mdi-email
             </v-icon>
           </v-btn>
         </v-badge>
 
-        <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" @click="openAddModal">
+        <v-btn
+          color="#A62229"
+          dark
+          class="btn-square-action min-w-0 px-3"
+          elevation="0"
+          @click="openAddModal"
+        >
           <v-icon size="22">mdi-plus</v-icon>
         </v-btn>
       </div>
@@ -109,10 +143,10 @@
     <!-- 2. GIAO DIỆN DESKTOP: BẢNG CỐ ĐỊNH HEADER & CUỘN TRÊN DƯỚI -->
     <div v-if="!isMobileDevice" class="table-responsive-wrapper">
       <v-simple-table class="flat-table" fixed-header height="550px">
-        <template v-slot:default>
+        <template #default>
           <thead>
             <tr class="bg-gray-head">
-              <th style="width: 40px;" class="text-center">
+              <th style="width: 40px" class="text-center">
                 <v-checkbox
                   v-model="selectAll"
                   hide-details
@@ -121,15 +155,60 @@
                   @change="handleSelectAll"
                 ></v-checkbox>
               </th>
-              <th class="text-center font-weight-bold gray-head-text" style="width: 60px;">STT</th>
-              <th class="text-left font-weight-bold gray-head-text" style="min-width: 200px;">Thông tin sinh viên</th>
-              <th class="text-left font-weight-bold gray-head-text" style="min-width: 100px;">Đợt học lại</th>
-              <th class="text-left font-weight-bold gray-head-text" style="min-width: 80px;">Học kỳ</th>
-              <th class="text-left font-weight-bold gray-head-text" style="min-width: 100px;">Mã học phần</th>
-              <th class="text-left font-weight-bold gray-head-text" style="min-width: 180px;">Tên học phần</th>
-              <th class="text-center font-weight-bold gray-head-text" style="min-width: 90px;">Điểm trượt</th>
-              <th class="text-center font-weight-bold gray-head-text" style="min-width: 120px;">Trạng thái</th>
-              <th class="text-center font-weight-bold gray-head-text" style="min-width: 100px;">Chức năng</th>
+              <th
+                class="text-center font-weight-bold gray-head-text"
+                style="width: 60px"
+              >
+                STT
+              </th>
+              <th
+                class="text-left font-weight-bold gray-head-text"
+                style="min-width: 200px"
+              >
+                Thông tin sinh viên
+              </th>
+              <th
+                class="text-left font-weight-bold gray-head-text"
+                style="min-width: 100px"
+              >
+                Đợt học lại
+              </th>
+              <th
+                class="text-left font-weight-bold gray-head-text"
+                style="min-width: 80px"
+              >
+                Học kỳ
+              </th>
+              <th
+                class="text-left font-weight-bold gray-head-text"
+                style="min-width: 100px"
+              >
+                Mã học phần
+              </th>
+              <th
+                class="text-left font-weight-bold gray-head-text"
+                style="min-width: 180px"
+              >
+                Tên học phần
+              </th>
+              <th
+                class="text-center font-weight-bold gray-head-text"
+                style="min-width: 90px"
+              >
+                Điểm trượt
+              </th>
+              <th
+                class="text-center font-weight-bold gray-head-text"
+                style="min-width: 120px"
+              >
+                Trạng thái
+              </th>
+              <th
+                class="text-center font-weight-bold gray-head-text"
+                style="min-width: 100px"
+              >
+                Chức năng
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -146,13 +225,19 @@
                     @change="handleItemSelect"
                   ></v-checkbox>
                 </td>
-                <td class="text-center">{{ (currentPage - 1) * itemsPerPage + idx + 1 }}</td>
+                <td class="text-center">
+                  {{ (currentPage - 1) * itemsPerPage + idx + 1 }}
+                </td>
                 <td class="py-2">
-                  <div class="font-weight-bold text-red-bold cursor-pointer" @click="viewDetail(item)">
+                  <div
+                    class="font-weight-bold text-red-bold cursor-pointer"
+                    @click="viewDetail(item)"
+                  >
                     {{ item.fullName }}
                   </div>
                   <div class="text-caption font-weight-medium">
-                    Mã SV: <span class="text-red-bold">{{ item.studentCode }}</span>
+                    Mã SV:
+                    <span class="text-red-bold">{{ item.studentCode }}</span>
                   </div>
                   <div class="text-caption text-grey-darken-1">
                     Lớp: {{ item.className }}
@@ -162,9 +247,16 @@
                 <td>{{ item.termCode }}</td>
                 <td class="font-weight-medium">{{ item.subjectCode }}</td>
                 <td>{{ item.subjectName }}</td>
-                <td class="text-center font-weight-bold">{{ item.failedScore || '' }}</td>
+                <td class="text-center font-weight-bold">
+                  {{ item.failedScore || '' }}
+                </td>
                 <td class="text-center">
-                  <span :class="['status-badge text-nowrap', item.isRegistered ? 'bg-green' : 'bg-grey']">
+                  <span
+                    :class="[
+                      'status-badge text-nowrap',
+                      item.isRegistered ? 'bg-green' : 'bg-grey',
+                    ]"
+                  >
                     {{ item.isRegistered ? 'Đã đăng ký' : 'Chưa đăng ký' }}
                   </span>
                 </td>
@@ -198,7 +290,9 @@
 
     <!-- 3. GIAO DIỆN MOBILE -->
     <div v-else class="mobile-card-list">
-      <div class="mobile-select-all-header mb-3 pa-3 bg-gray-head d-flex align-center justify-start">
+      <div
+        class="mobile-select-all-header mb-3 pa-3 bg-gray-head d-flex align-center justify-start"
+      >
         <v-checkbox
           v-model="selectAll"
           hide-details
@@ -209,8 +303,8 @@
       </div>
 
       <template v-if="paginatedList && paginatedList.length > 0">
-        <div 
-          v-for="(item, idx) in paginatedList" 
+        <div
+          v-for="(item, idx) in paginatedList"
           :key="item.id || idx"
           class="mobile-card-item mb-4 pa-3 border rounded shadow-sm"
         >
@@ -228,17 +322,27 @@
 
           <div class="mobile-info-row d-flex justify-space-between py-1">
             <span class="info-label text-caption font-weight-bold">STT</span>
-            <span class="info-value text-caption">{{ (currentPage - 1) * itemsPerPage + idx + 1 }}</span>
+            <span class="info-value text-caption">{{
+              (currentPage - 1) * itemsPerPage + idx + 1
+            }}</span>
           </div>
 
-          <div class="mobile-info-row d-flex justify-space-between align-center py-1">
-            <span class="info-label text-caption font-weight-bold">Thông tin sinh viên</span>
+          <div
+            class="mobile-info-row d-flex justify-space-between align-center py-1"
+          >
+            <span class="info-label text-caption font-weight-bold"
+              >Thông tin sinh viên</span
+            >
             <div class="info-value text-right">
-              <div class="font-weight-bold text-red-bold cursor-pointer text-caption" @click="viewDetail(item)">
+              <div
+                class="font-weight-bold text-red-bold cursor-pointer text-caption"
+                @click="viewDetail(item)"
+              >
                 {{ item.fullName }}
               </div>
               <div class="text-caption">
-                Mã số sinh viên: <span class="text-red-bold">{{ item.studentCode }}</span>
+                Mã số sinh viên:
+                <span class="text-red-bold">{{ item.studentCode }}</span>
               </div>
               <div class="text-caption text-grey-darken-1">
                 Lớp: {{ item.className }}
@@ -247,7 +351,9 @@
           </div>
 
           <div class="mobile-info-row d-flex justify-space-between py-1">
-            <span class="info-label text-caption font-weight-bold">Đợt học lại</span>
+            <span class="info-label text-caption font-weight-bold"
+              >Đợt học lại</span
+            >
             <span class="info-value text-caption">{{ item.sessionCode }}</span>
           </div>
 
@@ -257,29 +363,54 @@
           </div>
 
           <div class="mobile-info-row d-flex justify-space-between py-1">
-            <span class="info-label text-caption font-weight-bold">Mã học phần</span>
-            <span class="info-value text-caption font-weight-medium">{{ item.subjectCode }}</span>
+            <span class="info-label text-caption font-weight-bold"
+              >Mã học phần</span
+            >
+            <span class="info-value text-caption font-weight-medium">{{
+              item.subjectCode
+            }}</span>
           </div>
 
           <div class="mobile-info-row d-flex justify-space-between py-1">
-            <span class="info-label text-caption font-weight-bold">Tên học phần</span>
-            <span class="info-value text-caption text-right pl-4">{{ item.subjectName }}</span>
+            <span class="info-label text-caption font-weight-bold"
+              >Tên học phần</span
+            >
+            <span class="info-value text-caption text-right pl-4">{{
+              item.subjectName
+            }}</span>
           </div>
 
           <div class="mobile-info-row d-flex justify-space-between py-1">
-            <span class="info-label text-caption font-weight-bold">Điểm trượt</span>
-            <span class="info-value text-caption font-weight-bold">{{ item.failedScore || '' }}</span>
+            <span class="info-label text-caption font-weight-bold"
+              >Điểm trượt</span
+            >
+            <span class="info-value text-caption font-weight-bold">{{
+              item.failedScore || ''
+            }}</span>
           </div>
 
-          <div class="mobile-info-row d-flex justify-space-between align-center py-2">
-            <span class="info-label text-caption font-weight-bold">Trạng thái</span>
-            <span :class="['status-badge text-nowrap', item.isRegistered ? 'bg-green' : 'bg-grey']">
+          <div
+            class="mobile-info-row d-flex justify-space-between align-center py-2"
+          >
+            <span class="info-label text-caption font-weight-bold"
+              >Trạng thái</span
+            >
+            <span
+              :class="[
+                'status-badge text-nowrap',
+                item.isRegistered ? 'bg-green' : 'bg-grey',
+              ]"
+            >
               {{ item.isRegistered ? 'Đã đăng ký' : 'Chưa đăng ký' }}
             </span>
           </div>
 
-          <div class="mobile-info-row d-flex justify-space-between align-center py-2 border-none">
-            <span class="info-label text-caption font-weight-bold">Chức năng</span>
+          <div
+            class="mobile-info-row d-flex justify-space-between align-center py-2 border-none"
+          >
+            <span class="info-label text-caption font-weight-bold"
+              >Chức năng</span
+            >
             <div class="d-flex align-center gap-1">
               <v-btn icon small color="blue" @click="viewDetail(item)">
                 <v-icon size="20">mdi-eye</v-icon>
@@ -342,7 +473,9 @@
 
         <div class="pagination-scroll-wrapper flex-grow-1 d-flex justify-end">
           <div class="d-flex align-center justify-end gap-2 mt-4">
-            <span class="text-caption text-grey-color text-nowrap">Bản ghi</span>
+            <span class="text-caption text-grey-color text-nowrap"
+              >Bản ghi</span
+            >
             <v-select
               v-model="itemsPerPage"
               :items="[10, 20, 50, 100]"
@@ -350,7 +483,7 @@
               outlined
               hide-details
               class="select-per-page"
-              style="width: 80px;"
+              style="width: 80px"
               @change="handleItemsPerPageChange"
             ></v-select>
 
@@ -360,7 +493,7 @@
               dense
               outlined
               hide-details
-              style="width: 50px;"
+              style="width: 50px"
               class="text-center"
               @keyup.enter="goToPage"
             ></v-text-field>
@@ -416,28 +549,48 @@
     </div>
 
     <!-- MODAL & DIALOGS -->
-    <v-dialog v-model="deleteDialog" width="450px" persistent class="confirm-delete-dialog">
+    <v-dialog
+      v-model="deleteDialog"
+      width="450px"
+      persistent
+      class="confirm-delete-dialog"
+    >
       <v-card class="rounded-lg overflow-hidden">
-        <v-card-title class="bg-red-bk white--text pa-3 px-4 d-flex justify-space-between align-center">
+        <v-card-title
+          class="bg-red-bk white--text pa-3 px-4 d-flex justify-space-between align-center"
+        >
           <span class="text-subtitle-1 font-weight-bold">Xác nhận</span>
           <v-btn icon dark small class="ma-0" @click="deleteDialog = false">
             <v-icon small>mdi-close</v-icon>
           </v-btn>
         </v-card-title>
 
-        <v-card-text class="pa-5 text-subtitle-2 font-weight-normal grey--text text--dark-3">
+        <v-card-text
+          class="pa-5 text-subtitle-2 font-weight-normal grey--text text--dark-3"
+        >
           Bạn có chắc chắn muốn xóa sinh viên được đăng ký này không?
         </v-card-text>
 
         <v-divider></v-divider>
 
         <v-card-actions class="pa-3 px-4 d-flex justify-end bg-white">
-          <v-btn text small class="text-none btn-close-custom mr-2" @click="deleteDialog = false">
+          <v-btn
+            text
+            small
+            class="text-none btn-close-custom mr-2"
+            @click="deleteDialog = false"
+          >
             Đóng
             <v-icon right small class="ml-1">mdi-close</v-icon>
           </v-btn>
 
-          <v-btn dark small elevation="0" class="text-none btn-confirm-custom" @click="executeDelete">
+          <v-btn
+            dark
+            small
+            elevation="0"
+            class="text-none btn-confirm-custom"
+            @click="executeDelete"
+          >
             Xác Nhận
           </v-btn>
         </v-card-actions>
@@ -451,7 +604,11 @@
 
     <!-- TOAST NOTIFICATION -->
     <div class="toast-container">
-      <transition-group name="toast-list" tag="div" class="d-flex flex-column gap-2">
+      <transition-group
+        name="toast-list"
+        tag="div"
+        class="d-flex flex-column gap-2"
+      >
         <div
           v-for="toast in toasts"
           :key="toast.id"
@@ -459,8 +616,16 @@
         >
           <div class="toast-content px-4 py-3 d-flex align-center white--text">
             <v-icon color="white" class="mr-3" small>mdi-check-circle</v-icon>
-            <span class="text-body-2 flex-grow-1 font-weight-medium">{{ toast.message }}</span>
-            <v-btn icon x-small dark class="ml-2 opacity-80" @click="removeToast(toast.id)">
+            <span class="text-body-2 flex-grow-1 font-weight-medium">{{
+              toast.message
+            }}</span>
+            <v-btn
+              icon
+              x-small
+              dark
+              class="ml-2 opacity-80"
+              @click="removeToast(toast.id)"
+            >
               <v-icon x-small>mdi-close</v-icon>
             </v-btn>
           </div>
@@ -484,12 +649,12 @@ import RetakeCourseDetailMustRetakeStudentModal from '~/components/RetakeCourse/
 export default {
   name: 'MustRetakeStudentPage',
   components: {
-    RetakeCourseDetailMustRetakeStudentModal
+    RetakeCourseDetailMustRetakeStudentModal,
   },
   data() {
     return {
       isMobileDevice: false,
-      
+
       filters: {
         keyword: '',
         termId: '',
@@ -508,7 +673,7 @@ export default {
 
       statusOptions: [
         { text: 'Chưa đăng ký', value: 'NOT_REGISTERED' },
-        { text: 'Đã đăng ký', value: 'REGISTERED' }
+        { text: 'Đã đăng ký', value: 'REGISTERED' },
       ],
 
       termOptions: [],
@@ -524,7 +689,7 @@ export default {
       showDetailModal: false,
       itemToDelete: null,
       selectedStudentDetail: null,
-      
+
       currentPage: 1,
       pageInput: 1,
       itemsPerPage: 500, // Mặc định 50 bản ghi
@@ -542,11 +707,14 @@ export default {
     },
     filteredList() {
       return this.studentList || []
-    }
+    },
   },
   async mounted() {
     if (typeof navigator !== 'undefined') {
-      this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      this.isMobileDevice =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        )
     }
     await this.fetchInitialData()
     await this.loadStudents()
@@ -555,18 +723,39 @@ export default {
     async fetchInitialData() {
       try {
         const [termRes, sessionRes] = await Promise.all([
-          this.$axios.$get('/api/term/list', { params: { status: 'ACTIVE', channel: 'CMS', transid: '206f7ed9-dfde-4496-91d6-f2d3bf8c2505' } }),
-          this.$axios.$get('/api/retakeSession/list', { params: { channel: 'CMS', transid: '52b8c2c3-d174-4344-97c7-e029729031a1' } })
+          this.$axios.$get('/api/term/list', {
+            params: {
+              status: 'ACTIVE',
+              channel: 'CMS',
+              transid: '206f7ed9-dfde-4496-91d6-f2d3bf8c2505',
+            },
+          }),
+          this.$axios.$get('/api/retakeSession/list', {
+            params: {
+              channel: 'CMS',
+              transid: '52b8c2c3-d174-4344-97c7-e029729031a1',
+            },
+          }),
         ])
 
         // Map lại để lấy chính xác tên và mã hiển thị vào select
         if (termRes && termRes.data) {
-          const rawTerms = Array.isArray(termRes.data) ? termRes.data : (termRes.data.data || termRes.data.content || [])
-          this.termOptions = rawTerms.map(item => ({ text: item.name || item.code, value: item.id || item.code }))
+          const rawTerms = Array.isArray(termRes.data)
+            ? termRes.data
+            : termRes.data.data || termRes.data.content || []
+          this.termOptions = rawTerms.map((item) => ({
+            text: item.name || item.code,
+            value: item.id || item.code,
+          }))
         }
         if (sessionRes && sessionRes.data) {
-          const rawSessions = Array.isArray(sessionRes.data) ? sessionRes.data : (sessionRes.data.data || sessionRes.data.content || [])
-          this.sessionOptions = rawSessions.map(item => ({ text: item.code || item.name, value: item.id || item.code }))
+          const rawSessions = Array.isArray(sessionRes.data)
+            ? sessionRes.data
+            : sessionRes.data.data || sessionRes.data.content || []
+          this.sessionOptions = rawSessions.map((item) => ({
+            text: item.code || item.name,
+            value: item.id || item.code,
+          }))
         }
       } catch (error) {
         console.error('Lỗi tải danh mục ban đầu:', error)
@@ -585,15 +774,19 @@ export default {
           termId: this.activeFilters.subjectId || '',
           status: this.activeFilters.status || '',
           channel: 'CMS',
-          transid: '78a7c1f2-81d6-403a-95ac-6aa67eb94ab5'
+          transid: '78a7c1f2-81d6-403a-95ac-6aa67eb94ab5',
         }
 
-        const res = await this.$axios.$get('/api/retakeCourseAuthList', { params })
-        
+        const res = await this.$axios.$get('/api/retakeCourseAuthList', {
+          params,
+        })
+
         if (res && res.data) {
-          const rawList = Array.isArray(res.data) ? res.data : (res.data.data || res.data.content || [])
-          
-          this.studentList = rawList.map(item => ({
+          const rawList = Array.isArray(res.data)
+            ? res.data
+            : res.data.data || res.data.content || []
+
+          this.studentList = rawList.map((item) => ({
             ...item,
             id: item.id,
             fullName: item.student?.fullName || '',
@@ -604,15 +797,21 @@ export default {
             subjectCode: item.term?.code || '',
             subjectName: item.term?.name || '',
             failedScore: item.score ?? '',
-            isRegistered: item.status === 'REGISTERED' || item.status === 'REGISTER'
+            isRegistered:
+              item.status === 'REGISTERED' || item.status === 'REGISTER',
           }))
 
-          this.totalRecords = res.data.totalRecords ?? res.data.total ?? res.total ?? res.data.totalElements ?? this.studentList.length
+          this.totalRecords =
+            res.data.totalRecords ??
+            res.data.total ??
+            res.total ??
+            res.data.totalElements ??
+            this.studentList.length
         } else {
           this.studentList = []
           this.totalRecords = 0
         }
-        
+
         this.selectedItems = []
         this.selectAll = false
       } catch (error) {
@@ -710,7 +909,7 @@ export default {
     },
 
     removeToast(id) {
-      this.toasts = this.toasts.filter(toast => toast.id !== id)
+      this.toasts = this.toasts.filter((toast) => toast.id !== id)
     },
 
     sendEmailDirectly() {
@@ -726,7 +925,9 @@ export default {
         if (!this.studentList.length) return
 
         const itemsToExport = this.selectedItems.length
-          ? this.studentList.filter(item => this.selectedItems.includes(item.id))
+          ? this.studentList.filter((item) =>
+              this.selectedItems.includes(item.id)
+            )
           : this.studentList
 
         const dataForExcel = itemsToExport.map((item, index) => ({
@@ -738,8 +939,8 @@ export default {
           'Học kỳ': item.termCode || '',
           'Mã môn': item.subjectCode || '',
           'Học phần': item.subjectName || '',
-          'Điểm': item.failedScore || '',
-          'Ghi chú': item.note || ''
+          Điểm: item.failedScore || '',
+          'Ghi chú': item.note || '',
         }))
 
         const worksheet = XLSX.utils.json_to_sheet(dataForExcel)
@@ -762,11 +963,13 @@ export default {
       try {
         const arrayBuffer = await new Promise((resolve, reject) => {
           const reader = new FileReader()
-          reader.onload = loadEvent => resolve(loadEvent.target.result)
+          reader.onload = (loadEvent) => resolve(loadEvent.target.result)
           reader.onerror = () => reject(new Error('Không thể đọc file Excel'))
           reader.readAsArrayBuffer(file)
         })
-        const workbook = XLSX.read(new Uint8Array(arrayBuffer), { type: 'array' })
+        const workbook = XLSX.read(new Uint8Array(arrayBuffer), {
+          type: 'array',
+        })
         const worksheet = workbook.Sheets[workbook.SheetNames[0]]
         XLSX.utils.sheet_to_json(worksheet)
 
@@ -781,18 +984,28 @@ export default {
 
     viewDetail(item) {
       this.openDetailModal(item)
-    }
+    },
   },
 }
 </script>
 
 <style scoped>
-.bg-red-bk { background-color: #A62229 !important; }
-.text-red-bold { color: #A62229 !important; }
-.text-grey-color { color: #757575 !important; }
-.gray-head-text { color: #333333 !important; }
+.bg-red-bk {
+  background-color: #a62229 !important;
+}
+.text-red-bold {
+  color: #a62229 !important;
+}
+.text-grey-color {
+  color: #757575 !important;
+}
+.gray-head-text {
+  color: #333333 !important;
+}
 
-.bg-gray-head { background-color: #EEEEEE !important; }
+.bg-gray-head {
+  background-color: #eeeeee !important;
+}
 
 .status-badge {
   padding: 4px 12px;
@@ -801,17 +1014,31 @@ export default {
   font-weight: 500;
   color: white;
 }
-.bg-green { background-color: #4CAF50 !important; }
-.bg-grey { background-color: #9E9E9E !important; }
+.bg-green {
+  background-color: #4caf50 !important;
+}
+.bg-grey {
+  background-color: #9e9e9e !important;
+}
 
-.gap-1 { gap: 4px; }
-.gap-2 { gap: 8px; }
-.gap-3 { gap: 12px; }
-.cursor-pointer { cursor: pointer; }
-.text-nowrap { white-space: nowrap !important; }
+.gap-1 {
+  gap: 4px;
+}
+.gap-2 {
+  gap: 8px;
+}
+.gap-3 {
+  gap: 12px;
+}
+.cursor-pointer {
+  cursor: pointer;
+}
+.text-nowrap {
+  white-space: nowrap !important;
+}
 
 .border-btn {
-  border: 1px solid #E0E0E0 !important;
+  border: 1px solid #e0e0e0 !important;
   border-radius: 4px !important;
 }
 
@@ -841,12 +1068,12 @@ export default {
 }
 
 .btn-email-disabled {
-  background-color: #E0E0E0 !important;
+  background-color: #e0e0e0 !important;
   cursor: not-allowed !important;
 }
 
 .btn-email-active {
-  background-color: #A62229 !important;
+  background-color: #a62229 !important;
   cursor: pointer !important;
 }
 
@@ -871,11 +1098,13 @@ export default {
 
 .toast-item {
   pointer-events: auto;
-  background-color: #4CB050 !important;
+  background-color: #4cb050 !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
-.opacity-80 { opacity: 0.8; }
+.opacity-80 {
+  opacity: 0.8;
+}
 
 .toast-progress-bg {
   height: 3px;
@@ -891,10 +1120,25 @@ export default {
 }
 
 @keyframes shrinkProgress {
-  from { width: 100%; }
-  to { width: 0%; }
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
 }
 
-.btn-close-custom { color: #A62229 !important; font-weight: 500; border-radius: 6px; }
-.btn-confirm-custom { background-color: #A62229 !important; color: #ffffff !important; font-weight: 500; border-radius: 8px !important; padding: 0 16px !important; height: 36px !important; }
+.btn-close-custom {
+  color: #a62229 !important;
+  font-weight: 500;
+  border-radius: 6px;
+}
+.btn-confirm-custom {
+  background-color: #a62229 !important;
+  color: #ffffff !important;
+  font-weight: 500;
+  border-radius: 8px !important;
+  padding: 0 16px !important;
+  height: 36px !important;
+}
 </style>

@@ -1,12 +1,22 @@
 <template>
-  <v-container fluid class="pa-0 bg-white fill-height align-stretch flex-column overflow-hidden">
+  <v-container
+    fluid
+    class="pa-0 bg-white fill-height align-stretch flex-column overflow-hidden"
+  >
     <!-- Layout tổng thể Flexbox cố định full chiều cao viewport làm việc -->
     <div class="main-page-layout">
       <!-- 1. THANH BỘ LỌC TÌM KIẾM (CỐ ĐỊNH 1 HÀNG PHÍA TRÊN) -->
-      <div class="sticky-filter-bar filter-bar-container px-4 py-3 bg-white shrink-0">
-        <div class="d-flex align-center justify-space-between flex-nowrap gap-2 w-100">
-          <div class="filter-title text-body-1 font-weight-medium text-gray-900 text-no-wrap shrink-0">
-            Danh sách lớp học lại <span class="count-number">({{ totalItems }})</span>
+      <div
+        class="sticky-filter-bar filter-bar-container px-4 py-3 bg-white shrink-0"
+      >
+        <div
+          class="d-flex align-center justify-space-between flex-nowrap gap-2 w-100"
+        >
+          <div
+            class="filter-title text-body-1 font-weight-medium text-gray-900 text-no-wrap shrink-0"
+          >
+            Danh sách lớp học lại
+            <span class="count-number">({{ totalItems }})</span>
           </div>
 
           <div class="d-flex align-center filter-controls flex-nowrap gap-2">
@@ -62,13 +72,21 @@
               class="custom-filter-input input-select-coeff"
             ></v-select>
 
-            <div class="d-flex align-center filter-action-buttons gap-2 shrink-0">
+            <div
+              class="d-flex align-center filter-action-buttons gap-2 shrink-0"
+            >
               <RetakeCourseRetakeSessionFilter
                 ref="retakeSessionFilterModal"
                 @apply-filter="handleAdvancedFilter"
               />
 
-              <v-btn icon small class="btn-icon-red ma-0 border-btn" aria-label="Làm mới" @click="resetFilters">
+              <v-btn
+                icon
+                small
+                class="btn-icon-red ma-0 border-btn"
+                aria-label="Làm mới"
+                @click="resetFilters"
+              >
                 <v-icon size="20" color="#9e1c24">mdi-refresh</v-icon>
               </v-btn>
 
@@ -100,22 +118,24 @@
           class="custom-table border-0"
         >
           <!-- GIAO DIỆN NO DATA -->
-          <template v-slot:no-data>
+          <template #no-data>
             <div class="py-10 text-center grey--text">Không có dữ liệu</div>
           </template>
 
           <!-- STT chuẩn theo phân trang -->
-          <template v-slot:[`item.stt`]="{ index }">
+          <template #[`item.stt`]="{ index }">
             {{ (page - 1) * itemsPerPage + index + 1 }}
           </template>
 
           <!-- Mã lớp -->
-          <template v-slot:[`item.maLop`]="{ item }">
-            <span class="font-weight-medium text-gray-700">{{ item.maLop }}</span>
+          <template #[`item.maLop`]="{ item }">
+            <span class="font-weight-medium text-gray-700">{{
+              item.maLop
+            }}</span>
           </template>
 
           <!-- Loại lớp -->
-          <template v-slot:[`item.loaiLop`]="{ item }">
+          <template #[`item.loaiLop`]="{ item }">
             <v-chip
               small
               dark
@@ -127,27 +147,35 @@
           </template>
 
           <!-- Thanh toán giảng dạy: Để trống không ghi -->
-          <template v-slot:[`item.thanhToan`]>
+          <template #[`item.thanhToan`]>
             <span></span>
           </template>
 
           <!-- Học phần -->
-          <template v-slot:[`item.hocPhan`]="{ item }">
+          <template #[`item.hocPhan`]="{ item }">
             <div class="py-1 text-left">
-              <div class="font-weight-bold text-caption text-gray-800">{{ item.hocPhanCode }}</div>
-              <div class="text-caption text-gray-600 line-clamp-2">{{ item.hocPhanName }}</div>
+              <div class="font-weight-bold text-caption text-gray-800">
+                {{ item.hocPhanCode }}
+              </div>
+              <div class="text-caption text-gray-600 line-clamp-2">
+                {{ item.hocPhanName }}
+              </div>
             </div>
           </template>
 
           <!-- Số lượng sinh viên -->
-          <template v-slot:[`item.soLuongSv`]="{ item }">
-            <span :class="{ 'red--text font-weight-bold': item.svDangKy > item.maxSv }">
+          <template #[`item.soLuongSv`]="{ item }">
+            <span
+              :class="{
+                'red--text font-weight-bold': item.svDangKy > item.maxSv,
+              }"
+            >
               {{ item.svDangKy }}/{{ item.maxSv }}
             </span>
           </template>
 
           <!-- Thời gian -->
-          <template v-slot:[`item.thoiGian`]="{ item }">
+          <template #[`item.thoiGian`]="{ item }">
             <div class="text-caption whitespace-nowrap">
               <div>{{ item.tuNgay }}</div>
               <div class="text-gray-400">{{ item.denNgay }}</div>
@@ -155,7 +183,7 @@
           </template>
 
           <!-- Trạng thái duyệt danh sách -->
-          <template v-slot:[`item.trangThaiDuyet`]="{ item }">
+          <template #[`item.trangThaiDuyet`]="{ item }">
             <div>
               <v-select
                 v-model="item.trangThaiDuyet"
@@ -166,11 +194,22 @@
                 outlined
                 hide-details
                 menu-props="auto"
-                :append-icon="(item.trangThaiDuyet === 'Đã duyệt danh sách' && item.examStatus === 'Đã có điểm') ? '' : 'mdi-menu-down'"
-                :disabled="updatingClassIds.includes(item.id) || (item.trangThaiDuyet === 'Đã duyệt danh sách' && item.examStatus === 'Đã có điểm')"
+                :append-icon="
+                  item.trangThaiDuyet === 'Đã duyệt danh sách' &&
+                  item.examStatus === 'Đã có điểm'
+                    ? ''
+                    : 'mdi-menu-down'
+                "
+                :disabled="
+                  updatingClassIds.includes(item.id) ||
+                  (item.trangThaiDuyet === 'Đã duyệt danh sách' &&
+                    item.examStatus === 'Đã có điểm')
+                "
                 :class="[
                   'status-pill-select',
-                  item.trangThaiDuyet === 'Đã duyệt danh sách' ? 'pill-green-solid' : 'pill-orange-solid'
+                  item.trangThaiDuyet === 'Đã duyệt danh sách'
+                    ? 'pill-green-solid'
+                    : 'pill-orange-solid',
                 ]"
                 @change="onApprovalStatusChange(item, $event)"
               ></v-select>
@@ -178,7 +217,7 @@
           </template>
 
           <!-- Trạng thái bảng điểm -->
-          <template v-slot:[`item.examStatus`]="{ item }">
+          <template #[`item.examStatus`]="{ item }">
             <div>
               <v-select
                 v-model="item.examStatus"
@@ -189,11 +228,20 @@
                 outlined
                 hide-details
                 menu-props="auto"
-                :append-icon="(item.trangThaiDuyet === 'Đã duyệt danh sách' && item.examStatus === 'Đã có điểm') ? '' : 'mdi-menu-down'"
-                :disabled="updatingClassIds.includes(item.id) || (item.trangThaiDuyet === 'Đã duyệt danh sách' && item.examStatus === 'Đã có điểm')"
+                :append-icon="
+                  item.trangThaiDuyet === 'Đã duyệt danh sách' &&
+                  item.examStatus === 'Đã có điểm'
+                    ? ''
+                    : 'mdi-menu-down'
+                "
+                :disabled="
+                  updatingClassIds.includes(item.id) ||
+                  (item.trangThaiDuyet === 'Đã duyệt danh sách' &&
+                    item.examStatus === 'Đã có điểm')
+                "
                 :class="[
                   'status-pill-select',
-                  getGradePillClass(item.examStatus)
+                  getGradePillClass(item.examStatus),
                 ]"
                 @change="onGradeStatusChange(item, $event)"
               ></v-select>
@@ -201,42 +249,72 @@
           </template>
 
           <!-- Chức năng -->
-          <template v-slot:[`item.chucNang`]="{ item }">
+          <template #[`item.chucNang`]="{ item }">
             <div>
               <v-menu offset-y left transition="scale-transition">
-                <template v-slot:activator="{ on, attrs }">
-                  <v-btn icon small v-bind="attrs" class="action-dots-btn" v-on="on">
+                <template #activator="{ on, attrs }">
+                  <v-btn
+                    icon
+                    small
+                    v-bind="attrs"
+                    class="action-dots-btn"
+                    v-on="on"
+                  >
                     <v-icon>mdi-dots-vertical</v-icon>
                   </v-btn>
                 </template>
 
                 <v-list dense class="py-1 popup-action-menu">
-                  <v-list-item v-if="getPermissions(item).showDetail" @click="handleViewDetail(item)">
+                  <v-list-item
+                    v-if="getPermissions(item).showDetail"
+                    @click="handleViewDetail(item)"
+                  >
                     <v-list-item-icon class="mr-2 my-auto">
                       <v-icon size="20" small color="#1890ff">mdi-eye</v-icon>
                     </v-list-item-icon>
-                    <v-list-item-title class="text-caption">Chi tiết</v-list-item-title>
+                    <v-list-item-title class="text-caption"
+                      >Chi tiết</v-list-item-title
+                    >
                   </v-list-item>
 
-                  <v-list-item v-if="getPermissions(item).showExportSV" @click="handleExportDSSV(item)">
+                  <v-list-item
+                    v-if="getPermissions(item).showExportSV"
+                    @click="handleExportDSSV(item)"
+                  >
                     <v-list-item-icon class="mr-2 my-auto">
-                      <v-icon size="20" small color="#52c41a">mdi-export</v-icon>
+                      <v-icon size="20" small color="#52c41a"
+                        >mdi-export</v-icon
+                      >
                     </v-list-item-icon>
-                    <v-list-item-title class="text-caption">Xuất danh sách SV</v-list-item-title>
+                    <v-list-item-title class="text-caption"
+                      >Xuất danh sách SV</v-list-item-title
+                    >
                   </v-list-item>
 
-                  <v-list-item v-if="getPermissions(item).showGradesSheet" @click="navigateToGradeSheet(item)">
+                  <v-list-item
+                    v-if="getPermissions(item).showGradesSheet"
+                    @click="navigateToGradeSheet(item)"
+                  >
                     <v-list-item-icon class="mr-2 my-auto">
                       <v-icon size="20" small color="#722ed1">mdi-table</v-icon>
                     </v-list-item-icon>
-                    <v-list-item-title class="text-caption">Bảng điểm</v-list-item-title>
+                    <v-list-item-title class="text-caption"
+                      >Bảng điểm</v-list-item-title
+                    >
                   </v-list-item>
 
-                  <v-list-item v-if="getPermissions(item).showAssignTeacher" @click="handleAssignTeacher(item)">
+                  <v-list-item
+                    v-if="getPermissions(item).showAssignTeacher"
+                    @click="handleAssignTeacher(item)"
+                  >
                     <v-list-item-icon class="mr-2 my-auto">
-                      <v-icon size="20" small color="#13c2c2">mdi-account-tie-hat-outline</v-icon>
+                      <v-icon size="20" small color="#13c2c2"
+                        >mdi-account-tie-hat-outline</v-icon
+                      >
                     </v-list-item-icon>
-                    <v-list-item-title class="text-caption">Gán giảng viên</v-list-item-title>
+                    <v-list-item-title class="text-caption"
+                      >Gán giảng viên</v-list-item-title
+                    >
                   </v-list-item>
                 </v-list>
               </v-menu>
@@ -246,7 +324,9 @@
       </div>
 
       <!-- 3. THANH FOOTER PHÂN TRANG (CỐ ĐỊNH PHÍA DƯỚI) -->
-      <div class="custom-footer-bar pa-3 bg-white d-flex align-center justify-space-between flex-wrap gap-3 shrink-0">
+      <div
+        class="custom-footer-bar pa-3 bg-white d-flex align-center justify-space-between flex-wrap gap-3 shrink-0"
+      >
         <div class="d-flex align-center">
           <v-btn
             color="#42b858"
@@ -311,7 +391,11 @@
               small
               elevation="2"
               :color="page === p ? '#a2212b' : 'white'"
-              :class="page === p ? 'white--text font-weight-bold btn-page-number active' : 'black--text btn-page-number'"
+              :class="
+                page === p
+                  ? 'white--text font-weight-bold btn-page-number active'
+                  : 'black--text btn-page-number'
+              "
               @click="changePage(p)"
             >
               {{ p }}
@@ -342,9 +426,18 @@
     <!-- MODAL GÁN GIẢNG VIÊN VỚI GIAO DIỆN 2 DÒNG -->
     <v-dialog v-model="assignTeacherModal.show" max-width="600px" persistent>
       <v-card class="rounded-lg">
-        <v-card-title class="headline white--text py-3 px-4 d-flex align-center justify-space-between" style="background-color: #a2212b;">
+        <v-card-title
+          class="headline white--text py-3 px-4 d-flex align-center justify-space-between"
+          style="background-color: #a2212b"
+        >
           <span class="text-subtitle-1 font-weight-bold">Gán giảng viên</span>
-          <v-btn icon dark small class="ma-0" @click="assignTeacherModal.show = false">
+          <v-btn
+            icon
+            dark
+            small
+            class="ma-0"
+            @click="assignTeacherModal.show = false"
+          >
             <v-icon>mdi-close</v-icon>
           </v-btn>
         </v-card-title>
@@ -366,19 +459,25 @@
                 class="custom-teacher-select"
                 menu-props="auto"
               >
-                <template v-slot:selection="{ item }">
+                <template #selection="{ item }">
                   <span class="text-body-2 font-weight-medium text-gray-800">
                     {{ item.fullName }} - {{ item.email }}
                   </span>
                 </template>
 
-                <template v-slot:item="{ item }">
+                <template #item="{ item }">
                   <div class="py-2 w-100">
                     <div class="font-weight-bold text-body-2 text-gray-900">
-                      {{ item.fullName }} - <span class="font-weight-regular text-lowercase">{{ item.email }}</span>
+                      {{ item.fullName }} -
+                      <span class="font-weight-regular text-lowercase">{{
+                        item.email
+                      }}</span>
                     </div>
                     <div class="text-caption grey--text text--darken-1 mt-1">
-                      Mã GV: {{ item.code || '---' }} - {{ item.workUnitName || item.unitName || item.unit || '---' }}
+                      Mã GV: {{ item.code || '---' }} -
+                      {{
+                        item.workUnitName || item.unitName || item.unit || '---'
+                      }}
                     </div>
                   </div>
                 </template>
@@ -400,19 +499,25 @@
                 class="custom-teacher-select"
                 menu-props="auto"
               >
-                <template v-slot:selection="{ item }">
+                <template #selection="{ item }">
                   <span class="text-body-2 font-weight-medium text-gray-800">
                     {{ item.fullName }} - {{ item.email }}
                   </span>
                 </template>
 
-                <template v-slot:item="{ item }">
+                <template #item="{ item }">
                   <div class="py-2 w-100">
                     <div class="font-weight-bold text-body-2 text-gray-900">
-                      {{ item.fullName }} - <span class="font-weight-regular text-lowercase">{{ item.email }}</span>
+                      {{ item.fullName }} -
+                      <span class="font-weight-regular text-lowercase">{{
+                        item.email
+                      }}</span>
                     </div>
                     <div class="text-caption grey--text text--darken-1 mt-1">
-                      Mã GV: {{ item.code || '---' }} - {{ item.workUnitName || item.unitName || item.unit || '---' }}
+                      Mã GV: {{ item.code || '---' }} -
+                      {{
+                        item.workUnitName || item.unitName || item.unit || '---'
+                      }}
                     </div>
                   </div>
                 </template>
@@ -422,10 +527,23 @@
         </v-card-text>
 
         <v-card-actions class="px-5 pb-5 pt-0 justify-end bg-white">
-          <v-btn outlined small class="text-none px-4 border-btn" @click="assignTeacherModal.show = false">
+          <v-btn
+            outlined
+            small
+            class="text-none px-4 border-btn"
+            @click="assignTeacherModal.show = false"
+          >
             Đóng <v-icon right small>mdi-close</v-icon>
           </v-btn>
-          <v-btn color="#a2212b" dark small elevation="0" class="text-none px-5 font-weight-bold" :loading="assignTeacherModal.saving" @click="saveTeacherAssignment">
+          <v-btn
+            color="#a2212b"
+            dark
+            small
+            elevation="0"
+            class="text-none px-5 font-weight-bold"
+            :loading="assignTeacherModal.saving"
+            @click="saveTeacherAssignment"
+          >
             Lưu <v-icon right small>mdi-content-save</v-icon>
           </v-btn>
         </v-card-actions>
@@ -501,19 +619,79 @@ export default {
       allClassesList: [],
 
       headers: [
-        { text: 'STT', value: 'stt', width: '45px', align: 'center', sortable: false },
+        {
+          text: 'STT',
+          value: 'stt',
+          width: '45px',
+          align: 'center',
+          sortable: false,
+        },
         { text: 'Mã lớp', value: 'code', width: '130px', sortable: false },
         { text: 'Loại lớp', value: 'loaiLop', width: '160px', sortable: false },
-        { text: 'Thu học phí SV', value: 'classCoefficient', width: '80px', align: 'center', sortable: false },
-        { text: 'Thanh toán giảng dạy', value: 'thanhToan', width: '80px', align: 'center', sortable: false },
-        { text: 'Đợt học lại', value: 'dotHocLai', width: '90px', align: 'center', sortable: false },
+        {
+          text: 'Thu học phí SV',
+          value: 'classCoefficient',
+          width: '80px',
+          align: 'center',
+          sortable: false,
+        },
+        {
+          text: 'Thanh toán giảng dạy',
+          value: 'thanhToan',
+          width: '80px',
+          align: 'center',
+          sortable: false,
+        },
+        {
+          text: 'Đợt học lại',
+          value: 'dotHocLai',
+          width: '90px',
+          align: 'center',
+          sortable: false,
+        },
         { text: 'Học phần', value: 'hocPhan', width: '170px', sortable: false },
-        { text: 'Số lượng sinh viên', value: 'soLuongSv', width: '110px', align: 'center', sortable: false },
-        { text: 'Số lượng SV đăng ký', value: 'svDangKy', width: '100px', align: 'center', sortable: false },
-        { text: 'Thời gian', value: 'thoiGian', width: '130px', align: 'center', sortable: false },
-        { text: 'Trạng thái duyệt danh sách', value: 'trangThaiDuyet', width: '210px', align: 'center', sortable: false },
-        { text: 'Trạng thái bảng điểm', value: 'examStatus', width: '190px', align: 'center', sortable: false },
-        { text: 'Chức năng', value: 'chucNang', width: '70px', align: 'center', sortable: false },
+        {
+          text: 'Số lượng sinh viên',
+          value: 'soLuongSv',
+          width: '110px',
+          align: 'center',
+          sortable: false,
+        },
+        {
+          text: 'Số lượng SV đăng ký',
+          value: 'svDangKy',
+          width: '100px',
+          align: 'center',
+          sortable: false,
+        },
+        {
+          text: 'Thời gian',
+          value: 'thoiGian',
+          width: '130px',
+          align: 'center',
+          sortable: false,
+        },
+        {
+          text: 'Trạng thái duyệt danh sách',
+          value: 'trangThaiDuyet',
+          width: '210px',
+          align: 'center',
+          sortable: false,
+        },
+        {
+          text: 'Trạng thái bảng điểm',
+          value: 'examStatus',
+          width: '190px',
+          align: 'center',
+          sortable: false,
+        },
+        {
+          text: 'Chức năng',
+          value: 'chucNang',
+          width: '70px',
+          align: 'center',
+          sortable: false,
+        },
       ],
 
       allRawData: [],
@@ -529,7 +707,10 @@ export default {
 
   async mounted() {
     if (typeof navigator !== 'undefined') {
-      this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      this.isMobileDevice =
+        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+          navigator.userAgent
+        )
     }
 
     await Promise.all([
@@ -557,9 +738,13 @@ export default {
     },
 
     getPermissions(item) {
-      const isApproved = item.trangThaiDuyet === 'Đã duyệt danh sách' || item.hasBeenApproved === true
+      const isApproved =
+        item.trangThaiDuyet === 'Đã duyệt danh sách' ||
+        item.hasBeenApproved === true
       // Kiểm tra nếu lớp đã có giảng viên chính thì ẩn chức năng gán giảng viên đi
-      const hasTeacher = Boolean(item.teacherId || item.original?.mainTeacher || item.original?.teacherId)
+      const hasTeacher = Boolean(
+        item.teacherId || item.original?.mainTeacher || item.original?.teacherId
+      )
 
       return {
         showDetail: true,
@@ -577,15 +762,14 @@ export default {
       const raw = item.original || item || {}
 
       // Lấy trực tiếp trạng thái mới nhất từ dòng bên ngoài để đồng bộ vào modal
-      const currentTrangThaiDuyet = item.trangThaiDuyet || raw.trangThaiDuyet || 'Chưa duyệt danh sách'
-      const currentExamStatus = item.examStatus || raw.examStatus || 'Chưa có điểm'
+      const currentTrangThaiDuyet =
+        item.trangThaiDuyet || raw.trangThaiDuyet || 'Chưa duyệt danh sách'
+      const currentExamStatus =
+        item.examStatus || raw.examStatus || 'Chưa có điểm'
 
       // Quét mảng sinh viên từ dữ liệu gốc của lớp
-      const studentTerms = 
-        raw.registerStudentTerms || 
-        raw.students || 
-        raw.data || 
-        []
+      const studentTerms =
+        raw.registerStudentTerms || raw.students || raw.data || []
 
       // Tải bổ sung thông tin chi tiết sinh viên từ API student để lấy đủ SĐT, Email
       let masterStudentsMap = {}
@@ -593,9 +777,12 @@ export default {
         const studentRes = await this.$axios.$get('/api/student', {
           params: { pageIndex: 1, pageSize: 200, search: '', channel: 'CMS' },
         })
-        const studentData = studentRes?.data?.data || studentRes?.data || studentRes || []
-        const studentListMaster = Array.isArray(studentData) ? studentData : (studentData.items || [])
-        
+        const studentData =
+          studentRes?.data?.data || studentRes?.data || studentRes || []
+        const studentListMaster = Array.isArray(studentData)
+          ? studentData
+          : studentData.items || []
+
         masterStudentsMap = studentListMaster.reduce((acc, s) => {
           const sCode = s.code || s.studentCode || s.maSv
           if (sCode) acc[sCode] = s
@@ -607,22 +794,38 @@ export default {
 
       // Map danh sách sinh viên hiển thị ra modal khớp hoàn toàn với file xuất Excel
       const studentList = studentTerms.map((termItem, index) => {
-        const studentInfo = termItem.registerStudentExam || termItem.student || termItem || {}
+        const studentInfo =
+          termItem.registerStudentExam || termItem.student || termItem || {}
         const clazzObj = studentInfo.clazz || termItem.clazz || {}
 
-        const code = studentInfo.code || studentInfo.studentCode || termItem.code || studentInfo.maSv || ''
-        let fullName = studentInfo.fullName || studentInfo.name || termItem.name || ''
+        const code =
+          studentInfo.code ||
+          studentInfo.studentCode ||
+          termItem.code ||
+          studentInfo.maSv ||
+          ''
+        let fullName =
+          studentInfo.fullName || studentInfo.name || termItem.name || ''
         let email = studentInfo.email || termItem.email || ''
-        let phone = studentInfo.phone || studentInfo.phoneNumber || termItem.phone || ''
-        let khoa = studentInfo.courseYear || studentInfo.academicYear || termItem.courseYear || 'Khóa 66'
-        let className = clazzObj.name || clazzObj.code || termItem.className || '---'
+        let phone =
+          studentInfo.phone || studentInfo.phoneNumber || termItem.phone || ''
+        let khoa =
+          studentInfo.courseYear ||
+          studentInfo.academicYear ||
+          termItem.courseYear ||
+          'Khóa 66'
+        let className =
+          clazzObj.name || clazzObj.code || termItem.className || '---'
 
         if (code && masterStudentsMap[code]) {
           const master = masterStudentsMap[code]
           if (!fullName) fullName = master.fullName || master.name || ''
           if (!email) email = master.email || ''
           if (!phone) phone = master.phone || master.phoneNumber || ''
-          if (khoa === 'Khóa 66' && (master.courseYear || master.academicYear)) {
+          if (
+            khoa === 'Khóa 66' &&
+            (master.courseYear || master.academicYear)
+          ) {
             khoa = master.courseYear || master.academicYear
           }
           if (className === '---' && (master.clazz?.name || master.className)) {
@@ -644,14 +847,31 @@ export default {
       })
 
       // Xử lý thông tin giảng viên chính và trợ giảng an toàn
-      const mainTeacherName = item.mainTeacherName || raw.mainTeacher?.fullName || raw.mainTeacher?.name || raw.teacher?.fullName || raw.teacher?.name || ''
-      const mainTeacherCode = raw.mainTeacher?.code || raw.teacher?.code || (item.teacherId ? 'GV_...' : '')
-      
-      const assistantTeacherName = item.assistantTeacherName || raw.assistantTeacher?.fullName || raw.assistantTeacher?.name || ''
+      const mainTeacherName =
+        item.mainTeacherName ||
+        raw.mainTeacher?.fullName ||
+        raw.mainTeacher?.name ||
+        raw.teacher?.fullName ||
+        raw.teacher?.name ||
+        ''
+      const mainTeacherCode =
+        raw.mainTeacher?.code ||
+        raw.teacher?.code ||
+        (item.teacherId ? 'GV_...' : '')
+
+      const assistantTeacherName =
+        item.assistantTeacherName ||
+        raw.assistantTeacher?.fullName ||
+        raw.assistantTeacher?.name ||
+        ''
       const assistantTeacherCode = raw.assistantTeacher?.code || ''
 
-      const mainTeacherObj = mainTeacherName ? { fullName: mainTeacherName, code: mainTeacherCode } : null
-      const assistantTeacherObj = assistantTeacherName ? { fullName: assistantTeacherName, code: assistantTeacherCode } : null
+      const mainTeacherObj = mainTeacherName
+        ? { fullName: mainTeacherName, code: mainTeacherCode }
+        : null
+      const assistantTeacherObj = assistantTeacherName
+        ? { fullName: assistantTeacherName, code: assistantTeacherCode }
+        : null
 
       this.detailModal.data = {
         ...raw,
@@ -683,9 +903,13 @@ export default {
           assistantTeacherId,
           channel: 'CMS',
         })
-        
-        const selectedMain = this.teacherOptions.find((t) => t.id === mainTeacherId)
-        const selectedAssistant = this.teacherOptions.find((t) => t.id === assistantTeacherId)
+
+        const selectedMain = this.teacherOptions.find(
+          (t) => t.id === mainTeacherId
+        )
+        const selectedAssistant = this.teacherOptions.find(
+          (t) => t.id === assistantTeacherId
+        )
 
         const targetItem = this.assignTeacherModal.item
         if (selectedMain) {
@@ -706,11 +930,11 @@ export default {
         }
 
         this.assignTeacherModal.show = false
-        this.showSuccessToast?.('Gán giảng viên thành công') || alert('Gán giảng viên thành công')
+        this.showSuccessToast?.('Gán giảng viên thành công') ||
+          alert('Gán giảng viên thành công')
 
         this.appliedData = [...this.appliedData]
         this.allRawData = [...this.allRawData]
-
       } catch (err) {
         console.error('Lỗi khi gán giảng viên:', err)
         alert('Không thể gán giảng viên lúc này. Vui lòng thử lại!')
@@ -720,8 +944,10 @@ export default {
     },
     async handleAssignTeacher(item) {
       this.assignTeacherModal.item = item
-      this.assignTeacherModal.mainTeacherId = item.teacherId || item.original?.mainTeacher?.id || null
-      this.assignTeacherModal.assistantTeacherId = item.assistantTeacherId || item.original?.assistantTeacher?.id || null
+      this.assignTeacherModal.mainTeacherId =
+        item.teacherId || item.original?.mainTeacher?.id || null
+      this.assignTeacherModal.assistantTeacherId =
+        item.assistantTeacherId || item.original?.assistantTeacher?.id || null
       this.assignTeacherModal.show = true
       this.assignTeacherModal.saving = false
 
@@ -774,13 +1000,10 @@ export default {
       try {
         // Lấy trực tiếp dữ liệu từ item (gồm cả original nếu có) hoặc gọi API chi tiết nếu cần
         const rawData = item.original || item || {}
-        
+
         // Tự động quét và bóc tách mảng sinh viên từ mọi cấu trúc dữ liệu trả về của backend
-        const studentTerms = 
-          rawData.registerStudentTerms ||
-          rawData.students ||
-          rawData.data ||
-          []
+        const studentTerms =
+          rawData.registerStudentTerms || rawData.students || rawData.data || []
 
         if (!Array.isArray(studentTerms) || studentTerms.length === 0) {
           alert('Lớp này chưa có sinh viên đăng ký hoặc dữ liệu chưa được tải!')
@@ -790,17 +1013,32 @@ export default {
         // Map dữ liệu chuẩn khớp hoàn toàn với modal xem chi tiết (icon mắt)
         const excelData = studentTerms.map((termItem, index) => {
           // Bóc tách thông tin sinh viên linh hoạt theo các kiểu cấu trúc
-          const studentInfo = termItem.registerStudentExam || termItem.student || termItem || {}
+          const studentInfo =
+            termItem.registerStudentExam || termItem.student || termItem || {}
           const clazzObj = studentInfo.clazz || termItem.clazz || {}
 
           return {
-            'STT': index + 1,
-            'Họ và tên': studentInfo.fullName || studentInfo.name || termItem.name || '',
-            'Mã sinh viên': studentInfo.code || studentInfo.studentCode || termItem.code || '',
-            'Khóa': studentInfo.courseYear || studentInfo.academicYear || termItem.courseYear || 'Khóa 66',
-            'Lớp': clazzObj.name || clazzObj.code || termItem.className || termItem.class || '',
-            'Email': studentInfo.email || termItem.email || '',
-            'Số điện thoại': studentInfo.phone || termItem.phone || ''
+            STT: index + 1,
+            'Họ và tên':
+              studentInfo.fullName || studentInfo.name || termItem.name || '',
+            'Mã sinh viên':
+              studentInfo.code ||
+              studentInfo.studentCode ||
+              termItem.code ||
+              '',
+            Khóa:
+              studentInfo.courseYear ||
+              studentInfo.academicYear ||
+              termItem.courseYear ||
+              'Khóa 66',
+            Lớp:
+              clazzObj.name ||
+              clazzObj.code ||
+              termItem.className ||
+              termItem.class ||
+              '',
+            Email: studentInfo.email || termItem.email || '',
+            'Số điện thoại': studentInfo.phone || termItem.phone || '',
           }
         })
 
@@ -808,17 +1046,21 @@ export default {
         const worksheet = XLSX.utils.json_to_sheet(excelData)
         const workbook = XLSX.utils.book_new()
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách sinh viên')
-        
+
         XLSX.writeFile(workbook, `danh_sach_sinh_vien_${classIdentifier}.xlsx`)
       } catch (err) {
         console.error('Lỗi khi xuất danh sách sinh viên:', err)
-        alert('Không thể xuất danh sách sinh viên lúc này. Vui lòng thử lại sau!')
+        alert(
+          'Không thể xuất danh sách sinh viên lúc này. Vui lòng thử lại sau!'
+        )
       }
     },
 
     navigateToGradeSheet(item) {
       const classCode = item.code || item.maLop
-      this.$router.push(`/quan-ly-hoc-lai/danh-sach-lop-hoc/${classCode}/bang-diem`)
+      this.$router.push(
+        `/quan-ly-hoc-lai/danh-sach-lop-hoc/${classCode}/bang-diem`
+      )
     },
 
     onChangeItemsPerPage() {
@@ -869,7 +1111,8 @@ export default {
       }
       try {
         await this.$axios.$put(`/api/retakeCourse/${item.id}/status`, {
-          approvalStatus: newVal === 'Đã duyệt danh sách' ? 'APPROVED' : 'PENDING',
+          approvalStatus:
+            newVal === 'Đã duyệt danh sách' ? 'APPROVED' : 'PENDING',
           channel: 'CMS',
         })
       } catch (err) {
@@ -883,7 +1126,9 @@ export default {
 
     async fetchUserInfo() {
       try {
-        const res = await this.$axios.$get('/api/user/info', { params: { channel: 'CMS' } })
+        const res = await this.$axios.$get('/api/user/info', {
+          params: { channel: 'CMS' },
+        })
         this.userInfo = res?.data || res || null
       } catch (err) {
         console.error('Lỗi khi tải thông tin user:', err)
@@ -892,7 +1137,9 @@ export default {
 
     async fetchPageRole() {
       try {
-        const res = await this.$axios.$get('/api/auth/getPageRole', { params: { channel: 'CMS' } })
+        const res = await this.$axios.$get('/api/auth/getPageRole', {
+          params: { channel: 'CMS' },
+        })
         this.pageRoles = res?.data || res || null
       } catch (err) {
         console.error('Lỗi khi tải phân quyền trang:', err)
@@ -901,8 +1148,12 @@ export default {
 
     async getRetakeSessions() {
       try {
-        const res = await this.$axios.$get('/api/retakeSession/list', { params: { channel: 'CMS' } })
-        const sessions = Array.isArray(res?.data) ? res.data : res?.data?.items || res || []
+        const res = await this.$axios.$get('/api/retakeSession/list', {
+          params: { channel: 'CMS' },
+        })
+        const sessions = Array.isArray(res?.data)
+          ? res.data
+          : res?.data?.items || res || []
         if (sessions.length) {
           this.retakeSessionOptions = sessions.map((s) => ({
             text: s.maDot || s.code || s.name || String(s.id),
@@ -919,10 +1170,16 @@ export default {
         const res = await this.$axios.$get('/api/coefficient', {
           params: { pageIndex: 1, pageSize: 100, channel: 'CMS' },
         })
-        const coefficients = Array.isArray(res?.data) ? res.data : res?.data?.items || res || []
+        const coefficients = Array.isArray(res?.data)
+          ? res.data
+          : res?.data?.items || res || []
         if (coefficients.length) {
           this.coefficientOptions = coefficients.map((c) => {
-            const val = Number(typeof c === 'object' ? (c.thuHocPhiSv ?? c.coefficient ?? c.value) : c)
+            const val = Number(
+              typeof c === 'object'
+                ? c.thuHocPhiSv ?? c.coefficient ?? c.value
+                : c
+            )
             let label = `Hệ số (${val})`
             if (val === 1.7) {
               label = `Lớp ghép (Chuyên ngành) (${val})`
@@ -965,7 +1222,9 @@ export default {
 
     async getAllClasses() {
       try {
-        const res = await this.$axios.$get('/api/classes/all', { params: { channel: 'CMS' } })
+        const res = await this.$axios.$get('/api/classes/all', {
+          params: { channel: 'CMS' },
+        })
         this.allClassesList = res?.data || res || []
       } catch (err) {
         console.error('Lỗi tải danh sách lớp học:', err)
@@ -981,19 +1240,27 @@ export default {
           search: this.filters.className || '',
           examId: this.filters.retakeSession,
           termId: this.filters.course,
-          classCoefficient: this.filters.coefficient ? Number(this.filters.coefficient) : null,
+          classCoefficient: this.filters.coefficient
+            ? Number(this.filters.coefficient)
+            : null,
           channel: 'CMS',
         }
         const res = await this.$axios.$get('/api/retakeCourse', { params })
         const responseWrapper = res?.data || {}
         let rawItems = Array.isArray(responseWrapper.data)
           ? responseWrapper.data
-          : (Array.isArray(responseWrapper) ? responseWrapper : (Array.isArray(res) ? res : []))
+          : Array.isArray(responseWrapper)
+          ? responseWrapper
+          : Array.isArray(res)
+          ? res
+          : []
 
         // 1. Lọc theo hệ số / loại lớp
         if (this.filters.coefficient) {
           const selectedCoeff = Number(this.filters.coefficient)
-          rawItems = rawItems.filter(item => Number(item.classCoefficient) === selectedCoeff)
+          rawItems = rawItems.filter(
+            (item) => Number(item.classCoefficient) === selectedCoeff
+          )
         }
 
         // Hàm chuẩn hóa chuỗi ngày tháng an toàn tuyệt đối (tránh lỗi 0019, 0020 do sai định dạng)
@@ -1008,7 +1275,12 @@ export default {
               const year = parts[2]
               // Đảm bảo năm đủ 4 chữ số (ví dụ '26' -> '2026')
               const fullYear = year.length === 2 ? `20${year}` : year
-              return new Date(`${fullYear}-${month}-${day}`).setHours(0, 0, 0, 0)
+              return new Date(`${fullYear}-${month}-${day}`).setHours(
+                0,
+                0,
+                0,
+                0
+              )
             }
           }
           // Nếu là định dạng 'YYYY-MM-DD' hoặc ISO string
@@ -1025,9 +1297,9 @@ export default {
           const filterTo = parseDateToTimestamp(this.filters.toDate)
 
           if (filterFrom && filterTo) {
-            rawItems = rawItems.filter(item => {
+            rawItems = rawItems.filter((item) => {
               if (!item.fromTime || !item.toTime) return true
-              
+
               const itemFrom = parseDateToTimestamp(item.fromTime)
               const itemTo = parseDateToTimestamp(item.toTime)
 
@@ -1042,7 +1314,7 @@ export default {
         this.allRawData = rawItems.map((item, index) => {
           const termObj = item.term || {}
           const examObj = item.exam || {}
-          
+
           const classCode = item.code || item.examClass || ''
           const status = item.retakeCourseStatus || ''
           const coefficient = Number(item.classCoefficient) || 1.5
@@ -1054,7 +1326,11 @@ export default {
             } else {
               loaiLopName = 'Lớp ghép (Đại cương)'
             }
-          } else if (status === 'PROJECT_BASED_CLASS' || status === 'PROJECT' || classCode.startsWith('D_')) {
+          } else if (
+            status === 'PROJECT_BASED_CLASS' ||
+            status === 'PROJECT' ||
+            classCode.startsWith('D_')
+          ) {
             if (coefficient === 2.0) {
               loaiLopName = 'Đồ án môn học (HP.DAMH)'
             } else if (coefficient === 1.0) {
@@ -1067,23 +1343,36 @@ export default {
           }
 
           const sessionStatus = (item.examSessionStatus || '').toUpperCase()
-          const rawApproval = (item.approvalStatus || item.status || '').toUpperCase()
-          const isApproved = 
-            rawApproval === 'ACTIVE' || 
-            rawApproval === 'APPROVED' || 
-            rawApproval === 'ĐÃ DUYỆT DANH SÁCH' || 
+          const rawApproval = (
+            item.approvalStatus ||
+            item.status ||
+            ''
+          ).toUpperCase()
+          const isApproved =
+            rawApproval === 'ACTIVE' ||
+            rawApproval === 'APPROVED' ||
+            rawApproval === 'ĐÃ DUYỆT DANH SÁCH' ||
             sessionStatus === 'FINALIZED' ||
             item.hasBeenApproved === true
 
-          const trangThaiDuyetText = isApproved ? 'Đã duyệt danh sách' : 'Chưa duyệt danh sách'
+          const trangThaiDuyetText = isApproved
+            ? 'Đã duyệt danh sách'
+            : 'Chưa duyệt danh sách'
 
           let mappedExamStatus = 'Chưa có điểm'
           const rawExamStatus = (item.examStatus || '').toUpperCase()
           const rawScoreStatus = (item.scoreStatus || '').toUpperCase()
 
-          if (rawExamStatus === 'ANNOUNCED' || rawScoreStatus === 'SCOREBOARD_AVAILABLE') {
+          if (
+            rawExamStatus === 'ANNOUNCED' ||
+            rawScoreStatus === 'SCOREBOARD_AVAILABLE'
+          ) {
             mappedExamStatus = 'Đã có điểm'
-          } else if (rawExamStatus === 'UNAPPROVED' || rawExamStatus === 'PENDING' || rawExamStatus === 'CHỜ DUYỆT') {
+          } else if (
+            rawExamStatus === 'UNAPPROVED' ||
+            rawExamStatus === 'PENDING' ||
+            rawExamStatus === 'CHỜ DUYỆT'
+          ) {
             mappedExamStatus = 'Chờ duyệt'
           } else {
             mappedExamStatus = 'Chưa có điểm'
@@ -1109,7 +1398,7 @@ export default {
           const denNgayStr = formatDateDisplay(item.toTime) || '31/12/2026'
 
           return {
-            id: item.id || (index + 1),
+            id: item.id || index + 1,
             stt: index + 1,
             code: classCode,
             maLop: classCode,
@@ -1119,8 +1408,12 @@ export default {
             dotHocLai: examObj.code || '20252-A-1',
             hocPhanCode: termObj.code || '',
             hocPhanName: termObj.name || '---',
-            hocPhan: termObj.code ? `${termObj.code} - ${termObj.name}` : (termObj.name || '---'),
-            quantityText: `${item.quantityCurrent || 0}/${item.quantitySeat || 20}`,
+            hocPhan: termObj.code
+              ? `${termObj.code} - ${termObj.name}`
+              : termObj.name || '---',
+            quantityText: `${item.quantityCurrent || 0}/${
+              item.quantitySeat || 20
+            }`,
             svDangKy: item.quantityCurrent || 0,
             maxSv: item.quantitySeat || 20,
             tuNgay: tuNgayStr,
@@ -1194,77 +1487,81 @@ export default {
   },
 
   async handleAssignTeacher(item) {
-      this.assignTeacherModal.item = item
-      this.assignTeacherModal.mainTeacherId = item.teacherId || item.original?.mainTeacher?.id || null
-      this.assignTeacherModal.assistantTeacherId = item.assistantTeacherId || item.original?.assistantTeacher?.id || null
-      this.assignTeacherModal.show = true
-      this.assignTeacherModal.saving = false
+    this.assignTeacherModal.item = item
+    this.assignTeacherModal.mainTeacherId =
+      item.teacherId || item.original?.mainTeacher?.id || null
+    this.assignTeacherModal.assistantTeacherId =
+      item.assistantTeacherId || item.original?.assistantTeacher?.id || null
+    this.assignTeacherModal.show = true
+    this.assignTeacherModal.saving = false
 
-      try {
-        const res = await this.$axios.$get('/api/teacher', {
-          params: {
-            pageIndex: 1,
-            pageSize: 100,
-            search: '',
-            status: '',
-            gender: '',
-            lecturerStatus: '',
-            channel: 'CMS',
-          },
-        })
-        const responseWrapper = res?.data || {}
-        const rawItems = Array.isArray(responseWrapper.data)
-          ? responseWrapper.data
-          : Array.isArray(responseWrapper)
-          ? responseWrapper
-          : Array.isArray(res)
-          ? res
-          : []
-
-        this.teacherOptions = rawItems.map((t) => ({
-          id: t.id || t._id,
-          fullName: t.fullName || t.name || '',
-          email: t.email || '',
-          code: t.code || '',
-          workUnitName: t.workUnitName || t.unitName || t.unit || '',
-        }))
-      } catch (err) {
-        console.error('Lỗi khi tải danh sách giảng viên:', err)
-        this.teacherOptions = []
-      }
-    },
-    async onApprovalStatusChange(item, newVal) {
-      // Cập nhật ngay lập tức tên và trạng thái vào item để modal nhận được giá trị mới
-      item.trangThaiDuyet = newVal
-      if (newVal === 'Đã duyệt danh sách') {
-        item.hasBeenApproved = true
-      } else {
-        item.hasBeenApproved = false
-      }
-
-      // Đồng thời cập nhật vào object original nếu có để modal đọc được
-      if (item.original) {
-        item.original.approvalStatus = newVal === 'Đã duyệt danh sách' ? 'APPROVED' : 'PENDING'
-      }
-
-      try {
-        await this.$axios.$put(`/api/retakeCourse/${item.id}/status`, {
-          approvalStatus: newVal === 'Đã duyệt danh sách' ? 'APPROVED' : 'PENDING',
+    try {
+      const res = await this.$axios.$get('/api/teacher', {
+        params: {
+          pageIndex: 1,
+          pageSize: 100,
+          search: '',
+          status: '',
+          gender: '',
+          lecturerStatus: '',
           channel: 'CMS',
-        })
-      } catch (err) {
-        console.error('Lỗi khi cập nhật trạng thái duyệt:', err)
-      }
-    },
+        },
+      })
+      const responseWrapper = res?.data || {}
+      const rawItems = Array.isArray(responseWrapper.data)
+        ? responseWrapper.data
+        : Array.isArray(responseWrapper)
+        ? responseWrapper
+        : Array.isArray(res)
+        ? res
+        : []
 
-    onGradeStatusChange(item, newVal) {
-      // Cập nhật ngay lập tức trạng thái bảng điểm mới vào item
-      item.examStatus = newVal
+      this.teacherOptions = rawItems.map((t) => ({
+        id: t.id || t._id,
+        fullName: t.fullName || t.name || '',
+        email: t.email || '',
+        code: t.code || '',
+        workUnitName: t.workUnitName || t.unitName || t.unit || '',
+      }))
+    } catch (err) {
+      console.error('Lỗi khi tải danh sách giảng viên:', err)
+      this.teacherOptions = []
+    }
+  },
+  async onApprovalStatusChange(item, newVal) {
+    // Cập nhật ngay lập tức tên và trạng thái vào item để modal nhận được giá trị mới
+    item.trangThaiDuyet = newVal
+    if (newVal === 'Đã duyệt danh sách') {
+      item.hasBeenApproved = true
+    } else {
+      item.hasBeenApproved = false
+    }
 
-      if (item.original) {
-        item.original.examStatus = newVal
-      }
-    },
+    // Đồng thời cập nhật vào object original nếu có để modal đọc được
+    if (item.original) {
+      item.original.approvalStatus =
+        newVal === 'Đã duyệt danh sách' ? 'APPROVED' : 'PENDING'
+    }
+
+    try {
+      await this.$axios.$put(`/api/retakeCourse/${item.id}/status`, {
+        approvalStatus:
+          newVal === 'Đã duyệt danh sách' ? 'APPROVED' : 'PENDING',
+        channel: 'CMS',
+      })
+    } catch (err) {
+      console.error('Lỗi khi cập nhật trạng thái duyệt:', err)
+    }
+  },
+
+  onGradeStatusChange(item, newVal) {
+    // Cập nhật ngay lập tức trạng thái bảng điểm mới vào item
+    item.examStatus = newVal
+
+    if (item.original) {
+      item.original.examStatus = newVal
+    }
+  },
 }
 </script>
 
@@ -1273,10 +1570,22 @@ export default {
   animation: fadeInOut 3s ease forwards;
 }
 @keyframes fadeInOut {
-  0% { opacity: 0; transform: translateY(-10px); }
-  10% { opacity: 1; transform: translateY(0); }
-  90% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-10px); }
+  0% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  90% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
 }
 
 .main-page-layout {

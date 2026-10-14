@@ -3,7 +3,8 @@
     <!-- TIÊU ĐỀ BẢNG -->
     <div class="d-flex align-center justify-space-between mb-4">
       <div class="text-subtitle-1 font-weight-bold black--text">
-        Danh sách kết quả học lại ( <span class="text-red-bold">{{ resultList.length }}</span> )
+        Danh sách kết quả học lại (
+        <span class="text-red-bold">{{ resultList.length }}</span> )
       </div>
     </div>
 
@@ -16,7 +17,7 @@
         dense
         hide-details
         class="filter-input"
-        style="max-width: 200px;"
+        style="max-width: 200px"
         @change="fetchData"
       ></v-text-field>
 
@@ -29,7 +30,7 @@
         hide-details
         clearable
         class="filter-select"
-        style="max-width: 180px;"
+        style="max-width: 180px"
         @change="fetchData"
       ></v-select>
 
@@ -42,7 +43,7 @@
         hide-details
         clearable
         class="filter-select"
-        style="max-width: 180px;"
+        style="max-width: 180px"
         @change="fetchData"
       ></v-select>
 
@@ -55,7 +56,7 @@
         hide-details
         clearable
         class="filter-select"
-        style="max-width: 180px;"
+        style="max-width: 180px"
         @change="fetchData"
       ></v-select>
 
@@ -74,7 +75,13 @@
           <v-icon color="#A62229" size="24">mdi-refresh</v-icon>
         </v-btn>
 
-        <v-btn color="#A62229" dark elevation="0" class="search-btn min-w-0 px-3" @click="fetchData">
+        <v-btn
+          color="#A62229"
+          dark
+          elevation="0"
+          class="search-btn min-w-0 px-3"
+          @click="fetchData"
+        >
           <v-icon size="24">mdi-magnify</v-icon>
         </v-btn>
       </div>
@@ -100,14 +107,19 @@
         <tbody>
           <!-- KHI KHÔNG CÓ DỮ LIỆU -->
           <tr v-if="resultList.length === 0">
-            <td colspan="10" class="text-center py-6 text-caption text-grey-color">
+            <td
+              colspan="10"
+              class="text-center py-6 text-caption text-grey-color"
+            >
               Không có dữ liệu
             </td>
           </tr>
 
           <!-- DỮ LIỆU KHI CÓ KẾT QUẢ -->
           <tr v-for="(item, index) in paginatedResults" :key="item.id || index">
-            <td class="text-caption font-weight-bold">{{ item.studentCode }}</td>
+            <td class="text-caption font-weight-bold">
+              {{ item.studentCode }}
+            </td>
             <td class="text-caption">{{ item.studentName }}</td>
             <td class="text-caption">{{ item.className }}</td>
             <td class="text-caption">{{ item.retakeClassName }}</td>
@@ -150,7 +162,13 @@
       ></v-text-field>
 
       <!-- NÚT ĐI -->
-      <v-btn color="#A62229" dark elevation="0" class="custom-go-btn" @click="goToPage">
+      <v-btn
+        color="#A62229"
+        dark
+        elevation="0"
+        class="custom-go-btn"
+        @click="goToPage"
+      >
         Đi
       </v-btn>
 
@@ -159,7 +177,11 @@
         <button class="custom-nav-btn" :disabled="page <= 1" @click="prevPage">
           <v-icon small color="#666">mdi-chevron-left</v-icon>
         </button>
-        <button class="custom-nav-btn" :disabled="page >= totalPages" @click="nextPage">
+        <button
+          class="custom-nav-btn"
+          :disabled="page >= totalPages"
+          @click="nextPage"
+        >
           <v-icon small color="#666">mdi-chevron-right</v-icon>
         </button>
       </div>
@@ -168,9 +190,20 @@
     <!-- MODAL BỘ LỌC NÂNG CAO -->
     <v-dialog v-model="showAdvancedFilter" width="560px" persistent>
       <div class="advanced-filter-card">
-        <div class="modal-header d-flex align-center justify-space-between px-5 py-3">
-          <span class="text-subtitle-1 white--text font-weight-medium">Bộ lọc nâng cao</span>
-          <v-btn icon dark x-small class="ma-0" aria-label="Đóng" @click="showAdvancedFilter = false">
+        <div
+          class="modal-header d-flex align-center justify-space-between px-5 py-3"
+        >
+          <span class="text-subtitle-1 white--text font-weight-medium"
+            >Bộ lọc nâng cao</span
+          >
+          <v-btn
+            icon
+            dark
+            x-small
+            class="ma-0"
+            aria-label="Đóng"
+            @click="showAdvancedFilter = false"
+          >
             <v-icon small>mdi-close</v-icon>
           </v-btn>
         </div>
@@ -205,8 +238,14 @@
           </v-row>
         </div>
 
-        <div class="modal-footer d-flex align-center justify-end px-5 pb-4 pt-2 gap-3">
-          <button type="button" class="btn-cancel d-flex align-center" @click="showAdvancedFilter = false">
+        <div
+          class="modal-footer d-flex align-center justify-end px-5 pb-4 pt-2 gap-3"
+        >
+          <button
+            type="button"
+            class="btn-cancel d-flex align-center"
+            @click="showAdvancedFilter = false"
+          >
             <span>Đóng</span>
             <v-icon x-small color="#333" class="ml-1">mdi-close</v-icon>
           </button>
@@ -236,8 +275,15 @@
       >
         <div class="system-error-toast-content">
           <v-icon dark small>mdi-alert-triangle</v-icon>
-          <span class="font-weight-medium white--text text-subtitle-2">Lỗi hệ thống</span>
-          <v-btn icon x-small aria-label="Đóng thông báo" @click="removeToast(toast.id)">
+          <span class="font-weight-medium white--text text-subtitle-2"
+            >Lỗi hệ thống</span
+          >
+          <v-btn
+            icon
+            x-small
+            aria-label="Đóng thông báo"
+            @click="removeToast(toast.id)"
+          >
             <v-icon small dark>mdi-close</v-icon>
           </v-btn>
         </div>
@@ -262,7 +308,7 @@ export default {
         keyword: '',
         class: null,
         session: null,
-        retakeClass: null
+        retakeClass: null,
       },
       classList: ['ĐH-BK-CNTT1.1-K66', 'ĐH-BK-CNTT1.2-K66'],
       sessionList: ['20261-A-5', '20261-A-4'],
@@ -272,7 +318,7 @@ export default {
       showAdvancedFilter: false,
       advancedFilters: {
         heSo: null,
-        trangThai: null
+        trangThai: null,
       },
       heSoList: ['Hệ số 1', 'Hệ số 2', 'Hệ số 3'],
       trangThaiList: ['Chưa duyệt', 'Đã duyệt'],
@@ -286,7 +332,7 @@ export default {
 
       // Quản lý danh sách thông báo Toasts liên tục
       toasts: [],
-      toastCounter: 0
+      toastCounter: 0,
     }
   },
   computed: {
@@ -296,12 +342,12 @@ export default {
     paginatedResults() {
       const start = (this.page - 1) * this.pageSize
       return this.resultList.slice(start, start + this.pageSize)
-    }
+    },
   },
   watch: {
     page(value) {
       this.pageInput = String(value)
-    }
+    },
   },
   mounted() {
     this.fetchData()
@@ -321,7 +367,7 @@ export default {
     },
 
     removeToast(id) {
-      this.toasts = this.toasts.filter(t => t.id !== id)
+      this.toasts = this.toasts.filter((t) => t.id !== id)
     },
 
     handleAdvancedSearch() {
@@ -359,18 +405,18 @@ export default {
         this.pageInput = String(this.page)
         this.fetchData()
       }
-    }
-  }
+    },
+  },
 }
 </script>
 
 <style scoped>
 .text-red-bold {
-  color: #A62229 !important;
+  color: #a62229 !important;
 }
 
 .bg-gray-head {
-  background-color: #F5F5F5;
+  background-color: #f5f5f5;
 }
 
 .border-table {
@@ -387,14 +433,14 @@ export default {
 .custom-data-table th {
   padding: 10px 12px;
   text-align: left;
-  border-bottom: 1px solid #E0E0E0;
+  border-bottom: 1px solid #e0e0e0;
   color: #333333;
 }
 
 .custom-data-table td {
   padding: 10px 12px;
-  border-bottom: 1px solid #EEEEEE;
-  color: #4A4A4A;
+  border-bottom: 1px solid #eeeeee;
+  color: #4a4a4a;
 }
 
 .filter-input >>> .v-input__slot,
@@ -467,9 +513,9 @@ export default {
 .custom-nav-btn {
   width: 36px;
   height: 36px;
-  border: 1px solid #E0E0E0;
+  border: 1px solid #e0e0e0;
   border-radius: 4px;
-  background-color: #FFFFFF;
+  background-color: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -478,7 +524,7 @@ export default {
 }
 
 .custom-nav-btn:hover:not(:disabled) {
-  background-color: #F5F5F5;
+  background-color: #f5f5f5;
 }
 
 .custom-nav-btn:disabled {
@@ -487,12 +533,18 @@ export default {
 }
 
 .text-grey-color {
-  color: #9E9E9E;
+  color: #9e9e9e;
 }
 
-.gap-1 { gap: 4px; }
-.gap-2 { gap: 8px; }
-.gap-3 { gap: 12px; }
+.gap-1 {
+  gap: 4px;
+}
+.gap-2 {
+  gap: 8px;
+}
+.gap-3 {
+  gap: 12px;
+}
 
 /* MODAL STYLES */
 .advanced-filter-card {
@@ -503,7 +555,7 @@ export default {
 }
 
 .modal-header {
-  background-color: #A62229;
+  background-color: #a62229;
 }
 
 .btn-cancel {
@@ -516,7 +568,7 @@ export default {
 }
 
 .btn-search-modal {
-  background-color: #A62229 !important;
+  background-color: #a62229 !important;
   border-radius: 6px;
   height: 36px !important;
   padding: 0 16px !important;
@@ -537,7 +589,7 @@ export default {
   width: 320px;
   overflow: hidden;
   border-radius: 6px;
-  background-color: #FF5252;
+  background-color: #ff5252;
   box-shadow: 0 4px 12px rgba(255, 82, 82, 0.3);
   animation: slideInRight 0.3s ease-out;
 }
@@ -571,8 +623,12 @@ export default {
 }
 
 @keyframes systemErrorCountdown {
-  from { width: 100%; }
-  to { width: 0%; }
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
 }
 
 @keyframes slideInRight {

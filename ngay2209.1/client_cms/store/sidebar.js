@@ -1,7 +1,7 @@
 // store/sidebar.js
 
 export const state = () => ({
-  drawer: true
+  drawer: true,
 })
 
 export const mutations = {
@@ -10,9 +10,9 @@ export const mutations = {
   },
   SET_SIDEBAR(state, status) {
     state.drawer = status
-  }
+  },
 }
 
 export const getters = {
-  isDrawerOpen: (state) => state.drawer
+  isDrawerOpen: (state) => state.drawer,
 }

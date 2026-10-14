@@ -1,9 +1,19 @@
 <template>
   <v-dialog v-model="internalShow" max-width="560px" persistent>
     <v-card class="assign-modal-card">
-      <div class="modal-header d-flex align-center justify-space-between px-5 py-3">
+      <div
+        class="modal-header d-flex align-center justify-space-between px-5 py-3"
+      >
         <span class="text-h6 font-weight-bold white--text">Gán giảng viên</span>
-        <v-btn icon dark small class="ma-0" aria-label="Đóng" :disabled="saving" @click="closeModal">
+        <v-btn
+          icon
+          dark
+          small
+          class="ma-0"
+          aria-label="Đóng"
+          :disabled="saving"
+          @click="closeModal"
+        >
           <v-icon size="22">mdi-close</v-icon>
         </v-btn>
       </div>
@@ -20,14 +30,15 @@
             dense
             clearable
             :disabled="saving"
-            :rules="[value => !!value || 'Vui lòng chọn giảng viên chính']"
+            :rules="[(value) => !!value || 'Vui lòng chọn giảng viên chính']"
             class="mb-3 custom-select-input"
             append-icon="mdi-menu-down"
           >
-            <template v-slot:item="{ item }">
+            <template #item="{ item }">
               <v-list-item-content class="py-1">
                 <v-list-item-title class="font-weight-bold text-body-2">
-                  {{ item.fullName }}<span v-if="item.email"> - {{ item.email }}</span>
+                  {{ item.fullName
+                  }}<span v-if="item.email"> - {{ item.email }}</span>
                 </v-list-item-title>
                 <v-list-item-subtitle class="text-caption">
                   <span v-if="item.code">Mã GV: {{ item.code }}</span>
@@ -50,10 +61,11 @@
             class="custom-select-input"
             append-icon="mdi-menu-down"
           >
-            <template v-slot:item="{ item }">
+            <template #item="{ item }">
               <v-list-item-content class="py-1">
                 <v-list-item-title class="font-weight-bold text-body-2">
-                  {{ item.fullName }}<span v-if="item.email"> - {{ item.email }}</span>
+                  {{ item.fullName
+                  }}<span v-if="item.email"> - {{ item.email }}</span>
                 </v-list-item-title>
                 <v-list-item-subtitle class="text-caption">
                   <span v-if="item.code">Mã GV: {{ item.code }}</span>
@@ -84,7 +96,8 @@
           :disabled="saving"
           @click="handleSave"
         >
-          Lưu <v-icon size="18" right class="ml-1">mdi-content-save-outline</v-icon>
+          Lưu
+          <v-icon size="18" right class="ml-1">mdi-content-save-outline</v-icon>
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -99,7 +112,8 @@ const teacherList = [
     email: 'linhlananhh@gmail.com',
     code: 'GV_07',
     department: 'Khoa Giáo dục Quốc phòng',
-    displayText: 'Phương Oanh - linhlananhh@gmail.com - GV_07 - Khoa Giáo dục Quốc phòng',
+    displayText:
+      'Phương Oanh - linhlananhh@gmail.com - GV_07 - Khoa Giáo dục Quốc phòng',
   },
   {
     id: 2,
@@ -107,7 +121,8 @@ const teacherList = [
     email: 'nguyenminhanhchieu@gmail.com',
     code: 'GV_08',
     department: 'Trung tâm Ký túc xá',
-    displayText: 'Đỗ Hồng Kiên - nguyenminhanhchieu@gmail.com - GV_08 - Trung tâm Ký túc xá',
+    displayText:
+      'Đỗ Hồng Kiên - nguyenminhanhchieu@gmail.com - GV_08 - Trung tâm Ký túc xá',
   },
   {
     id: 3,
@@ -115,7 +130,8 @@ const teacherList = [
     email: 'test@gmail.com',
     code: 'GV_09',
     department: 'Phòng Phát triển dự án và đầu tư',
-    displayText: 'nguyễn văn test - test@gmail.com - GV_09 - Phòng Phát triển dự án và đầu tư',
+    displayText:
+      'nguyễn văn test - test@gmail.com - GV_09 - Phòng Phát triển dự án và đầu tư',
   },
   {
     id: 4,
@@ -123,7 +139,8 @@ const teacherList = [
     email: 'yentran@huast.edu.vn',
     code: 'TTBY01',
     department: 'Khoa Công nghệ thông tin',
-    displayText: 'Trần Bảo Yến - yentran@huast.edu.vn - TTBY01 - Khoa Công nghệ thông tin',
+    displayText:
+      'Trần Bảo Yến - yentran@huast.edu.vn - TTBY01 - Khoa Công nghệ thông tin',
   },
 ]
 
@@ -163,7 +180,9 @@ export default {
       },
     },
     assistantOptions() {
-      return this.teacherList.filter((teacher) => teacher.id !== this.form.primaryTeacher?.id)
+      return this.teacherList.filter(
+        (teacher) => teacher.id !== this.form.primaryTeacher?.id
+      )
     },
   },
   watch: {

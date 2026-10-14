@@ -22,7 +22,10 @@ export default {
     return Api.delete(`/api/v1/re-learning/decision-teacher-job-fees/${id}`)
   },
 
-  exportDecisionReport(id) {// Xuất báo cáo quyết định chi trả thù lao giảng dạy/coi thi cho giảng viên
-    return Api.getBlob(`/api/v1/re-learning/decision-teacher-job-fees/${id}/export`)
+  exportDecisionReport(id) {
+    // Xuất báo cáo quyết định chi trả thù lao giảng dạy/coi thi cho giảng viên
+    return Api.getBlob(
+      `/api/v1/re-learning/decision-teacher-job-fees/${id}/export`
+    )
   },
 }

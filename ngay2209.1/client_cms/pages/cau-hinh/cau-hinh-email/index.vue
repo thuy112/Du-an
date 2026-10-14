@@ -3,26 +3,49 @@
     <!-- Modal xác nhận đổi trạng thái -->
     <v-dialog v-model="confirmDialog.show" max-width="450px" persistent>
       <v-card class="rounded-sm">
-        <v-card-title class="white--text py-2 px-4 d-flex align-center justify-space-between red-header">
+        <v-card-title
+          class="white--text py-2 px-4 d-flex align-center justify-space-between red-header"
+        >
           <span class="text-body-1 font-weight-bold white--text">Xác nhận</span>
           <v-btn icon dark x-small @click="cancelStatusChange">
             <v-icon x-small>mdi-close</v-icon>
           </v-btn>
         </v-card-title>
 
-        <v-card-text class="pt-5 pb-4 px-4 text-body-2 grey--text text--darken-4">
+        <v-card-text
+          class="pt-5 pb-4 px-4 text-body-2 grey--text text--darken-4"
+        >
           Bạn có chắc chắn muốn đổi trạng thái từ
-          <strong class="font-weight-bold">{{ confirmDialog.fromStatusText }}</strong>
+          <strong class="font-weight-bold">{{
+            confirmDialog.fromStatusText
+          }}</strong>
           sang
-          <strong class="font-weight-bold red--text text--darken-2">{{ confirmDialog.toStatusText }}</strong>
+          <strong class="font-weight-bold red--text text--darken-2">{{
+            confirmDialog.toStatusText
+          }}</strong>
           không?
         </v-card-text>
 
         <v-card-actions class="px-4 pb-4 pt-0 justify-end">
-          <v-btn outlined color="grey darken-2" small height="32" class="text-capitalize px-3 font-weight-medium" @click="cancelStatusChange">
+          <v-btn
+            outlined
+            color="grey darken-2"
+            small
+            height="32"
+            class="text-capitalize px-3 font-weight-medium"
+            @click="cancelStatusChange"
+          >
             Đóng <v-icon x-small class="ml-1">mdi-close</v-icon>
           </v-btn>
-          <v-btn color="#a2212b" dark small height="32" elevation="0" class="text-capitalize px-3 font-weight-medium ml-2" @click="confirmStatusChange">
+          <v-btn
+            color="#a2212b"
+            dark
+            small
+            height="32"
+            elevation="0"
+            class="text-capitalize px-3 font-weight-medium ml-2"
+            @click="confirmStatusChange"
+          >
             Xác nhận
           </v-btn>
         </v-card-actions>
@@ -76,7 +99,13 @@
           class="bg-white"
         ></v-select>
 
-        <v-btn icon small color="grey darken-2" class="ml-1" @click="resetFilters">
+        <v-btn
+          icon
+          small
+          color="grey darken-2"
+          class="ml-1"
+          @click="resetFilters"
+        >
           <v-icon small>mdi-refresh</v-icon>
         </v-btn>
 
@@ -124,7 +153,9 @@
 
           <!-- Cột Tên -->
           <template #[`item.name`]="{ item }">
-            <span class="font-weight-medium text-caption grey--text text--darken-4">
+            <span
+              class="font-weight-medium text-caption grey--text text--darken-4"
+            >
               {{ item.name }}
             </span>
           </template>
@@ -159,7 +190,9 @@
           <template #[`item.actionType`]="{ item }">
             <v-chip
               v-if="item.actionSendType || item.actionType"
-              :color="getActionTypeColor(item.actionSendType || item.actionType)"
+              :color="
+                getActionTypeColor(item.actionSendType || item.actionType)
+              "
               x-small
               dark
               class="px-2 caption font-weight-medium"
@@ -172,7 +205,10 @@
           <template #[`item.content`]="{ item }">
             <div class="py-2 content-column">
               <template v-if="!expandedItems.includes(item.id)">
-                <div class="text-caption grey--text text--darken-3 text-truncate" style="max-width: 220px">
+                <div
+                  class="text-caption grey--text text--darken-3 text-truncate"
+                  style="max-width: 220px"
+                >
                   {{ item.content }}
                 </div>
                 <a
@@ -185,7 +221,10 @@
                 </a>
               </template>
               <template v-else>
-                <div class="text-caption grey--text text--darken-3 full-content" style="max-width: 220px; white-space: pre-line;">
+                <div
+                  class="text-caption grey--text text--darken-3 full-content"
+                  style="max-width: 220px; white-space: pre-line"
+                >
                   {{ item.content }}
                 </div>
                 <a
@@ -201,7 +240,7 @@
 
           <!-- Cột Trạng thái -->
           <template #[`item.status`]="{ item }">
-            <div style="min-width: 140px;">
+            <div style="min-width: 140px">
               <v-select
                 v-model="item.status"
                 :items="statusOptions"
@@ -212,7 +251,11 @@
                 flat
                 hide-details
                 class="status-select-btn custom-status-select"
-                :background-color="item.status === 'ACTIVE' || item.status === 1 ? '#a2212b' : '#78909C'"
+                :background-color="
+                  item.status === 'ACTIVE' || item.status === 1
+                    ? '#a2212b'
+                    : '#78909C'
+                "
                 dark
                 @change="handleStatusSelect(item, $event)"
               ></v-select>
@@ -323,38 +366,88 @@
     <!-- MODAL XEM CHI TIẾT -->
     <v-dialog v-model="detailModal.show" max-width="680px" scrollable>
       <v-card class="rounded-sm">
-        <v-card-title class="white--text py-2 px-4 d-flex align-center justify-space-between red-header">
-          <span class="text-body-1 font-weight-bold white--text">Chi tiết cấu hình mail</span>
-          <v-btn icon dark x-small @click="detailModal.show = false"><v-icon x-small>mdi-close</v-icon></v-btn>
+        <v-card-title
+          class="white--text py-2 px-4 d-flex align-center justify-space-between red-header"
+        >
+          <span class="text-body-1 font-weight-bold white--text"
+            >Chi tiết cấu hình mail</span
+          >
+          <v-btn icon dark x-small @click="detailModal.show = false"
+            ><v-icon x-small>mdi-close</v-icon></v-btn
+          >
         </v-card-title>
         <v-card-text class="pt-4 pb-2 px-5 black--text">
           <div class="mb-3 text-body-2">
             <span class="grey--text text--darken-1 mr-2">Tên:</span>
-            <span class="font-weight-medium red--text text--darken-3">{{ detailModal.item.name }}</span>
+            <span class="font-weight-medium red--text text--darken-3">{{
+              detailModal.item.name
+            }}</span>
           </div>
           <v-row dense class="mb-2 align-center">
             <v-col cols="12" sm="6" class="d-flex align-center">
-              <span class="grey--text text--darken-1 mr-2 text-body-2">Đối tượng:</span>
-              <v-chip :color="getSendTypeColor(detailModal.item.sendType || detailModal.item.target)" x-small dark class="px-3 caption font-weight-medium">
-                {{ getSendTypeLabel(detailModal.item.sendType || detailModal.item.target) }}
+              <span class="grey--text text--darken-1 mr-2 text-body-2"
+                >Đối tượng:</span
+              >
+              <v-chip
+                :color="
+                  getSendTypeColor(
+                    detailModal.item.sendType || detailModal.item.target
+                  )
+                "
+                x-small
+                dark
+                class="px-3 caption font-weight-medium"
+              >
+                {{
+                  getSendTypeLabel(
+                    detailModal.item.sendType || detailModal.item.target
+                  )
+                }}
               </v-chip>
             </v-col>
             <v-col cols="12" sm="6" class="d-flex align-center">
-              <span class="grey--text text--darken-1 mr-2 text-body-2">Loại cấu hình:</span>
-              <v-chip :color="getConfigTypeColor(detailModal.item.type || detailModal.item.configType)" x-small dark class="px-3 caption font-weight-medium">
-                {{ getConfigTypeLabel(detailModal.item.type || detailModal.item.configType) }}
+              <span class="grey--text text--darken-1 mr-2 text-body-2"
+                >Loại cấu hình:</span
+              >
+              <v-chip
+                :color="
+                  getConfigTypeColor(
+                    detailModal.item.type || detailModal.item.configType
+                  )
+                "
+                x-small
+                dark
+                class="px-3 caption font-weight-medium"
+              >
+                {{
+                  getConfigTypeLabel(
+                    detailModal.item.type || detailModal.item.configType
+                  )
+                }}
               </v-chip>
             </v-col>
           </v-row>
           <div class="mt-4">
-            <div class="grey--text text--darken-1 text-body-2 mb-2">Nội dung:</div>
-            <div class="detail-content-box text-body-2 grey--text text--darken-4">
+            <div class="grey--text text--darken-1 text-body-2 mb-2">
+              Nội dung:
+            </div>
+            <div
+              class="detail-content-box text-body-2 grey--text text--darken-4"
+            >
               {{ detailModal.item.content }}
             </div>
           </div>
         </v-card-text>
         <v-card-actions class="px-4 pb-4 pt-2 justify-end">
-          <v-btn outlined color="grey darken-2" small height="32" class="text-capitalize px-4 font-weight-medium" @click="detailModal.show = false">Đóng X</v-btn>
+          <v-btn
+            outlined
+            color="grey darken-2"
+            small
+            height="32"
+            class="text-capitalize px-4 font-weight-medium"
+            @click="detailModal.show = false"
+            >Đóng X</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -362,58 +455,166 @@
     <!-- MODAL XÓA -->
     <v-dialog v-model="deleteModal.show" max-width="480px" persistent>
       <v-card class="rounded-sm">
-        <v-card-title class="white--text py-2 px-4 d-flex align-center justify-space-between red-header">
+        <v-card-title
+          class="white--text py-2 px-4 d-flex align-center justify-space-between red-header"
+        >
           <span class="text-body-1 font-weight-bold white--text">Xác nhận</span>
-          <v-btn icon dark x-small @click="deleteModal.show = false"><v-icon x-small>mdi-close</v-icon></v-btn>
+          <v-btn icon dark x-small @click="deleteModal.show = false"
+            ><v-icon x-small>mdi-close</v-icon></v-btn
+          >
         </v-card-title>
         <v-card-text class="py-5 px-5 black--text text-body-2">
-          Bạn có chắc chắn muốn xóa cấu hình gửi mail <strong class="red--text text--darken-2 font-weight-bold">{{ deleteModal.item.name }}</strong> không?
+          Bạn có chắc chắn muốn xóa cấu hình gửi mail
+          <strong class="red--text text--darken-2 font-weight-bold">{{
+            deleteModal.item.name
+          }}</strong>
+          không?
         </v-card-text>
         <v-card-actions class="px-4 pb-4 pt-0 justify-end">
-          <v-btn outlined color="grey darken-2" small height="32" class="text-capitalize px-3 font-weight-medium" @click="deleteModal.show = false">Đóng</v-btn>
-          <v-btn color="#a2212b" dark small height="32" elevation="0" class="text-capitalize px-3 font-weight-medium ml-2" @click="confirmDelete">Xác nhận</v-btn>
+          <v-btn
+            outlined
+            color="grey darken-2"
+            small
+            height="32"
+            class="text-capitalize px-3 font-weight-medium"
+            @click="deleteModal.show = false"
+            >Đóng</v-btn
+          >
+          <v-btn
+            color="#a2212b"
+            dark
+            small
+            height="32"
+            elevation="0"
+            class="text-capitalize px-3 font-weight-medium ml-2"
+            @click="confirmDelete"
+            >Xác nhận</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
 
     <!-- MODAL THÊM / SỬA -->
-    <v-dialog v-model="createModal.show" max-width="720px" persistent scrollable>
+    <v-dialog
+      v-model="createModal.show"
+      max-width="720px"
+      persistent
+      scrollable
+    >
       <v-card class="rounded-sm">
-        <v-card-title class="white--text py-2 px-4 d-flex align-center justify-space-between red-header">
+        <v-card-title
+          class="white--text py-2 px-4 d-flex align-center justify-space-between red-header"
+        >
           <span class="text-body-1 font-weight-bold white--text">
-            {{ createModal.isEdit ? 'Cập nhật cấu hình mail' : 'Thêm mới cấu hình mail' }}
+            {{
+              createModal.isEdit
+                ? 'Cập nhật cấu hình mail'
+                : 'Thêm mới cấu hình mail'
+            }}
           </span>
-          <v-btn icon dark x-small @click="createModal.show = false"><v-icon x-small>mdi-close</v-icon></v-btn>
+          <v-btn icon dark x-small @click="createModal.show = false"
+            ><v-icon x-small>mdi-close</v-icon></v-btn
+          >
         </v-card-title>
         <v-card-text class="pt-4 pb-2 px-4">
           <v-form ref="createForm" v-model="createModal.valid">
             <v-row dense>
               <v-col cols="12" sm="6">
-                <v-text-field v-model="createModal.form.name" label="Tên cấu hình mail (*)" outlined dense hide-details="auto" class="custom-field mb-2" :rules="[v => !!v || 'Vui lòng nhập tên']"></v-text-field>
+                <v-text-field
+                  v-model="createModal.form.name"
+                  label="Tên cấu hình mail (*)"
+                  outlined
+                  dense
+                  hide-details="auto"
+                  class="custom-field mb-2"
+                  :rules="[(v) => !!v || 'Vui lòng nhập tên']"
+                ></v-text-field>
               </v-col>
               <v-col cols="12" sm="6">
-                <v-select v-model="createModal.form.sendType" :items="targetOptions" item-text="text" item-value="value" label="Đối tượng gửi mail (*)" outlined dense hide-details="auto" class="custom-field mb-2"></v-select>
+                <v-select
+                  v-model="createModal.form.sendType"
+                  :items="targetOptions"
+                  item-text="text"
+                  item-value="value"
+                  label="Đối tượng gửi mail (*)"
+                  outlined
+                  dense
+                  hide-details="auto"
+                  class="custom-field mb-2"
+                ></v-select>
               </v-col>
               <v-col cols="12" sm="6">
-                <v-select v-model="createModal.form.type" :items="typeConfigOptions" item-text="text" item-value="value" label="Loại cấu hình (*)" outlined dense hide-details="auto" class="custom-field mb-2"></v-select>
+                <v-select
+                  v-model="createModal.form.type"
+                  :items="typeConfigOptions"
+                  item-text="text"
+                  item-value="value"
+                  label="Loại cấu hình (*)"
+                  outlined
+                  dense
+                  hide-details="auto"
+                  class="custom-field mb-2"
+                ></v-select>
               </v-col>
               <v-col cols="12" sm="6">
-                <v-select v-model="createModal.form.actionSendType" :items="actionTypeOptions" item-text="text" item-value="value" label="Loại hành động (*)" outlined dense clearable hide-details="auto" class="custom-field mb-2"></v-select>
+                <v-select
+                  v-model="createModal.form.actionSendType"
+                  :items="actionTypeOptions"
+                  item-text="text"
+                  item-value="value"
+                  label="Loại hành động (*)"
+                  outlined
+                  dense
+                  clearable
+                  hide-details="auto"
+                  class="custom-field mb-2"
+                ></v-select>
               </v-col>
               <v-col cols="12" sm="6">
-                <v-select v-model="createModal.form.status" :items="statusOptions" item-text="text" item-value="value" label="Trạng thái" outlined dense hide-details="auto" class="custom-field mb-2"></v-select>
+                <v-select
+                  v-model="createModal.form.status"
+                  :items="statusOptions"
+                  item-text="text"
+                  item-value="value"
+                  label="Trạng thái"
+                  outlined
+                  dense
+                  hide-details="auto"
+                  class="custom-field mb-2"
+                ></v-select>
               </v-col>
             </v-row>
             <div class="editor-wrapper mt-2">
               <client-only>
-                <vue-editor v-model="createModal.form.content" :editor-toolbar="customToolbar" placeholder="Nhập nội dung email..." />
+                <vue-editor
+                  v-model="createModal.form.content"
+                  :editor-toolbar="customToolbar"
+                  placeholder="Nhập nội dung email..."
+                />
               </client-only>
             </div>
           </v-form>
         </v-card-text>
         <v-card-actions class="px-4 pb-4 pt-2 justify-end">
-          <v-btn outlined color="grey darken-2" small height="32" class="text-capitalize px-3 font-weight-medium" @click="createModal.show = false">Đóng</v-btn>
-          <v-btn color="#a2212b" dark small height="32" elevation="0" class="text-capitalize px-3 font-weight-medium ml-2" @click="saveConfig">Lưu</v-btn>
+          <v-btn
+            outlined
+            color="grey darken-2"
+            small
+            height="32"
+            class="text-capitalize px-3 font-weight-medium"
+            @click="createModal.show = false"
+            >Đóng</v-btn
+          >
+          <v-btn
+            color="#a2212b"
+            dark
+            small
+            height="32"
+            elevation="0"
+            class="text-capitalize px-3 font-weight-medium ml-2"
+            @click="saveConfig"
+            >Lưu</v-btn
+          >
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -427,7 +628,6 @@ import BaseTable from '@/components/Base/BaseTable.vue'
 
 export default {
   name: 'CauHinhEmailPage',
-  middleware: 'authenticated',
   components: {
     BaseTable,
     VueEditor: () =>
@@ -435,6 +635,7 @@ export default {
         ? import('vue2-editor').then((m) => m.VueEditor)
         : Promise.resolve(null),
   },
+  middleware: 'authenticated',
   data() {
     return {
       loading: false,
@@ -446,7 +647,12 @@ export default {
       customToolbar: [
         [{ header: [false, 1, 2, 3, 4, 5, 6] }],
         ['bold', 'italic', 'underline', 'strike'],
-        [{ align: '' }, { align: 'center' }, { align: 'right' }, { align: 'justify' }],
+        [
+          { align: '' },
+          { align: 'center' },
+          { align: 'right' },
+          { align: 'justify' },
+        ],
         ['blockquote', 'code-block'],
         [{ list: 'ordered' }, { list: 'bullet' }],
         [{ indent: '-1' }, { indent: '+1' }],
@@ -454,9 +660,16 @@ export default {
         ['link', 'image'],
         ['clean'],
       ],
-      
+
       expandedItems: [],
-      confirmDialog: { show: false, item: null, targetValue: null, oldValue: null, fromStatusText: '', toStatusText: '' },
+      confirmDialog: {
+        show: false,
+        item: null,
+        targetValue: null,
+        oldValue: null,
+        fromStatusText: '',
+        toStatusText: '',
+      },
       detailModal: { show: false, item: {} },
       deleteModal: { show: false, item: {} },
 
@@ -493,14 +706,31 @@ export default {
       ],
 
       headers: [
-        { text: 'STT', value: 'stt', width: '50px', align: 'center', sortable: false },
+        {
+          text: 'STT',
+          value: 'stt',
+          width: '50px',
+          align: 'center',
+          sortable: false,
+        },
         { text: 'Tên', value: 'name', width: '160px' },
         { text: 'Đối tượng gửi mail', value: 'target', width: '130px' },
         { text: 'Loại cấu hình gửi mail', value: 'configType', width: '140px' },
         { text: 'Loại hành động', value: 'actionType', width: '150px' },
-        { text: 'Nội dung', value: 'content', width: '280px', cellClass: 'content-cell' },
+        {
+          text: 'Nội dung',
+          value: 'content',
+          width: '280px',
+          cellClass: 'content-cell',
+        },
         { text: 'Trạng thái', value: 'status', width: '160px', align: 'left' },
-        { text: 'Chức năng', value: 'actions', width: '90px', align: 'center', sortable: false },
+        {
+          text: 'Chức năng',
+          value: 'actions',
+          width: '90px',
+          align: 'center',
+          sortable: false,
+        },
       ],
 
       items: [...MOCK_MAIL_CONFIGS],
@@ -509,15 +739,27 @@ export default {
         show: false,
         isEdit: false,
         valid: true,
-        form: { id: null, name: '', sendType: 'SV', type: 'RETAKE_COURSES', actionSendType: 'REMIND_REGISTER', status: 'ACTIVE', content: '' },
+        form: {
+          id: null,
+          name: '',
+          sendType: 'SV',
+          type: 'RETAKE_COURSES',
+          actionSendType: 'REMIND_REGISTER',
+          status: 'ACTIVE',
+          content: '',
+        },
       },
     }
   },
 
   computed: {
     filteredItems() {
-      return this.items.filter(item => {
-        if (this.activeFilters.status !== null && this.activeFilters.status !== undefined && this.activeFilters.status !== '') {
+      return this.items.filter((item) => {
+        if (
+          this.activeFilters.status !== null &&
+          this.activeFilters.status !== undefined &&
+          this.activeFilters.status !== ''
+        ) {
           if (item.status !== this.activeFilters.status) return false
         }
         if (this.activeFilters.type) {
@@ -564,11 +806,19 @@ export default {
     },
 
     getConfigTypeLabel(type) {
-      const map = { RETAKE_COURSES: 'Học lại', RETAKE_EXAM: 'Thi lại', REASSESSMENT: 'Bảo vệ lại' }
+      const map = {
+        RETAKE_COURSES: 'Học lại',
+        RETAKE_EXAM: 'Thi lại',
+        REASSESSMENT: 'Bảo vệ lại',
+      }
       return map[type] || type
     },
     getConfigTypeColor(type) {
-      const map = { RETAKE_COURSES: '#0288D1', RETAKE_EXAM: '#7B1FA2', REASSESSMENT: '#00838F' }
+      const map = {
+        RETAKE_COURSES: '#0288D1',
+        RETAKE_EXAM: '#7B1FA2',
+        REASSESSMENT: '#00838F',
+      }
       return map[type] || '#0288D1'
     },
 
@@ -602,7 +852,11 @@ export default {
     async fetchData() {
       this.loading = true
       try {
-        const params = { pageIndex: this.page, pageSize: this.pageSize, ...this.activeFilters }
+        const params = {
+          pageIndex: this.page,
+          pageSize: this.pageSize,
+          ...this.activeFilters,
+        }
         const res = await mailConfigService.getList(params)
         if (res && res.data && res.data.data) {
           this.items = res.data.data
@@ -643,7 +897,8 @@ export default {
       const { item, targetValue } = this.confirmDialog
       try {
         await mailConfigService.updateStatus(item.id, targetValue)
-      } catch (e) {} finally {
+      } catch (e) {
+      } finally {
         item.status = targetValue
         this.confirmDialog.show = false
       }
@@ -688,8 +943,11 @@ export default {
     saveConfig() {
       if (this.$refs.createForm && !this.$refs.createForm.validate()) return
       if (this.createModal.isEdit) {
-        const index = this.items.findIndex(i => i.id === this.createModal.form.id)
-        if (index !== -1) this.$set(this.items, index, { ...this.createModal.form })
+        const index = this.items.findIndex(
+          (i) => i.id === this.createModal.form.id
+        )
+        if (index !== -1)
+          this.$set(this.items, index, { ...this.createModal.form })
       } else {
         this.items.unshift({ ...this.createModal.form })
       }
@@ -721,7 +979,7 @@ export default {
     },
 
     confirmDelete() {
-      this.items = this.items.filter(i => i.id !== this.deleteModal.item.id)
+      this.items = this.items.filter((i) => i.id !== this.deleteModal.item.id)
       this.deleteModal.show = false
     },
   },
@@ -729,12 +987,43 @@ export default {
 </script>
 
 <style scoped>
-.page-container { width: 100%; box-sizing: border-box; position: relative; z-index: 1; font-size: 15px; }
-.gap-2 { gap: 6px; }
-.table-scroll-panel { max-height: calc(100vh - 220px); overflow-y: auto !important; overflow-x: auto; border: 1px solid #f0f0f0; }
-.status-select-btn { min-width: 135px !important; width: 135px !important; }
-.status-select-btn >>> .v-input__slot { min-height: 28px !important; height: 28px !important; padding: 0 8px !important; border-radius: 14px !important; }
-.status-select-btn >>> .v-select__selection { color: #ffffff !important; font-size: 0.76rem !important; font-weight: 500 !important; }
-.red-header { background-color: #a2212b !important; }
-.editor-wrapper { border: 1px solid #d0d0d0; border-radius: 4px; background: #fff; }
+.page-container {
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+  font-size: 15px;
+}
+.gap-2 {
+  gap: 6px;
+}
+.table-scroll-panel {
+  max-height: calc(100vh - 220px);
+  overflow-y: auto !important;
+  overflow-x: auto;
+  border: 1px solid #f0f0f0;
+}
+.status-select-btn {
+  min-width: 135px !important;
+  width: 135px !important;
+}
+.status-select-btn >>> .v-input__slot {
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 0 8px !important;
+  border-radius: 14px !important;
+}
+.status-select-btn >>> .v-select__selection {
+  color: #ffffff !important;
+  font-size: 0.76rem !important;
+  font-weight: 500 !important;
+}
+.red-header {
+  background-color: #a2212b !important;
+}
+.editor-wrapper {
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  background: #fff;
+}
 </style>

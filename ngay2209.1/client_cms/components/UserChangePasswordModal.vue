@@ -1,7 +1,9 @@
 <template>
   <v-dialog v-model="isOpen" max-width="500px" persistent>
     <v-card class="rounded-lg dialog-card">
-      <v-card-title class="dialog-header py-3 px-4 d-flex justify-space-between align-center">
+      <v-card-title
+        class="dialog-header py-3 px-4 d-flex justify-space-between align-center"
+      >
         <span class="text-subtitle-1 font-weight-medium white--text">
           Đổi mật khẩu tài khoản
         </span>
@@ -54,10 +56,20 @@
       </v-card-text>
 
       <v-card-actions class="px-5 pb-5 pt-0 d-flex justify-end">
-        <v-btn outlined class="btn-modal-close text-capitalize px-4 mr-2" @click="isOpen = false">
+        <v-btn
+          outlined
+          class="btn-modal-close text-capitalize px-4 mr-2"
+          @click="isOpen = false"
+        >
           Đóng <v-icon small class="ml-1">mdi-close</v-icon>
         </v-btn>
-        <v-btn color="#a2212b" dark elevation="0" class="btn-modal-save text-capitalize px-4" @click="submitChangePassword">
+        <v-btn
+          color="#a2212b"
+          dark
+          elevation="0"
+          class="btn-modal-save text-capitalize px-4"
+          @click="submitChangePassword"
+        >
           Lưu <v-icon small class="ml-1">mdi-content-save</v-icon>
         </v-btn>
       </v-card-actions>
@@ -97,10 +109,11 @@ export default {
       },
     },
     requiredRule() {
-      return value => !!value || 'Vui lòng nhập mật khẩu'
+      return (value) => !!value || 'Vui lòng nhập mật khẩu'
     },
     confirmPasswordRule() {
-      return value => value === this.passForm.newPassword || 'Mật khẩu nhập lại không khớp'
+      return (value) =>
+        value === this.passForm.newPassword || 'Mật khẩu nhập lại không khớp'
     },
   },
   watch: {
@@ -119,7 +132,8 @@ export default {
       this.showNewPass = false
       this.showConfirmPass = false
       this.$nextTick(() => {
-        if (this.$refs.changePassForm) this.$refs.changePassForm.resetValidation()
+        if (this.$refs.changePassForm)
+          this.$refs.changePassForm.resetValidation()
       })
     },
     submitChangePassword() {

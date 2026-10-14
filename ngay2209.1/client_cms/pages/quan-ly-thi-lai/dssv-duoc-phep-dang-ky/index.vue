@@ -1,6 +1,5 @@
 <template>
   <div class="table-container d-flex flex-column pa-4">
-
     <!-- 1. CỐ ĐỊNH: TIÊU ĐỀ & THANH TÌM KIẾM Ở TRÊN -->
     <div class="fixed-top-section flex-shrink-0">
       <div class="text-h6 font-weight-bold mb-3">
@@ -63,17 +62,34 @@
         ></v-select>
 
         <!-- ICON REFRESH -->
-        <v-btn icon color="red darken-3" class="flex-shrink-0" @click="handleRefreshIconClick">
+        <v-btn
+          icon
+          color="red darken-3"
+          class="flex-shrink-0"
+          @click="handleRefreshIconClick"
+        >
           <v-icon>mdi-refresh</v-icon>
         </v-btn>
 
         <!-- ICON TÌM KIẾM -->
-        <v-btn color="#a2212b" dark elevation="0" class="rounded min-w-0 px-3 flex-shrink-0" @click="handleSearch">
+        <v-btn
+          color="#a2212b"
+          dark
+          elevation="0"
+          class="rounded min-w-0 px-3 flex-shrink-0"
+          @click="handleSearch"
+        >
           <v-icon>mdi-magnify</v-icon>
         </v-btn>
 
         <!-- NÚT THÊM (+) -->
-        <v-btn color="#a2212b" dark elevation="0" class="rounded min-w-0 px-3 flex-shrink-0" @click="handleAddClick">
+        <v-btn
+          color="#a2212b"
+          dark
+          elevation="0"
+          class="rounded min-w-0 px-3 flex-shrink-0"
+          @click="handleAddClick"
+        >
           <v-icon>mdi-plus</v-icon>
         </v-btn>
       </div>
@@ -91,23 +107,29 @@
         class="elevation-0 bg-transparent custom-table"
       >
         <!-- Custom cột STT -->
-        <template v-slot:[`item.stt`]="{ index }">
+        <template #[`item.stt`]="{ index }">
           {{ (page - 1) * itemsPerPage + index + 1 }}
         </template>
 
         <!-- Custom cột Thông tin sinh viên -->
-        <template v-slot:[`item.sinhVien`]="{ item }">
+        <template #[`item.sinhVien`]="{ item }">
           <div class="font-weight-bold">{{ item.hoTen }}</div>
           <div class="caption text--secondary">
-            Mã số sinh viên: <span class="red--text text--darken-2 font-weight-bold">{{ item.mssv }}</span>
+            Mã số sinh viên:
+            <span class="red--text text--darken-2 font-weight-bold">{{
+              item.mssv
+            }}</span>
           </div>
           <div class="caption text--secondary">
-            Lớp: <span class="red--text text--darken-2 font-weight-bold">{{ item.lop }}</span>
+            Lớp:
+            <span class="red--text text--darken-2 font-weight-bold">{{
+              item.lop
+            }}</span>
           </div>
         </template>
 
         <!-- Custom cột Trạng thái -->
-        <template v-slot:[`item.trangThai`]="{ item }">
+        <template #[`item.trangThai`]="{ item }">
           <v-chip
             small
             :color="item.trangThai === 'Đã đăng ký' ? 'success' : 'grey'"
@@ -119,7 +141,7 @@
         </template>
 
         <!-- Custom cột Chức năng -->
-        <template v-slot:[`item.chucNang`]="{ item }">
+        <template #[`item.chucNang`]="{ item }">
           <v-btn icon small color="red" @click="deleteItem(item)">
             <v-icon small>mdi-delete</v-icon>
           </v-btn>
@@ -128,7 +150,9 @@
     </div>
 
     <!-- 3. CỐ ĐỊNH: FOOTER (XUẤT NHẬP EXCEL & PHÂN TRANG CỐ ĐỊNH 50 BẢN GHI) -->
-    <div class="bottom-fixed-bar d-flex align-center justify-space-between flex-wrap gap-2 pt-3 bg-white border-top mt-2 flex-shrink-0">
+    <div
+      class="bottom-fixed-bar d-flex align-center justify-space-between flex-wrap gap-2 pt-3 bg-white border-top mt-2 flex-shrink-0"
+    >
       <!-- CỤM NÚT XUẤT NHẬP CỐ ĐỊNH -->
       <div class="d-flex align-center gap-2">
         <v-btn
@@ -157,56 +181,61 @@
       <!-- CỤM PHÂN TRANG -->
       <div class="d-flex align-center gap-2">
         <span class="caption text--secondary font-weight-medium mr-1">
-            {{ itemsPerPage }} bản ghi/trang
+          {{ itemsPerPage }} bản ghi/trang
         </span>
 
         <v-text-field
-            v-model.number="pageInput"
-            label="Trang"
-            dense
-            outlined
-            hide-details
-            class="pagination-input text-center"
-            style="width: 60px"
-            @keyup.enter="goToPage"
+          v-model.number="pageInput"
+          label="Trang"
+          dense
+          outlined
+          hide-details
+          class="pagination-input text-center"
+          style="width: 60px"
+          @keyup.enter="goToPage"
         ></v-text-field>
 
-        <v-btn 
-            color="#a2212b" 
-            dark 
-            small 
-            class="text-capitalize px-3 rounded-sm elevation-0" 
-            style="height: 36px;" 
-            @click="goToPage"
+        <v-btn
+          color="#a2212b"
+          dark
+          small
+          class="text-capitalize px-3 rounded-sm elevation-0"
+          style="height: 36px"
+          @click="goToPage"
         >
-            Đi
+          Đi
         </v-btn>
 
         <!-- Nút Lùi trang -->
         <v-btn icon small :disabled="page <= 1" @click="changePage(page - 1)">
-            <v-icon>mdi-chevron-left</v-icon>
+          <v-icon>mdi-chevron-left</v-icon>
         </v-btn>
 
         <!-- Các nút trang tự động sinh theo dữ liệu (1, 2, 3...) -->
         <v-btn
-            v-for="p in visiblePages"
-            :key="p"
-            small
-            :color="page === p ? '#a2212b' : ''"
-            :dark="page === p"
-            :outlined="page !== p"
-            class="min-w-0 pa-0 rounded-sm elevation-0"
-            style="width: 28px; height: 28px"
-            @click="changePage(p)"
+          v-for="p in visiblePages"
+          :key="p"
+          small
+          :color="page === p ? '#a2212b' : ''"
+          :dark="page === p"
+          :outlined="page !== p"
+          class="min-w-0 pa-0 rounded-sm elevation-0"
+          style="width: 28px; height: 28px"
+          @click="changePage(p)"
         >
-            {{ p }}
+          {{ p }}
         </v-btn>
 
         <!-- Nút Tiến trang -->
-        <v-btn icon small :disabled="page >= totalPages" @click="changePage(page + 1)">
-            <v-icon>mdi-chevron-right</v-icon>
+        <v-btn
+          icon
+          small
+          :disabled="page >= totalPages"
+          @click="changePage(page + 1)"
+        >
+          <v-icon>mdi-chevron-right</v-icon>
         </v-btn>
-    </div>
+      </div>
     </div>
   </div>
 </template>
@@ -215,18 +244,18 @@
 export default {
   name: 'QuanLySinhVienDangKy',
   data() {
-  return {
-    page: 1,
-    pageInput: 1,
-    itemsPerPage: 50,
-    // Phải chắc chắn khai báo đầy đủ object filters bên dưới
-    filters: { 
-      search: '', 
-      gender: null, 
-      teacherType: null, 
-      status: null, 
-      department: null 
-    },
+    return {
+      page: 1,
+      pageInput: 1,
+      itemsPerPage: 50,
+      // Phải chắc chắn khai báo đầy đủ object filters bên dưới
+      filters: {
+        search: '',
+        gender: null,
+        teacherType: null,
+        status: null,
+        department: null,
+      },
       searchQuery: '',
       filterKyHoc: null,
       filterKyDangKy: null,
@@ -247,146 +276,312 @@ export default {
         { text: 'Mã học phần', value: 'maHocPhan' },
         { text: 'Tên học phần', value: 'tenHocPhan' },
         { text: 'Trạng thái', value: 'trangThai' },
-        { text: 'Chức năng', value: 'chucNang', sortable: false, align: 'center' },
+        {
+          text: 'Chức năng',
+          value: 'chucNang',
+          sortable: false,
+          align: 'center',
+        },
       ],
 
       // Danh sách sinh viên mẫu
       studentsList: [
-        { id: 1, hoTen: 'Đỗ Hồng Kiên', mssv: 'PH218834', lop: 'Lớp 39', lopThi: '734863', kyDangKy: 'TL20232', hocKy: 'Học kỳ II (2024-2025)', maHocPhan: 'EE2010', tenHocPhan: 'Kỹ thuật điện', trangThai: 'Đã đăng ký' },
-        { id: 2, hoTen: 'Nguyễn Văn A', mssv: '1293478923P', lop: 'Lớp 39', lopThi: '734863', kyDangKy: 'TL20232', hocKy: 'Học kỳ II (2024-2025)', maHocPhan: 'EE2010', tenHocPhan: 'Kỹ thuật điện', trangThai: 'Đã đăng ký' },
-        { id: 3, hoTen: 'Đỗ Hồng Kiên', mssv: 'PH218834', lop: 'Lớp 39', lopThi: 'FE', kyDangKy: 'TL20232', hocKy: 'Học kỳ II (2025-2026)', maHocPhan: 'JAVA', tenHocPhan: 'Lập trình Java', trangThai: 'Đã đăng ký' },
-        { id: 4, hoTen: 'Vũ Thị Kim Chi', mssv: '20230305P', lop: 'Khóa 68 – Kỹ thuật Điều khiển và Tự động hóa - Vừa làm vừa học', lopThi: '161518', kyDangKy: 'TL20231', hocKy: 'Kỳ 20231', maHocPhan: 'EE1024', tenHocPhan: 'Nhập môn ngành Điện', trangThai: 'Đã đăng ký' },
-        { id: 5, hoTen: 'DEV', mssv: 'DEV', lop: 'Công nghệ phần mềm', lopThi: '734234', kyDangKy: 'TL20231', hocKy: 'Học kỳ II (2025-2026)', maHocPhan: 'JAVA', tenHocPhan: 'Lập trình Java', trangThai: 'Chưa đăng ký' },
-        { id: 6, hoTen: 'Lâm Vinh Doanh', mssv: '20230832P', lop: 'LT-CĐTN-KTVL01-K68', lopThi: 'HỘI ĐỒNG BẢO VỆ 6', kyDangKy: 'TL20232', hocKy: 'Học kỳ II (2024-2025)', maHocPhan: 'EE4220', tenHocPhan: 'Điều khiển logic và PLC', trangThai: 'Chưa đăng ký' },
-        { id: 7, hoTen: 'Lâm Vinh Doanh', mssv: '20230832P', lop: 'LT-CĐTN-KTVL01-K68', lopThi: '161742', kyDangKy: 'TL20231', hocKy: 'Kỳ 20231', maHocPhan: 'EE2010', tenHocPhan: 'Kỹ thuật điện', trangThai: 'Chưa đăng ký' },
-        { id: 1, hoTen: 'Đỗ Hồng Kiên', mssv: 'PH218834', lop: 'Lớp 39', lopThi: '734863', kyDangKy: 'TL20232', hocKy: 'Học kỳ II (2024-2025)', maHocPhan: 'EE2010', tenHocPhan: 'Kỹ thuật điện', trangThai: 'Đã đăng ký' },
-        { id: 2, hoTen: 'Nguyễn Văn A', mssv: '1293478923P', lop: 'Lớp 39', lopThi: '734863', kyDangKy: 'TL20232', hocKy: 'Học kỳ II (2024-2025)', maHocPhan: 'EE2010', tenHocPhan: 'Kỹ thuật điện', trangThai: 'Đã đăng ký' },
-        { id: 3, hoTen: 'Đỗ Hồng Kiên', mssv: 'PH218834', lop: 'Lớp 39', lopThi: 'FE', kyDangKy: 'TL20232', hocKy: 'Học kỳ II (2025-2026)', maHocPhan: 'JAVA', tenHocPhan: 'Lập trình Java', trangThai: 'Đã đăng ký' },
-        { id: 4, hoTen: 'Vũ Thị Kim Chi', mssv: '20230305P', lop: 'Khóa 68 – Kỹ thuật Điều khiển và Tự động hóa - Vừa làm vừa học', lopThi: '161518', kyDangKy: 'TL20231', hocKy: 'Kỳ 20231', maHocPhan: 'EE1024', tenHocPhan: 'Nhập môn ngành Điện', trangThai: 'Đã đăng ký' },
-        { id: 5, hoTen: 'DEV', mssv: 'DEV', lop: 'Công nghệ phần mềm', lopThi: '734234', kyDangKy: 'TL20231', hocKy: 'Học kỳ II (2025-2026)', maHocPhan: 'JAVA', tenHocPhan: 'Lập trình Java', trangThai: 'Chưa đăng ký' },
-        { id: 6, hoTen: 'Lâm Vinh Doanh', mssv: '20230832P', lop: 'LT-CĐTN-KTVL01-K68', lopThi: 'HỘI ĐỒNG BẢO VỆ 6', kyDangKy: 'TL20232', hocKy: 'Học kỳ II (2024-2025)', maHocPhan: 'EE4220', tenHocPhan: 'Điều khiển logic và PLC', trangThai: 'Chưa đăng ký' },
-        { id: 7, hoTen: 'Lâm Vinh Doanh', mssv: '20230832P', lop: 'LT-CĐTN-KTVL01-K68', lopThi: '161742', kyDangKy: 'TL20231', hocKy: 'Kỳ 20231', maHocPhan: 'EE2010', tenHocPhan: 'Kỹ thuật điện', trangThai: 'Chưa đăng ký' },
-      
-    ],
+        {
+          id: 1,
+          hoTen: 'Đỗ Hồng Kiên',
+          mssv: 'PH218834',
+          lop: 'Lớp 39',
+          lopThi: '734863',
+          kyDangKy: 'TL20232',
+          hocKy: 'Học kỳ II (2024-2025)',
+          maHocPhan: 'EE2010',
+          tenHocPhan: 'Kỹ thuật điện',
+          trangThai: 'Đã đăng ký',
+        },
+        {
+          id: 2,
+          hoTen: 'Nguyễn Văn A',
+          mssv: '1293478923P',
+          lop: 'Lớp 39',
+          lopThi: '734863',
+          kyDangKy: 'TL20232',
+          hocKy: 'Học kỳ II (2024-2025)',
+          maHocPhan: 'EE2010',
+          tenHocPhan: 'Kỹ thuật điện',
+          trangThai: 'Đã đăng ký',
+        },
+        {
+          id: 3,
+          hoTen: 'Đỗ Hồng Kiên',
+          mssv: 'PH218834',
+          lop: 'Lớp 39',
+          lopThi: 'FE',
+          kyDangKy: 'TL20232',
+          hocKy: 'Học kỳ II (2025-2026)',
+          maHocPhan: 'JAVA',
+          tenHocPhan: 'Lập trình Java',
+          trangThai: 'Đã đăng ký',
+        },
+        {
+          id: 4,
+          hoTen: 'Vũ Thị Kim Chi',
+          mssv: '20230305P',
+          lop: 'Khóa 68 – Kỹ thuật Điều khiển và Tự động hóa - Vừa làm vừa học',
+          lopThi: '161518',
+          kyDangKy: 'TL20231',
+          hocKy: 'Kỳ 20231',
+          maHocPhan: 'EE1024',
+          tenHocPhan: 'Nhập môn ngành Điện',
+          trangThai: 'Đã đăng ký',
+        },
+        {
+          id: 5,
+          hoTen: 'DEV',
+          mssv: 'DEV',
+          lop: 'Công nghệ phần mềm',
+          lopThi: '734234',
+          kyDangKy: 'TL20231',
+          hocKy: 'Học kỳ II (2025-2026)',
+          maHocPhan: 'JAVA',
+          tenHocPhan: 'Lập trình Java',
+          trangThai: 'Chưa đăng ký',
+        },
+        {
+          id: 6,
+          hoTen: 'Lâm Vinh Doanh',
+          mssv: '20230832P',
+          lop: 'LT-CĐTN-KTVL01-K68',
+          lopThi: 'HỘI ĐỒNG BẢO VỆ 6',
+          kyDangKy: 'TL20232',
+          hocKy: 'Học kỳ II (2024-2025)',
+          maHocPhan: 'EE4220',
+          tenHocPhan: 'Điều khiển logic và PLC',
+          trangThai: 'Chưa đăng ký',
+        },
+        {
+          id: 7,
+          hoTen: 'Lâm Vinh Doanh',
+          mssv: '20230832P',
+          lop: 'LT-CĐTN-KTVL01-K68',
+          lopThi: '161742',
+          kyDangKy: 'TL20231',
+          hocKy: 'Kỳ 20231',
+          maHocPhan: 'EE2010',
+          tenHocPhan: 'Kỹ thuật điện',
+          trangThai: 'Chưa đăng ký',
+        },
+        {
+          id: 1,
+          hoTen: 'Đỗ Hồng Kiên',
+          mssv: 'PH218834',
+          lop: 'Lớp 39',
+          lopThi: '734863',
+          kyDangKy: 'TL20232',
+          hocKy: 'Học kỳ II (2024-2025)',
+          maHocPhan: 'EE2010',
+          tenHocPhan: 'Kỹ thuật điện',
+          trangThai: 'Đã đăng ký',
+        },
+        {
+          id: 2,
+          hoTen: 'Nguyễn Văn A',
+          mssv: '1293478923P',
+          lop: 'Lớp 39',
+          lopThi: '734863',
+          kyDangKy: 'TL20232',
+          hocKy: 'Học kỳ II (2024-2025)',
+          maHocPhan: 'EE2010',
+          tenHocPhan: 'Kỹ thuật điện',
+          trangThai: 'Đã đăng ký',
+        },
+        {
+          id: 3,
+          hoTen: 'Đỗ Hồng Kiên',
+          mssv: 'PH218834',
+          lop: 'Lớp 39',
+          lopThi: 'FE',
+          kyDangKy: 'TL20232',
+          hocKy: 'Học kỳ II (2025-2026)',
+          maHocPhan: 'JAVA',
+          tenHocPhan: 'Lập trình Java',
+          trangThai: 'Đã đăng ký',
+        },
+        {
+          id: 4,
+          hoTen: 'Vũ Thị Kim Chi',
+          mssv: '20230305P',
+          lop: 'Khóa 68 – Kỹ thuật Điều khiển và Tự động hóa - Vừa làm vừa học',
+          lopThi: '161518',
+          kyDangKy: 'TL20231',
+          hocKy: 'Kỳ 20231',
+          maHocPhan: 'EE1024',
+          tenHocPhan: 'Nhập môn ngành Điện',
+          trangThai: 'Đã đăng ký',
+        },
+        {
+          id: 5,
+          hoTen: 'DEV',
+          mssv: 'DEV',
+          lop: 'Công nghệ phần mềm',
+          lopThi: '734234',
+          kyDangKy: 'TL20231',
+          hocKy: 'Học kỳ II (2025-2026)',
+          maHocPhan: 'JAVA',
+          tenHocPhan: 'Lập trình Java',
+          trangThai: 'Chưa đăng ký',
+        },
+        {
+          id: 6,
+          hoTen: 'Lâm Vinh Doanh',
+          mssv: '20230832P',
+          lop: 'LT-CĐTN-KTVL01-K68',
+          lopThi: 'HỘI ĐỒNG BẢO VỆ 6',
+          kyDangKy: 'TL20232',
+          hocKy: 'Học kỳ II (2024-2025)',
+          maHocPhan: 'EE4220',
+          tenHocPhan: 'Điều khiển logic và PLC',
+          trangThai: 'Chưa đăng ký',
+        },
+        {
+          id: 7,
+          hoTen: 'Lâm Vinh Doanh',
+          mssv: '20230832P',
+          lop: 'LT-CĐTN-KTVL01-K68',
+          lopThi: '161742',
+          kyDangKy: 'TL20231',
+          hocKy: 'Kỳ 20231',
+          maHocPhan: 'EE2010',
+          tenHocPhan: 'Kỹ thuật điện',
+          trangThai: 'Chưa đăng ký',
+        },
+      ],
     }
   },
 
-computed: {
-  // 1. Mảng dữ liệu đã qua bộ lọc
-  filteredStudents() {
-    return this.studentsList.filter((item) => {
-      const matchSearch = !this.filters.search || 
-        item.hoTen?.toLowerCase().includes(this.filters.search.toLowerCase());
-      const matchGender = !this.filters.gender || item.gioiTinh === this.filters.gender;
-      const matchTeacher = !this.filters.teacherType || item.loaiGiangVien === this.filters.teacherType;
-      const matchStatus = !this.filters.status || item.trangThai === this.filters.status;
-      const matchDept = !this.filters.department || item.khoaPhong === this.filters.department;
+  computed: {
+    // 1. Mảng dữ liệu đã qua bộ lọc
+    filteredStudents() {
+      return this.studentsList.filter((item) => {
+        const matchSearch =
+          !this.filters.search ||
+          item.hoTen?.toLowerCase().includes(this.filters.search.toLowerCase())
+        const matchGender =
+          !this.filters.gender || item.gioiTinh === this.filters.gender
+        const matchTeacher =
+          !this.filters.teacherType ||
+          item.loaiGiangVien === this.filters.teacherType
+        const matchStatus =
+          !this.filters.status || item.trangThai === this.filters.status
+        const matchDept =
+          !this.filters.department || item.khoaPhong === this.filters.department
 
-      return matchSearch && matchGender && matchTeacher && matchStatus && matchDept;
-    });
-  },
-
-  // 2. Tổng số bản ghi thực tế
-  totalItems() {
-    return this.filteredStudents.length;
-  },
-
-  // 3. Tự động tính tổng số trang dựa trên itemsPerPage (Ví dụ: 120 bản ghi / 50 = 3 trang)
-  totalPages() {
-    return Math.ceil(this.totalItems / this.itemsPerPage) || 1;
-  },
-
-  // 4. Lấy danh sách bản ghi hiển thị cho trang hiện tại
-  paginatedStudents() {
-    const start = (this.page - 1) * this.itemsPerPage;
-    const end = start + this.itemsPerPage;
-    return this.filteredStudents.slice(start, end);
-  },
-
-  // 5. Tự động tính các nút trang hiển thị (1, 2, 3...)
-  visiblePages() {
-    const pages = [];
-    const maxVisible = 5; // Hiển thị tối đa 5 nút trang
-    let start = Math.max(1, this.page - Math.floor(maxVisible / 2));
-    const end = Math.min(this.totalPages, start + maxVisible - 1);
-
-    if (end - start + 1 < maxVisible) {
-      start = Math.max(1, end - maxVisible + 1);
-    }
-
-    for (let i = start; i <= end; i++) {
-      pages.push(i);
-    }
-    return pages;
-  },
-},
-
-watch: {
-  // Khi danh sách đã lọc thay đổi, nếu trang hiện tại lớn hơn tổng số trang thì tự lùi về trang hợp lệ
-  totalPages(newTotalPages) {
-    if (this.page > newTotalPages) {
-      this.page = newTotalPages || 1;
-      this.pageInput = this.page;
-    }
-  },
-  
-  // Tự động reset về trang 1 khi thay đổi điều kiện tìm kiếm/bộ lọc
-  filters: {
-    handler() {
-      this.page = 1;
-      this.pageInput = 1;
+        return (
+          matchSearch && matchGender && matchTeacher && matchStatus && matchDept
+        )
+      })
     },
-    deep: true
-  }
-},
+
+    // 2. Tổng số bản ghi thực tế
+    totalItems() {
+      return this.filteredStudents.length
+    },
+
+    // 3. Tự động tính tổng số trang dựa trên itemsPerPage (Ví dụ: 120 bản ghi / 50 = 3 trang)
+    totalPages() {
+      return Math.ceil(this.totalItems / this.itemsPerPage) || 1
+    },
+
+    // 4. Lấy danh sách bản ghi hiển thị cho trang hiện tại
+    paginatedStudents() {
+      const start = (this.page - 1) * this.itemsPerPage
+      const end = start + this.itemsPerPage
+      return this.filteredStudents.slice(start, end)
+    },
+
+    // 5. Tự động tính các nút trang hiển thị (1, 2, 3...)
+    visiblePages() {
+      const pages = []
+      const maxVisible = 5 // Hiển thị tối đa 5 nút trang
+      let start = Math.max(1, this.page - Math.floor(maxVisible / 2))
+      const end = Math.min(this.totalPages, start + maxVisible - 1)
+
+      if (end - start + 1 < maxVisible) {
+        start = Math.max(1, end - maxVisible + 1)
+      }
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i)
+      }
+      return pages
+    },
+  },
+
+  watch: {
+    // Khi danh sách đã lọc thay đổi, nếu trang hiện tại lớn hơn tổng số trang thì tự lùi về trang hợp lệ
+    totalPages(newTotalPages) {
+      if (this.page > newTotalPages) {
+        this.page = newTotalPages || 1
+        this.pageInput = this.page
+      }
+    },
+
+    // Tự động reset về trang 1 khi thay đổi điều kiện tìm kiếm/bộ lọc
+    filters: {
+      handler() {
+        this.page = 1
+        this.pageInput = 1
+      },
+      deep: true,
+    },
+  },
 
   methods: {
     handleRefreshIconClick() {
-      this.searchQuery = '';
-      this.filterKyHoc = null;
-      this.filterKyDangKy = null;
-      this.filterHocPhan = null;
-      this.filterStatus = null;
-      this.page = 1;
-      this.pageInput = 1;
+      this.searchQuery = ''
+      this.filterKyHoc = null
+      this.filterKyDangKy = null
+      this.filterHocPhan = null
+      this.filterStatus = null
+      this.page = 1
+      this.pageInput = 1
     },
 
     handleSearch() {
-      this.page = 1;
-      this.pageInput = 1;
+      this.page = 1
+      this.pageInput = 1
     },
 
     handleAddClick() {
-      console.log('Thêm mới sinh viên');
+      console.log('Thêm mới sinh viên')
     },
 
     deleteItem(item) {
-      console.log('Xóa:', item);
+      console.log('Xóa:', item)
     },
 
     changePage(newPage) {
       if (newPage >= 1 && newPage <= this.totalPages) {
-        this.page = newPage;
-        this.pageInput = newPage;
+        this.page = newPage
+        this.pageInput = newPage
       }
     },
 
     goToPage() {
-      const p = parseInt(this.pageInput, 10);
+      const p = parseInt(this.pageInput, 10)
       if (p && p >= 1 && p <= this.totalPages) {
-        this.page = p;
+        this.page = p
       } else {
-        this.pageInput = this.page;
+        this.pageInput = this.page
       }
     },
 
     exportReport() {
-      console.log('Xuất báo cáo');
+      console.log('Xuất báo cáo')
     },
 
     importFile() {
-      console.log('Nhập file đăng ký');
-    }
+      console.log('Nhập file đăng ký')
+    },
   },
 }
 </script>

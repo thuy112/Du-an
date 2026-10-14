@@ -2,15 +2,18 @@
 import Api from '~/api/Api'
 
 export default {
-  getList(params) {//Lấy danh sách quyết định mở lớp / mở đợt học lại
+  getList(params) {
+    // Lấy danh sách quyết định mở lớp / mở đợt học lại
     return Api.get('/api/v1/decision-retake-courses', { params })
   },
 
-  getDetail(id) {//Lấy chi tiết quyết định mở lớp / mở đợt học lại
+  getDetail(id) {
+    // Lấy chi tiết quyết định mở lớp / mở đợt học lại
     return Api.get(`/api/v1/decision-retake-courses/${id}`)
   },
 
-  create(data) {//Tạo quyết định mở lớp / mở đợt học lại
+  create(data) {
+    // Tạo quyết định mở lớp / mở đợt học lại
     return Api.post('/api/v1/decision-retake-courses', data)
   },
 

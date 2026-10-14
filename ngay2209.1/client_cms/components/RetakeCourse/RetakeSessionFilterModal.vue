@@ -12,9 +12,18 @@
 
     <v-dialog v-model="dialog" max-width="500px" persistent>
       <v-card class="rounded-lg overflow-hidden">
-        <v-card-title class="bg-red-theme white--text py-3 px-4 d-flex align-center justify-space-between">
+        <v-card-title
+          class="bg-red-theme white--text py-3 px-4 d-flex align-center justify-space-between"
+        >
           <span class="text-h6 font-weight-bold">Bộ lọc nâng cao</span>
-          <v-btn icon dark small class="ma-0" aria-label="Đóng" @click="dialog = false">
+          <v-btn
+            icon
+            dark
+            small
+            class="ma-0"
+            aria-label="Đóng"
+            @click="dialog = false"
+          >
             <v-icon>mdi-close</v-icon>
           </v-btn>
         </v-card-title>
@@ -41,7 +50,7 @@
               offset-y
               min-width="auto"
             >
-              <template v-slot:activator="{ on, attrs }">
+              <template #activator="{ on, attrs }">
                 <v-text-field
                   v-model="fromDateFormatted"
                   label="Từ ngày"
@@ -69,7 +78,7 @@
               offset-y
               min-width="auto"
             >
-              <template v-slot:activator="{ on, attrs }">
+              <template #activator="{ on, attrs }">
                 <v-text-field
                   v-model="toDateFormatted"
                   label="Đến ngày"
@@ -92,8 +101,13 @@
           </div>
 
           <div v-else class="d-flex date-range-fields">
-            <v-menu v-model="menuFromWeek" :close-on-content-click="false" offset-y min-width="350px">
-              <template v-slot:activator="{ on, attrs }">
+            <v-menu
+              v-model="menuFromWeek"
+              :close-on-content-click="false"
+              offset-y
+              min-width="350px"
+            >
+              <template #activator="{ on, attrs }">
                 <v-text-field
                   v-model="fromWeekText"
                   label="Từ tuần"
@@ -106,19 +120,35 @@
                   v-bind="attrs"
                   v-on="on"
                 >
-                  <template v-slot:append>
-                    <v-icon small color="#666">mdi-calendar-month-outline</v-icon>
+                  <template #append>
+                    <v-icon small color="#666"
+                      >mdi-calendar-month-outline</v-icon
+                    >
                   </template>
                 </v-text-field>
               </template>
 
               <v-card class="pa-2 week-picker-card">
-                <div class="d-flex align-center justify-space-between mb-2 px-2">
-                  <v-btn icon x-small aria-label="Tháng trước" @click="changeMonth(-1)">
+                <div
+                  class="d-flex align-center justify-space-between mb-2 px-2"
+                >
+                  <v-btn
+                    icon
+                    x-small
+                    aria-label="Tháng trước"
+                    @click="changeMonth(-1)"
+                  >
                     <v-icon>mdi-chevron-left</v-icon>
                   </v-btn>
-                  <span class="font-weight-bold text-caption">{{ visibleMonthLabel }}</span>
-                  <v-btn icon x-small aria-label="Tháng sau" @click="changeMonth(1)">
+                  <span class="font-weight-bold text-caption">{{
+                    visibleMonthLabel
+                  }}</span>
+                  <v-btn
+                    icon
+                    x-small
+                    aria-label="Tháng sau"
+                    @click="changeMonth(1)"
+                  >
                     <v-icon>mdi-chevron-right</v-icon>
                   </v-btn>
                 </div>
@@ -126,34 +156,61 @@
                 <table class="week-table">
                   <thead>
                     <tr>
-                      <th>Tuần</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>T6</th><th>T7</th><th>CN</th>
+                      <th>Tuần</th>
+                      <th>T2</th>
+                      <th>T3</th>
+                      <th>T4</th>
+                      <th>T5</th>
+                      <th>T6</th>
+                      <th>T7</th>
+                      <th>CN</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr
                       v-for="week in weekList"
                       :key="week.monday"
-                      :class="{ 'selected-row': selectedWeekFrom === week.monday }"
+                      :class="{
+                        'selected-row': selectedWeekFrom === week.monday,
+                      }"
                       tabindex="0"
                       @click="selectFromWeek(week)"
                       @keydown.enter="selectFromWeek(week)"
                     >
                       <td class="font-weight-bold">{{ week.weekNum }}</td>
-                      <td>{{ week.d1 }}</td><td>{{ week.d2 }}</td><td>{{ week.d3 }}</td><td>{{ week.d4 }}</td>
-                      <td>{{ week.d5 }}</td><td>{{ week.d6 }}</td><td>{{ week.d7 }}</td>
+                      <td>{{ week.d1 }}</td>
+                      <td>{{ week.d2 }}</td>
+                      <td>{{ week.d3 }}</td>
+                      <td>{{ week.d4 }}</td>
+                      <td>{{ week.d5 }}</td>
+                      <td>{{ week.d6 }}</td>
+                      <td>{{ week.d7 }}</td>
                     </tr>
                   </tbody>
                 </table>
 
                 <div class="d-flex justify-space-between pt-2 border-t mt-2">
-                  <v-btn text x-small color="gray" @click="clearFromWeek">Xoá</v-btn>
-                  <v-btn text x-small color="#9e1c24" @click="selectCurrentWeekFrom">Tuần này</v-btn>
+                  <v-btn text x-small color="gray" @click="clearFromWeek"
+                    >Xoá</v-btn
+                  >
+                  <v-btn
+                    text
+                    x-small
+                    color="#9e1c24"
+                    @click="selectCurrentWeekFrom"
+                    >Tuần này</v-btn
+                  >
                 </div>
               </v-card>
             </v-menu>
 
-            <v-menu v-model="menuToWeek" :close-on-content-click="false" offset-y min-width="350px">
-              <template v-slot:activator="{ on, attrs }">
+            <v-menu
+              v-model="menuToWeek"
+              :close-on-content-click="false"
+              offset-y
+              min-width="350px"
+            >
+              <template #activator="{ on, attrs }">
                 <v-text-field
                   v-model="toWeekText"
                   label="Đến tuần"
@@ -166,19 +223,35 @@
                   v-bind="attrs"
                   v-on="on"
                 >
-                  <template v-slot:append>
-                    <v-icon small color="#666">mdi-calendar-month-outline</v-icon>
+                  <template #append>
+                    <v-icon small color="#666"
+                      >mdi-calendar-month-outline</v-icon
+                    >
                   </template>
                 </v-text-field>
               </template>
 
               <v-card class="pa-2 week-picker-card">
-                <div class="d-flex align-center justify-space-between mb-2 px-2">
-                  <v-btn icon x-small aria-label="Tháng trước" @click="changeMonth(-1)">
+                <div
+                  class="d-flex align-center justify-space-between mb-2 px-2"
+                >
+                  <v-btn
+                    icon
+                    x-small
+                    aria-label="Tháng trước"
+                    @click="changeMonth(-1)"
+                  >
                     <v-icon>mdi-chevron-left</v-icon>
                   </v-btn>
-                  <span class="font-weight-bold text-caption">{{ visibleMonthLabel }}</span>
-                  <v-btn icon x-small aria-label="Tháng sau" @click="changeMonth(1)">
+                  <span class="font-weight-bold text-caption">{{
+                    visibleMonthLabel
+                  }}</span>
+                  <v-btn
+                    icon
+                    x-small
+                    aria-label="Tháng sau"
+                    @click="changeMonth(1)"
+                  >
                     <v-icon>mdi-chevron-right</v-icon>
                   </v-btn>
                 </div>
@@ -186,28 +259,50 @@
                 <table class="week-table">
                   <thead>
                     <tr>
-                      <th>Tuần</th><th>T2</th><th>T3</th><th>T4</th><th>T5</th><th>T6</th><th>T7</th><th>CN</th>
+                      <th>Tuần</th>
+                      <th>T2</th>
+                      <th>T3</th>
+                      <th>T4</th>
+                      <th>T5</th>
+                      <th>T6</th>
+                      <th>T7</th>
+                      <th>CN</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr
                       v-for="week in weekList"
                       :key="week.monday"
-                      :class="{ 'selected-row': selectedWeekTo === week.monday }"
+                      :class="{
+                        'selected-row': selectedWeekTo === week.monday,
+                      }"
                       tabindex="0"
                       @click="selectToWeek(week)"
                       @keydown.enter="selectToWeek(week)"
                     >
                       <td class="font-weight-bold">{{ week.weekNum }}</td>
-                      <td>{{ week.d1 }}</td><td>{{ week.d2 }}</td><td>{{ week.d3 }}</td><td>{{ week.d4 }}</td>
-                      <td>{{ week.d5 }}</td><td>{{ week.d6 }}</td><td>{{ week.d7 }}</td>
+                      <td>{{ week.d1 }}</td>
+                      <td>{{ week.d2 }}</td>
+                      <td>{{ week.d3 }}</td>
+                      <td>{{ week.d4 }}</td>
+                      <td>{{ week.d5 }}</td>
+                      <td>{{ week.d6 }}</td>
+                      <td>{{ week.d7 }}</td>
                     </tr>
                   </tbody>
                 </table>
 
                 <div class="d-flex justify-space-between pt-2 border-t mt-2">
-                  <v-btn text x-small color="gray" @click="clearToWeek">Xoá</v-btn>
-                  <v-btn text x-small color="#9e1c24" @click="selectCurrentWeekTo">Tuần này</v-btn>
+                  <v-btn text x-small color="gray" @click="clearToWeek"
+                    >Xoá</v-btn
+                  >
+                  <v-btn
+                    text
+                    x-small
+                    color="#9e1c24"
+                    @click="selectCurrentWeekTo"
+                    >Tuần này</v-btn
+                  >
                 </div>
               </v-card>
             </v-menu>
@@ -215,7 +310,11 @@
         </v-card-text>
 
         <v-card-actions class="justify-end pb-4 px-6 pt-2 bg-white">
-          <v-btn text class="text-capitalize font-weight-medium text-gray-600 mr-2" @click="dialog = false">
+          <v-btn
+            text
+            class="text-capitalize font-weight-medium text-gray-600 mr-2"
+            @click="dialog = false"
+          >
             Đóng <v-icon small right>mdi-close</v-icon>
           </v-btn>
           <v-btn
@@ -265,8 +364,10 @@ export default {
     },
     visibleMonthLabel() {
       const [year, month] = this.visibleMonth.split('-').map(Number)
-      return new Intl.DateTimeFormat('vi-VN', { month: 'long', year: 'numeric' })
-        .format(new Date(year, month - 1, 1))
+      return new Intl.DateTimeFormat('vi-VN', {
+        month: 'long',
+        year: 'numeric',
+      }).format(new Date(year, month - 1, 1))
     },
     weekList() {
       const [year, month] = this.visibleMonth.split('-').map(Number)
@@ -275,8 +376,12 @@ export default {
       start.setDate(start.getDate() - ((start.getDay() + 6) % 7))
       const lastDay = new Date(year, month, 0)
       const end = new Date(lastDay)
-      end.setDate(end.getDate() + (7 - ((end.getDay() + 6) % 7)) % 7)
-      const startUtc = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate())
+      end.setDate(end.getDate() + ((7 - ((end.getDay() + 6) % 7)) % 7))
+      const startUtc = Date.UTC(
+        start.getFullYear(),
+        start.getMonth(),
+        start.getDate()
+      )
       const endUtc = Date.UTC(end.getFullYear(), end.getMonth(), end.getDate())
       const numberOfWeeks = Math.floor((endUtc - startUtc) / (7 * 86400000)) + 1
 
@@ -307,7 +412,10 @@ export default {
   },
   methods: {
     toMonthValue(date) {
-      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+        2,
+        '0'
+      )}`
     },
     toISODate(date) {
       const year = date.getFullYear()
@@ -321,7 +429,9 @@ export default {
       return `${day}/${month}/${year}`
     },
     getISOWeek(date) {
-      const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+      const utcDate = new Date(
+        Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+      )
       const day = utcDate.getUTCDay() || 7
       utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day)
       const weekYear = utcDate.getUTCFullYear()
@@ -331,7 +441,9 @@ export default {
     },
     changeMonth(offset) {
       const [year, month] = this.visibleMonth.split('-').map(Number)
-      this.visibleMonth = this.toMonthValue(new Date(year, month - 1 + offset, 1))
+      this.visibleMonth = this.toMonthValue(
+        new Date(year, month - 1 + offset, 1)
+      )
     },
     setWeek(week, isStart) {
       const weekText = `Tuần ${week.weekNum}, ${week.weekYear}`
@@ -358,7 +470,9 @@ export default {
       this.visibleMonth = this.toMonthValue(today)
       const monday = new Date(today)
       monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7))
-      const week = this.weekList.find(item => item.monday === this.toISODate(monday))
+      const week = this.weekList.find(
+        (item) => item.monday === this.toISODate(monday)
+      )
       if (week) this.setWeek(week, isStart)
     },
     selectCurrentWeekFrom() {

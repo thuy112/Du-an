@@ -5,15 +5,23 @@
         Trang kiểm thử UI (FE Only)
       </h1>
       <p class="body-2 grey--text text--darken-1 mb-6">
-        Dùng để test giao diện Vuetify, hiệu ứng Loading từ Store và các nút bấm chức năng.
+        Dùng để test giao diện Vuetify, hiệu ứng Loading từ Store và các nút bấm
+        chức năng.
       </p>
 
       <v-divider class="mb-6" />
 
       <!-- Test Buttons & Loading -->
       <div class="mb-6">
-        <h2 class="text-subtitle-1 font-weight-bold mb-3">1. Test Loading Store & Toast</h2>
-        <v-btn color="#a2212b" dark class="mr-2 text-capitalize" @click="testLoading">
+        <h2 class="text-subtitle-1 font-weight-bold mb-3">
+          1. Test Loading Store & Toast
+        </h2>
+        <v-btn
+          color="#a2212b"
+          dark
+          class="mr-2 text-capitalize"
+          @click="testLoading"
+        >
           Thử hiệu ứng Loading (2s)
         </v-btn>
         <v-btn color="success" class="text-capitalize" @click="testToast">
@@ -23,7 +31,9 @@
 
       <!-- Test Table UI -->
       <div>
-        <h2 class="text-subtitle-1 font-weight-bold mb-3">2. Test Table Mock Data</h2>
+        <h2 class="text-subtitle-1 font-weight-bold mb-3">
+          2. Test Table Mock Data
+        </h2>
         <v-data-table
           :headers="headers"
           :items="mockData"
@@ -53,13 +63,13 @@ export default {
       headers: [
         { text: 'STT', value: 'stt', width: '80px' },
         { text: 'Tên chức năng', value: 'name' },
-        { text: 'Trạng thái', value: 'status', width: '150px' }
+        { text: 'Trạng thái', value: 'status', width: '150px' },
       ],
       mockData: [
         { stt: 1, name: 'Quản lý người dùng', status: 'Hoạt động' },
         { stt: 2, name: 'Quản lý nhóm quyền', status: 'Hoạt động' },
-        { stt: 3, name: 'Cấu hình email', status: 'Khóa' }
-      ]
+        { stt: 3, name: 'Cấu hình email', status: 'Khóa' },
+      ],
     }
   },
   mounted() {
@@ -79,7 +89,7 @@ export default {
       } else {
         alert('Toast thành công!')
       }
-    }
-  }
+    },
+  },
 }
 </script>

@@ -4,11 +4,12 @@
     <div class="d-flex align-center justify-space-between mb-4 flex-wrap">
       <!-- Tiêu đề trang -->
       <div class="page-title text-body-1 font-weight-medium black--text">
-        Danh sách cấu hình nhận email <span class="red-highlight font-weight-bold">(0)</span>
+        Danh sách cấu hình nhận email
+        <span class="red-highlight font-weight-bold">(0)</span>
       </div>
 
       <!-- Cụm Tìm kiếm & Nút thao tác -->
-      <div class="d-flex align-center flex-wrap" style="gap: 12px;">
+      <div class="d-flex align-center flex-wrap" style="gap: 12px">
         <!-- Ô input Tìm kiếm -->
         <v-text-field
           v-model="filters.keyword"
@@ -158,12 +159,7 @@
         </v-btn>
 
         <!-- Trang hiện tại (Số 1 màu đỏ có shadow nhẹ) -->
-        <v-btn
-          color="#a2212b"
-          dark
-          elevation="2"
-          class="btn-page-number mr-2"
-        >
+        <v-btn color="#a2212b" dark elevation="2" class="btn-page-number mr-2">
           {{ page }}
         </v-btn>
 
@@ -182,7 +178,9 @@
     <!-- 4. MODAL THÊM MỚI CẤU HÌNH NGƯỜI NHẬN MAIL -->
     <v-dialog v-model="dialog" max-width="650px" persistent>
       <v-card class="dialog-card rounded-lg">
-        <v-card-title class="dialog-header py-3 px-4 d-flex justify-space-between align-center">
+        <v-card-title
+          class="dialog-header py-3 px-4 d-flex justify-space-between align-center"
+        >
           <span class="text-subtitle-1 font-weight-medium white--text">
             Thêm mới cấu hình người nhận mail
           </span>
@@ -204,7 +202,7 @@
                   dense
                   hide-details="auto"
                   class="dialog-input"
-                  :rules="[v => !!v || 'Vui lòng chọn template email']"
+                  :rules="[(v) => !!v || 'Vui lòng chọn template email']"
                 ></v-select>
               </v-col>
 
@@ -217,7 +215,11 @@
                   dense
                   hide-details="auto"
                   class="dialog-input red-label-input"
-                  :rules="[v => v !== null && v !== undefined || 'Vui lòng chọn trạng thái']"
+                  :rules="[
+                    (v) =>
+                      (v !== null && v !== undefined) ||
+                      'Vui lòng chọn trạng thái',
+                  ]"
                 ></v-select>
               </v-col>
 
@@ -229,7 +231,7 @@
                   dense
                   hide-details="auto"
                   class="dialog-input"
-                  :rules="[v => !!v || 'Vui lòng nhập email người nhận']"
+                  :rules="[(v) => !!v || 'Vui lòng nhập email người nhận']"
                 ></v-text-field>
               </v-col>
 
@@ -249,10 +251,20 @@
         </v-card-text>
 
         <v-card-actions class="px-5 pb-5 pt-0 d-flex justify-end">
-          <v-btn outlined class="btn-modal-close text-capitalize px-4 mr-2" @click="dialog = false">
+          <v-btn
+            outlined
+            class="btn-modal-close text-capitalize px-4 mr-2"
+            @click="dialog = false"
+          >
             Đóng <v-icon small class="ml-1">mdi-close</v-icon>
           </v-btn>
-          <v-btn color="#a2212b" dark elevation="0" class="btn-modal-save text-capitalize px-4" @click="saveItem">
+          <v-btn
+            color="#a2212b"
+            dark
+            elevation="0"
+            class="btn-modal-save text-capitalize px-4"
+            @click="saveItem"
+          >
             Lưu <v-icon small class="ml-1">mdi-content-save</v-icon>
           </v-btn>
         </v-card-actions>
@@ -301,7 +313,13 @@ export default {
         { text: 'Email người nhận', value: 'receiverEmail', align: 'start' },
         { text: 'Mô tả', value: 'description', align: 'start' },
         { text: 'Trạng thái', value: 'status', width: '140px', align: 'start' },
-        { text: 'Chức năng', value: 'actions', width: '120px', sortable: false, align: 'start' },
+        {
+          text: 'Chức năng',
+          value: 'actions',
+          width: '120px',
+          sortable: false,
+          align: 'start',
+        },
       ],
       items: [],
     }
@@ -321,7 +339,11 @@ export default {
         const res = await configMailReceiverService.getList(params)
         if (res && res.success && res.data) {
           this.items = res.data.list || []
-          this.templateOptions = [...new Set(this.items.map(item => item.templateName).filter(Boolean))]
+          this.templateOptions = [
+            ...new Set(
+              this.items.map((item) => item.templateName).filter(Boolean)
+            ),
+          ]
           this.totalItems = res.data.total || 0
           this.totalPages = Math.ceil(this.totalItems / this.pageSize) || 1
         }

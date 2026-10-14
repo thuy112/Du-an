@@ -6,7 +6,10 @@ const registerStudentExamServices = {
   },
 
   async importAllowedStudents(formData) {
-    return await Api.postMultipart('/api/v1/retake-exam/allowed-students/import', formData)
+    return await Api.postMultipart(
+      '/api/v1/retake-exam/allowed-students/import',
+      formData
+    )
   },
 
   async getRegisteredStudents(params) {
@@ -14,7 +17,10 @@ const registerStudentExamServices = {
   },
 
   async approveRegistration(id, data) {
-    return await Api.put(`/api/v1/retake-exam/registered-students/${id}/approve`, data)
+    return await Api.put(
+      `/api/v1/retake-exam/registered-students/${id}/approve`,
+      data
+    )
   },
 
   async cancelRegistration(id) {

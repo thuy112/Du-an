@@ -30,7 +30,5 @@ export default {
   // Upload avatar
   uploadAvatar(formData) {
     return Api.postMultipart('/api/users/upload-avatar', formData)
-  }
+  },
 }
-
-

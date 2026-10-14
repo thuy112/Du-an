@@ -1,8 +1,12 @@
 <template>
   <v-dialog v-model="internalValue" width="850px" persistent scrollable eager>
-    <v-card class="modal-auto-size rounded-lg overflow-hidden d-flex flex-column">
+    <v-card
+      class="modal-auto-size rounded-lg overflow-hidden d-flex flex-column"
+    >
       <!-- HEADER DIALOG -->
-      <v-card-title class="bg-red-bk white--text pa-3 d-flex justify-space-between align-center flex-shrink-0">
+      <v-card-title
+        class="bg-red-bk white--text pa-3 d-flex justify-space-between align-center flex-shrink-0"
+      >
         <span class="text-subtitle-1 font-weight-bold">Đăng ký học lại</span>
         <v-btn icon dark small class="ma-0" @click="closeModal">
           <v-icon small>mdi-close</v-icon>
@@ -13,24 +17,45 @@
       <v-card-text class="pa-5 black--text overflow-y-auto style-scrollbar">
         <div class="d-flex">
           <!-- BÊN TRÁI: ĐIỀU HƯỚNG BƯỚC STEPPER -->
-          <div class="stepper-left-bar flex-shrink-0" style="width: 180px;">
+          <div class="stepper-left-bar flex-shrink-0" style="width: 180px">
             <!-- BƯỚC 1 -->
             <div class="d-flex align-center gap-2 mb-8">
               <span :class="['step-icon', 'bg-red-bk', 'white--text']">
                 <v-icon v-if="currentStep > 1" x-small dark>mdi-check</v-icon>
                 <template v-else>1</template>
               </span>
-              <span :class="['text-caption', currentStep === 1 ? 'font-weight-bold black--text' : 'text-grey-color']">
+              <span
+                :class="[
+                  'text-caption',
+                  currentStep === 1
+                    ? 'font-weight-bold black--text'
+                    : 'text-grey-color',
+                ]"
+              >
                 Thông tin cá nhân
               </span>
             </div>
 
             <!-- BƯỚC 2 -->
             <div class="d-flex align-center gap-2">
-              <span :class="['step-icon', currentStep === 2 ? 'bg-red-bk white--text' : 'bg-grey-light text-grey-dark']">
+              <span
+                :class="[
+                  'step-icon',
+                  currentStep === 2
+                    ? 'bg-red-bk white--text'
+                    : 'bg-grey-light text-grey-dark',
+                ]"
+              >
                 2
               </span>
-              <span :class="['text-caption', currentStep === 2 ? 'font-weight-bold black--text' : 'text-grey-color']">
+              <span
+                :class="[
+                  'text-caption',
+                  currentStep === 2
+                    ? 'font-weight-bold black--text'
+                    : 'text-grey-color',
+                ]"
+              >
                 Thông tin đăng ký
               </span>
             </div>
@@ -57,10 +82,10 @@
                   clearable
                   return-object
                   class="student-select-field mx-auto"
-                  style="max-width: 380px;"
+                  style="max-width: 380px"
                   @change="onStudentSelect"
                 >
-                  <template v-slot:item="{ item }">
+                  <template #item="{ item }">
                     <v-list-item-content>
                       <v-list-item-title class="text-caption">
                         {{ item.studentCode }} - {{ item.fullName }}
@@ -74,54 +99,96 @@
               <div v-if="selectedStudent" class="mt-2 animate-fade-in">
                 <div class="d-flex align-center mb-3">
                   <div class="red-bar-indicator mr-2"></div>
-                  <span class="text-subtitle-1 font-weight-bold black--text">Thông tin cá nhân</span>
+                  <span class="text-subtitle-1 font-weight-bold black--text"
+                    >Thông tin cá nhân</span
+                  >
                 </div>
 
                 <v-row dense class="text-caption">
                   <v-col cols="6" class="py-1">
-                    Họ tên: <span class="font-weight-bold text-red-bold">{{ selectedStudent.fullName }}</span>
+                    Họ tên:
+                    <span class="font-weight-bold text-red-bold">{{
+                      selectedStudent.fullName
+                    }}</span>
                   </v-col>
                   <v-col cols="6" class="py-1">
-                    Mã SV: <span class="font-weight-bold text-red-bold">{{ selectedStudent.studentCode }}</span>
+                    Mã SV:
+                    <span class="font-weight-bold text-red-bold">{{
+                      selectedStudent.studentCode
+                    }}</span>
                   </v-col>
 
                   <v-col cols="6" class="py-1">
-                    Giới tính: <span class="font-weight-bold text-red-bold">{{ selectedStudent.gender || 'Khác' }}</span>
+                    Giới tính:
+                    <span class="font-weight-bold text-red-bold">{{
+                      selectedStudent.gender || 'Khác'
+                    }}</span>
                   </v-col>
                   <v-col cols="6" class="py-1"></v-col>
 
                   <v-col cols="12" class="py-1">
-                    Email trường: <span class="font-weight-bold text-red-bold">{{ selectedStudent.email || '--' }}</span>
+                    Email trường:
+                    <span class="font-weight-bold text-red-bold">{{
+                      selectedStudent.email || '--'
+                    }}</span>
                   </v-col>
 
                   <v-col cols="12" class="py-1">
-                    Email cá nhân: <span class="font-weight-bold text-red-bold">{{ selectedStudent.personalEmail || '--' }}</span>
+                    Email cá nhân:
+                    <span class="font-weight-bold text-red-bold">{{
+                      selectedStudent.personalEmail || '--'
+                    }}</span>
                   </v-col>
 
                   <v-col cols="6" class="py-1">
-                    Khóa: <span class="font-weight-bold text-red-bold">{{ selectedStudent.academicYear || 'Khóa 66' }}</span>
+                    Khóa:
+                    <span class="font-weight-bold text-red-bold">{{
+                      selectedStudent.academicYear || 'Khóa 66'
+                    }}</span>
                   </v-col>
                   <v-col cols="6" class="py-1">
-                    Lớp: <span class="font-weight-bold text-red-bold">{{ selectedStudent.className }}</span>
+                    Lớp:
+                    <span class="font-weight-bold text-red-bold">{{
+                      selectedStudent.className
+                    }}</span>
                   </v-col>
 
                   <v-col cols="6" class="py-1">
-                    Ngành: <span class="font-weight-bold text-red-bold">{{ selectedStudent.majorName || 'Công nghệ thông tin' }}</span>
+                    Ngành:
+                    <span class="font-weight-bold text-red-bold">{{
+                      selectedStudent.majorName || 'Công nghệ thông tin'
+                    }}</span>
                   </v-col>
                   <v-col cols="6" class="py-1">
-                    Loại hình đào tạo: <span class="font-weight-bold text-red-bold">{{ selectedStudent.trainingType || 'Chính quy' }}</span>
+                    Loại hình đào tạo:
+                    <span class="font-weight-bold text-red-bold">{{
+                      selectedStudent.trainingType || 'Chính quy'
+                    }}</span>
                   </v-col>
                 </v-row>
 
                 <div class="d-flex justify-end mt-6">
-                  <v-btn color="#A62229" dark small class="px-6 text-none font-weight-medium rounded-sm" elevation="0" @click="goToStep2">
+                  <v-btn
+                    color="#A62229"
+                    dark
+                    small
+                    class="px-6 text-none font-weight-medium rounded-sm"
+                    elevation="0"
+                    @click="goToStep2"
+                  >
                     Tiếp tục
                   </v-btn>
                 </div>
               </div>
 
               <div v-else class="d-flex justify-end mt-6">
-                <v-btn color="#E0E0E0" small disabled class="px-6 text-none font-weight-medium rounded-sm" elevation="0">
+                <v-btn
+                  color="#E0E0E0"
+                  small
+                  disabled
+                  class="px-6 text-none font-weight-medium rounded-sm"
+                  elevation="0"
+                >
                   Tiếp tục
                 </v-btn>
               </div>
@@ -140,7 +207,7 @@
                   dense
                   hide-details
                   clearable
-                  style="max-width: 400px;"
+                  style="max-width: 400px"
                   @change="onSessionChange"
                 ></v-select>
               </div>
@@ -148,7 +215,9 @@
               <div class="mt-4">
                 <div class="d-flex justify-space-between align-center mb-2">
                   <div class="text-caption font-weight-bold black--text">
-                    Danh sách học phần nợ của sinh viên trong đợt ({{ filteredSubjectList.length }})
+                    Danh sách học phần nợ của sinh viên trong đợt ({{
+                      filteredSubjectList.length
+                    }})
                   </div>
                   <v-text-field
                     v-model="searchSubject"
@@ -156,16 +225,16 @@
                     dense
                     hide-details
                     append-icon="mdi-magnify"
-                    style="max-width: 200px;"
+                    style="max-width: 200px"
                     class="text-caption"
                   ></v-text-field>
                 </div>
 
                 <v-simple-table dense class="border-table">
-                  <template v-slot:default>
+                  <template #default>
                     <thead>
                       <tr class="bg-gray-head">
-                        <th style="width: 36px;" class="text-center">
+                        <th style="width: 36px" class="text-center">
                           <v-checkbox
                             v-model="selectAllSubjects"
                             hide-details
@@ -174,28 +243,55 @@
                             @change="toggleSelectAll"
                           ></v-checkbox>
                         </th>
-                        <th class="text-center font-weight-bold text-caption">STT</th>
-                        <th class="text-left font-weight-bold text-caption">Mã học phần</th>
-                        <th class="text-left font-weight-bold text-caption">Tên học phần</th>
-                        <th class="text-left font-weight-bold text-caption">Mã giảng viên</th>
-                        <th class="text-left font-weight-bold text-caption">Tên giảng viên</th>
-                        <th class="text-right font-weight-bold text-caption">Định mức</th>
-                        <th class="text-center font-weight-bold text-caption">Số tín chỉ</th>
-                        <th class="text-right font-weight-bold text-caption">Thành tiền</th>
+                        <th class="text-center font-weight-bold text-caption">
+                          STT
+                        </th>
+                        <th class="text-left font-weight-bold text-caption">
+                          Mã học phần
+                        </th>
+                        <th class="text-left font-weight-bold text-caption">
+                          Tên học phần
+                        </th>
+                        <th class="text-left font-weight-bold text-caption">
+                          Mã giảng viên
+                        </th>
+                        <th class="text-left font-weight-bold text-caption">
+                          Tên giảng viên
+                        </th>
+                        <th class="text-right font-weight-bold text-caption">
+                          Định mức
+                        </th>
+                        <th class="text-center font-weight-bold text-caption">
+                          Số tín chỉ
+                        </th>
+                        <th class="text-right font-weight-bold text-caption">
+                          Thành tiền
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr v-if="!form.sessionId">
-                        <td colspan="9" class="text-center py-5 text-caption grey--text">
-                          Vui lòng chọn đợt học lại để kiểm tra học phần của sinh viên
+                        <td
+                          colspan="9"
+                          class="text-center py-5 text-caption grey--text"
+                        >
+                          Vui lòng chọn đợt học lại để kiểm tra học phần của
+                          sinh viên
                         </td>
                       </tr>
                       <tr v-else-if="filteredSubjectList.length === 0">
-                        <td colspan="9" class="text-center py-5 text-caption grey--text font-italic">
-                          Sinh viên này không có học phần nợ nào trong đợt học lại này (Không thể đăng ký)
+                        <td
+                          colspan="9"
+                          class="text-center py-5 text-caption grey--text font-italic"
+                        >
+                          Sinh viên này không có học phần nợ nào trong đợt học
+                          lại này (Không thể đăng ký)
                         </td>
                       </tr>
-                      <tr v-for="(item, index) in filteredSubjectList" :key="item.id || index">
+                      <tr
+                        v-for="(item, index) in filteredSubjectList"
+                        :key="item.id || index"
+                      >
                         <td class="text-center">
                           <v-checkbox
                             v-model="selectedSubjects"
@@ -205,14 +301,26 @@
                             class="ma-0 pa-0 d-flex justify-center"
                           ></v-checkbox>
                         </td>
-                        <td class="text-center text-caption">{{ index + 1 }}</td>
+                        <td class="text-center text-caption">
+                          {{ index + 1 }}
+                        </td>
                         <td class="text-caption">{{ item.code }}</td>
                         <td class="text-caption">{{ item.name }}</td>
-                        <td class="text-caption">{{ item.teacherCode || '-' }}</td>
-                        <td class="text-caption">{{ item.teacherName || '-' }}</td>
-                        <td class="text-right text-caption">{{ formatCurrency(item.ratePrice) }}đ</td>
-                        <td class="text-center text-caption">{{ item.credits }}</td>
-                        <td class="text-right text-caption">{{ formatCurrency(item.totalPrice) }}</td>
+                        <td class="text-caption">
+                          {{ item.teacherCode || '-' }}
+                        </td>
+                        <td class="text-caption">
+                          {{ item.teacherName || '-' }}
+                        </td>
+                        <td class="text-right text-caption">
+                          {{ formatCurrency(item.ratePrice) }}đ
+                        </td>
+                        <td class="text-center text-caption">
+                          {{ item.credits }}
+                        </td>
+                        <td class="text-right text-caption">
+                          {{ formatCurrency(item.totalPrice) }}
+                        </td>
                       </tr>
                     </tbody>
                   </template>
@@ -220,16 +328,27 @@
 
                 <div class="text-right mt-3">
                   <div class="text-subtitle-2 font-weight-bold black--text">
-                    Tổng tiền: <span class="text-red-bold">{{ formatCurrency(calculatedTotalPrice) }} VNĐ</span>
+                    Tổng tiền:
+                    <span class="text-red-bold"
+                      >{{ formatCurrency(calculatedTotalPrice) }} VNĐ</span
+                    >
                   </div>
                   <div class="text-caption text-grey-color mt-1 font-italic">
-                    Hệ thống chỉ hiển thị số tiền dự kiến. Học phí chính thức sẽ được thông báo cụ thể qua email của sinh viên.
+                    Hệ thống chỉ hiển thị số tiền dự kiến. Học phí chính thức sẽ
+                    được thông báo cụ thể qua email của sinh viên.
                   </div>
                 </div>
               </div>
 
               <div class="d-flex justify-start mt-4">
-                <v-btn color="#A62229" dark small class="px-5 text-none font-weight-medium rounded-sm" elevation="0" @click="currentStep = 1">
+                <v-btn
+                  color="#A62229"
+                  dark
+                  small
+                  class="px-5 text-none font-weight-medium rounded-sm"
+                  elevation="0"
+                  @click="currentStep = 1"
+                >
                   Quay lại
                 </v-btn>
               </div>
@@ -241,8 +360,16 @@
       <v-divider></v-divider>
 
       <!-- FOOTER DIALOG -->
-      <v-card-actions class="pa-3 d-flex justify-end gap-2 bg-white flex-shrink-0">
-        <v-btn outlined small color="#333333" class="text-none px-4 border-btn-grey" @click="closeModal">
+      <v-card-actions
+        class="pa-3 d-flex justify-end gap-2 bg-white flex-shrink-0"
+      >
+        <v-btn
+          outlined
+          small
+          color="#333333"
+          class="text-none px-4 border-btn-grey"
+          @click="closeModal"
+        >
           Đóng <v-icon right x-small class="ml-1">mdi-close</v-icon>
         </v-btn>
 
@@ -256,7 +383,8 @@
           :loading="submitting"
           @click="saveData"
         >
-          Lưu <v-icon right x-small class="ml-1">mdi-content-save-outline</v-icon>
+          Lưu
+          <v-icon right x-small class="ml-1">mdi-content-save-outline</v-icon>
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -269,28 +397,28 @@ export default {
   props: {
     value: {
       type: Boolean,
-      default: false
+      default: false,
     },
     studentsList: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     registeredClassesList: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     sessionOptionsList: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     subjectOptionsList: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     retakeCoursesFullList: {
       type: Array,
-      default: () => []
-    }
+      default: () => [],
+    },
   },
   data() {
     return {
@@ -301,20 +429,25 @@ export default {
       selectedSubjects: [],
       selectAllSubjects: false,
       form: {
-        sessionId: null
-      }
+        sessionId: null,
+      },
     }
   },
   computed: {
     internalValue: {
-      get() { return this.value },
-      set(val) { this.$emit('input', val) }
+      get() {
+        return this.value
+      },
+      set(val) {
+        this.$emit('input', val)
+      },
     },
     studentOptions() {
-      return (this.registeredClassesList || []).map(item => ({
+      return (this.registeredClassesList || []).map((item) => ({
         id: item.student?.id || item.id,
         studentCode: item.code || (item.student && item.student.code) || '',
-        fullName: item.fullName || (item.student && item.student.fullName) || '',
+        fullName:
+          item.fullName || (item.student && item.student.fullName) || '',
         email: item.email || (item.student && item.student.email) || '',
         gender: item.gender || 'Khác',
         personalEmail: item.personalEmail || '',
@@ -322,65 +455,83 @@ export default {
         className: item.clazz?.name || '',
         majorName: item.clazz?.majorName || 'Công nghệ thông tin',
         trainingType: item.clazz?.trainingUnitName || 'Chính quy',
-        displayText: `${item.code || (item.student && item.student.code) || ''} - ${item.fullName || (item.student && item.student.fullName) || ''}`
+        displayText: `${
+          item.code || (item.student && item.student.code) || ''
+        } - ${item.fullName || (item.student && item.student.fullName) || ''}`,
       }))
     },
     canSave() {
-      return this.currentStep === 2 &&
+      return (
+        this.currentStep === 2 &&
         Boolean(this.selectedStudent && this.selectedStudent.studentCode) &&
         Boolean(this.form.sessionId) &&
         this.dueSubjectList.length > 0 &&
         this.selectedSubjects.length > 0 &&
         !this.submitting
+      )
     },
     dueSubjectList() {
       if (!this.form.sessionId || !this.selectedStudent) return []
 
       const currentSessionObj = (this.retakeCoursesFullList || []).find(
-        course => String(course.id) === String(this.form.sessionId) || String(course.code) === String(this.form.sessionId)
+        (course) =>
+          String(course.id) === String(this.form.sessionId) ||
+          String(course.code) === String(this.form.sessionId)
       )
 
-      if (!currentSessionObj || !Array.isArray(currentSessionObj.registerStudents)) return []
+      if (
+        !currentSessionObj ||
+        !Array.isArray(currentSessionObj.registerStudents)
+      )
+        return []
 
       const matchedStudentInSession = currentSessionObj.registerStudents.find(
-        st => String(st.code) === String(this.selectedStudent.studentCode)
+        (st) => String(st.code) === String(this.selectedStudent.studentCode)
       )
 
-      if (!matchedStudentInSession || !Array.isArray(matchedStudentInSession.registerStudentTerms)) return []
+      if (
+        !matchedStudentInSession ||
+        !Array.isArray(matchedStudentInSession.registerStudentTerms)
+      )
+        return []
 
-      return matchedStudentInSession.registerStudentTerms.map((termObj, index) => {
-        const t = termObj.term || {}
-        return {
-          id: t.id || t.code || `term_${index}`,
-          code: t.code || '',
-          name: t.name || '',
-          teacherCode: t.teacherCode || '-',
-          teacherName: t.teacherName || '-',
-          ratePrice: Number(termObj.feeRate || t.ratePrice || 350000),
-          credits: Number(t.credits || 2),
-          totalPrice: Number(termObj.fee || t.totalPrice || 700000)
+      return matchedStudentInSession.registerStudentTerms.map(
+        (termObj, index) => {
+          const t = termObj.term || {}
+          return {
+            id: t.id || t.code || `term_${index}`,
+            code: t.code || '',
+            name: t.name || '',
+            teacherCode: t.teacherCode || '-',
+            teacherName: t.teacherName || '-',
+            ratePrice: Number(termObj.feeRate || t.ratePrice || 350000),
+            credits: Number(t.credits || 2),
+            totalPrice: Number(termObj.fee || t.totalPrice || 700000),
+          }
         }
-      })
+      )
     },
     filteredSubjectList() {
       if (!this.searchSubject) return this.dueSubjectList
       const search = this.searchSubject.toLowerCase()
-      return this.dueSubjectList.filter(item =>
-        item.code?.toLowerCase().includes(search) || item.name?.toLowerCase().includes(search)
+      return this.dueSubjectList.filter(
+        (item) =>
+          item.code?.toLowerCase().includes(search) ||
+          item.name?.toLowerCase().includes(search)
       )
     },
     calculatedTotalPrice() {
       return this.dueSubjectList
-        .filter(item => this.selectedSubjects.includes(item.id))
+        .filter((item) => this.selectedSubjects.includes(item.id))
         .reduce((sum, item) => sum + (item.totalPrice || 0), 0)
-    }
+    },
   },
   watch: {
     value(val) {
       if (val) {
         this.resetModal()
       }
-    }
+    },
   },
   methods: {
     formatCurrency(val) {
@@ -402,14 +553,14 @@ export default {
       this.selectedSubjects = []
       this.selectAllSubjects = false
       this.searchSubject = ''
-      
+
       this.$nextTick(() => {
-        this.selectedSubjects = this.dueSubjectList.map(item => item.id)
+        this.selectedSubjects = this.dueSubjectList.map((item) => item.id)
       })
     },
     toggleSelectAll(val) {
       if (val) {
-        this.selectedSubjects = this.filteredSubjectList.map(item => item.id)
+        this.selectedSubjects = this.filteredSubjectList.map((item) => item.id)
       } else {
         this.selectedSubjects = []
       }
@@ -423,13 +574,15 @@ export default {
           sessionId: this.form.sessionId,
           subjects: this.selectedSubjects,
           totalPrice: this.calculatedTotalPrice,
-          channel: 'CMS'
+          channel: 'CMS',
         }
 
         this.$emit('success', {
           ...payload,
           student: this.selectedStudent,
-          selectedCourses: this.dueSubjectList.filter(item => this.selectedSubjects.includes(item.id))
+          selectedCourses: this.dueSubjectList.filter((item) =>
+            this.selectedSubjects.includes(item.id)
+          ),
         })
         this.closeModal()
       } catch (err) {
@@ -449,8 +602,8 @@ export default {
     closeModal() {
       this.internalValue = false
       this.resetModal()
-    }
-  }
+    },
+  },
 }
 </script>
 
@@ -461,9 +614,15 @@ export default {
   max-height: 85vh !important;
 }
 
-.bg-red-bk { background-color: #A62229 !important; }
-.text-red-bold { color: #A62229 !important; }
-.text-grey-color { color: #757575 !important; }
+.bg-red-bk {
+  background-color: #a62229 !important;
+}
+.text-red-bold {
+  color: #a62229 !important;
+}
+.text-grey-color {
+  color: #757575 !important;
+}
 
 .step-icon {
   width: 24px;
@@ -476,47 +635,61 @@ export default {
   font-weight: bold;
 }
 
-.bg-grey-light { background-color: #E0E0E0; }
-.text-grey-dark { color: #616161; }
+.bg-grey-light {
+  background-color: #e0e0e0;
+}
+.text-grey-dark {
+  color: #616161;
+}
 
 .border-left-divider {
-  border-left: 1px solid #E0E0E0;
+  border-left: 1px solid #e0e0e0;
 }
 
 .red-bar-indicator {
   width: 4px;
   height: 18px;
-  background-color: #A62229;
+  background-color: #a62229;
 }
 
 .border-table {
-  border: 1px solid #E0E0E0;
+  border: 1px solid #e0e0e0;
   border-radius: 4px;
   overflow: hidden;
 }
 
-.bg-gray-head { background-color: #F5F5F5; }
+.bg-gray-head {
+  background-color: #f5f5f5;
+}
 
 .border-btn-grey {
-  border: 1px solid #BDBDBD !important;
+  border: 1px solid #bdbdbd !important;
 }
 
 .style-scrollbar::-webkit-scrollbar {
   width: 5px;
 }
 .style-scrollbar::-webkit-scrollbar-thumb {
-  background: #C1C1C1;
+  background: #c1c1c1;
   border-radius: 4px;
 }
 
-.gap-2 { gap: 8px; }
+.gap-2 {
+  gap: 8px;
+}
 
 .animate-fade-in {
   animation: fadeIn 0.2s ease-in-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(3px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

@@ -7,6 +7,5 @@ export default {
 
   delete(id) {
     return Api.delete(`/api/mail-receiver-config/${id}`)
-  }
+  },
 }
-

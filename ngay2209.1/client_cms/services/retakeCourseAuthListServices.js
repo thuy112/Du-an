@@ -6,11 +6,13 @@ export default {
     return Api.get('/api/v1/retake-course-auth-list', { params })
   },
 
-  assignAuth(data) {//Phân quyền / ủy quyền học lại
+  assignAuth(data) {
+    // Phân quyền / ủy quyền học lại
     return Api.post('/api/v1/retake-course-auth-list', data)
   },
 
-  revokeAuth(id) {//Thu hồi phân quyền / ủy quyền học lại
+  revokeAuth(id) {
+    // Thu hồi phân quyền / ủy quyền học lại
     return Api.delete(`/api/v1/retake-course-auth-list/${id}`)
   },
 }

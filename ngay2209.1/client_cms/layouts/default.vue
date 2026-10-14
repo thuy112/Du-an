@@ -19,7 +19,8 @@
             <div
               class="sidebar-item py-2 px-1 text-center"
               :class="{
-                'item-active': isParentActive(item) || $route.path === item.path,
+                'item-active':
+                  isParentActive(item) || $route.path === item.path,
               }"
               @click="handleMainItemClick(item)"
             >
@@ -163,7 +164,9 @@
             :class="{
               'text-home-red': item.text === 'Trang chủ',
               'text-retake-list-red': item.text === 'Danh sách lớp học lại',
-              'text-breadcrumb-gray': item.text !== 'Trang chủ' && item.text !== 'Danh sách lớp học lại',
+              'text-breadcrumb-gray':
+                item.text !== 'Trang chủ' &&
+                item.text !== 'Danh sách lớp học lại',
             }"
           >
             {{ item.text }}
@@ -223,7 +226,9 @@
         </template>
 
         <v-card width="290" class="pa-4 rounded-lg elevation-4">
-          <div class="text-subtitle-2 font-weight-bold grey--text text--darken-3 mb-3">
+          <div
+            class="text-subtitle-2 font-weight-bold grey--text text--darken-3 mb-3"
+          >
             Thông tin người dùng
           </div>
 
@@ -239,15 +244,23 @@
               <div class="font-weight-bold body-2 grey--text text--darken-3">
                 {{ user.name || user.fullName || 'Admin' }}
               </div>
-              <div class="caption grey--text text--darken-1 d-flex align-center mt-1">
-                <v-icon x-small class="mr-1">mdi-badge-account-horizontal-outline</v-icon>
+              <div
+                class="caption grey--text text--darken-1 d-flex align-center mt-1"
+              >
+                <v-icon x-small class="mr-1"
+                  >mdi-badge-account-horizontal-outline</v-icon
+                >
                 {{ user.role || 'Quản trị hệ thống' }}
               </div>
-              <div class="caption grey--text text--darken-1 d-flex align-center mt-1">
+              <div
+                class="caption grey--text text--darken-1 d-flex align-center mt-1"
+              >
                 <v-icon x-small class="mr-1">mdi-phone-outline</v-icon>
                 {{ user.phone || '0999999999' }}
               </div>
-              <div class="caption grey--text text--darken-1 d-flex align-center mt-1">
+              <div
+                class="caption grey--text text--darken-1 d-flex align-center mt-1"
+              >
                 <v-icon x-small class="mr-1">mdi-email-outline</v-icon>
                 {{ user.email || 'admin@gmail.com' }}
               </div>
@@ -261,7 +274,9 @@
             style="cursor: pointer"
             @click.stop="openChangePasswordModal"
           >
-            <v-icon small color="grey darken-2" class="mr-2">mdi-lock-outline</v-icon>
+            <v-icon small color="grey darken-2" class="mr-2"
+              >mdi-lock-outline</v-icon
+            >
             <span class="body-2 grey--text text--darken-3">Đổi mật khẩu</span>
           </div>
 
@@ -280,10 +295,7 @@
 
     <!-- ==================== 4. MAIN CONTENT ==================== -->
     <v-main :class="isDesktop ? 'main-content' : 'main-content-mobile'">
-      <v-container
-        fluid
-        class="main-container pa-0"
-      >
+      <v-container fluid class="main-container pa-0">
         <Nuxt />
       </v-container>
     </v-main>
@@ -341,17 +353,44 @@ export default {
           path: '/danh-muc-he-thong',
           icon: 'mdi-database',
           children: [
-            { title: 'Hình thức đào tạo', path: '/danh-muc-he-thong/hinh-thuc-dao-tao'},
-            { title: 'Loại hình đào tạo', path: '/danh-muc-he-thong/loai-hinh-dao-tao'},
-            { title: 'Quản lý đơn vị', path: '/danh-muc-he-thong/quan-ly-don-vi'},
-            { title: 'Quản lý ngành', path: '/danh-muc-he-thong/quan-ly-nganh'},
-            { title: 'Quản lý khoá', path: '/danh-muc-he-thong/quan-ly-khoa'},
-            { title: 'Quản lý lớp', path: '/danh-muc-he-thong/quan-ly-lop'},
-            { title: 'Chương trình đào tạo', path: '/danh-muc-he-thong/chuong-trinh-dao-tao'},
-            { title: 'Quản lý học phần', path: '/danh-muc-he-thong/quan-ly-hoc-phan'},
-            { title: 'Quản lý học kỳ', path: '/danh-muc-he-thong/quan-ly-hoc-ky'},
-            { title: 'Quản lý định mức phí', path: '/danh-muc-he-thong/quan-ly-dinh-muc-phi'},
-            { title: 'Quản lý khoản thu', path: '/danh-muc-he-thong/quan-ly-khoan-thu'},
+            {
+              title: 'Hình thức đào tạo',
+              path: '/danh-muc-he-thong/hinh-thuc-dao-tao',
+            },
+            {
+              title: 'Loại hình đào tạo',
+              path: '/danh-muc-he-thong/loai-hinh-dao-tao',
+            },
+            {
+              title: 'Quản lý đơn vị',
+              path: '/danh-muc-he-thong/quan-ly-don-vi',
+            },
+            {
+              title: 'Quản lý ngành',
+              path: '/danh-muc-he-thong/quan-ly-nganh',
+            },
+            { title: 'Quản lý khoá', path: '/danh-muc-he-thong/quan-ly-khoa' },
+            { title: 'Quản lý lớp', path: '/danh-muc-he-thong/quan-ly-lop' },
+            {
+              title: 'Chương trình đào tạo',
+              path: '/danh-muc-he-thong/chuong-trinh-dao-tao',
+            },
+            {
+              title: 'Quản lý học phần',
+              path: '/danh-muc-he-thong/quan-ly-hoc-phan',
+            },
+            {
+              title: 'Quản lý học kỳ',
+              path: '/danh-muc-he-thong/quan-ly-hoc-ky',
+            },
+            {
+              title: 'Quản lý định mức phí',
+              path: '/danh-muc-he-thong/quan-ly-dinh-muc-phi',
+            },
+            {
+              title: 'Quản lý khoản thu',
+              path: '/danh-muc-he-thong/quan-ly-khoan-thu',
+            },
           ],
         },
         {
@@ -360,13 +399,31 @@ export default {
           path: '/quan-ly-thi-lai',
           icon: 'mdi-youtube-studio',
           children: [
-            { title: 'Quản lý kỳ đăng ký thi lại', path: '/quan-ly-thi-lai/quan-ly-ky-dang-ky-thi-lai' },
-            { title: 'DSSV được phép đăng ký', path: '/quan-ly-thi-lai/dssv-duoc-phep-dang-ky' },
-            { title: 'Danh sách sinh viên đăng ký', path: '/quan-ly-thi-lai/sinh-vien-dang-ky' },
-            { title: 'Danh sách lớp thi', path: '/quan-ly-thi-lai/danh-sach-lop-thi' },
+            {
+              title: 'Quản lý kỳ đăng ký thi lại',
+              path: '/quan-ly-thi-lai/quan-ly-ky-dang-ky-thi-lai',
+            },
+            {
+              title: 'DSSV được phép đăng ký',
+              path: '/quan-ly-thi-lai/dssv-duoc-phep-dang-ky',
+            },
+            {
+              title: 'Danh sách sinh viên đăng ký',
+              path: '/quan-ly-thi-lai/sinh-vien-dang-ky',
+            },
+            {
+              title: 'Danh sách lớp thi',
+              path: '/quan-ly-thi-lai/danh-sach-lop-thi',
+            },
             { title: 'Kết quả thi', path: '/quan-ly-thi-lai/ket-qua-thi' },
-            { title: 'Quản lý định mức thi lại', path: '/quan-ly-thi-lai/dinh-muc-thi-lai' },
-            { title: 'Quản lý định mức thanh toán thi lại GV', path: '/quan-ly-thi-lai/dinh-muc-thanh-toan-thi-lai-giang-vien' },
+            {
+              title: 'Quản lý định mức thi lại',
+              path: '/quan-ly-thi-lai/dinh-muc-thi-lai',
+            },
+            {
+              title: 'Quản lý định mức thanh toán thi lại GV',
+              path: '/quan-ly-thi-lai/dinh-muc-thanh-toan-thi-lai-giang-vien',
+            },
           ],
         },
         {
@@ -375,21 +432,63 @@ export default {
           path: '/quan-ly-hoc-lai',
           icon: 'mdi-youtube-studio',
           children: [
-            { title: 'Quản lý đợt đăng ký học lại', path: '/quan-ly-hoc-lai/quan-ly-dot-dang-ky-hoc-lai'},
-            { title: 'Quản lý hệ số lớp', path: '/quan-ly-hoc-lai/quan-ly-he-so-lop'},
-            { title: 'Danh sách lớp học lại', path: '/quan-ly-hoc-lai/danh-sach-lop-hoc'},
-            { title: 'Danh sách sinh viên phải học lại', path: '/quan-ly-hoc-lai/sinh-vien-phai-hoc-lai'},
-            { title: 'Danh sách sinh viên đã đăng ký học lại', path: '/quan-ly-hoc-lai/sinh-vien-dang-ky'},
-            { title: 'Kết quả học lại', path: '/quan-ly-hoc-lai/ket-qua-thi'},
-            { title: 'Định mức giảng viên', path: '/quan-ly-hoc-lai/dinh-muc-giang-vien'},
-            { title: 'Thanh toán giảng viên theo lớp', path: '/quan-ly-hoc-lai/thanh-toan-giang-vien-theo-lop'},
-            { title: 'Thanh toán giảng viên theo đợt', path: '/quan-ly-hoc-lai/thanh-toan-giang-vien-theo-dot'},
-            { title: 'Quản lý thuế giảng viên', path: '/quan-ly-hoc-lai/quan-ly-thue-giang-vien'},
-            { title: 'BC kết quả thu', path: '/quan-ly-hoc-lai/bao-cao-thong-ke'},
-            { title: 'BC Sinh viên đăng ký', path: '/quan-ly-hoc-lai/bao-cao-sinh-vien-dang-ky'},
-            { title: 'BC thanh toán giảng viên', path: '/quan-ly-hoc-lai/bao-cao-thanh-toan-giang-vien'},
-            { title: 'BC SV chưa đóng tiền', path: '/quan-ly-hoc-lai/sv-chua-nop-tien'},
-            { title: 'BC giảng viên tổng hợp', path: '/quan-ly-hoc-lai/ao-cao-giang-vien-tong-hop'},
+            {
+              title: 'Quản lý đợt đăng ký học lại',
+              path: '/quan-ly-hoc-lai/quan-ly-dot-dang-ky-hoc-lai',
+            },
+            {
+              title: 'Quản lý hệ số lớp',
+              path: '/quan-ly-hoc-lai/quan-ly-he-so-lop',
+            },
+            {
+              title: 'Danh sách lớp học lại',
+              path: '/quan-ly-hoc-lai/danh-sach-lop-hoc',
+            },
+            {
+              title: 'Danh sách sinh viên phải học lại',
+              path: '/quan-ly-hoc-lai/sinh-vien-phai-hoc-lai',
+            },
+            {
+              title: 'Danh sách sinh viên đã đăng ký học lại',
+              path: '/quan-ly-hoc-lai/sinh-vien-dang-ky',
+            },
+            { title: 'Kết quả học lại', path: '/quan-ly-hoc-lai/ket-qua-thi' },
+            {
+              title: 'Định mức giảng viên',
+              path: '/quan-ly-hoc-lai/dinh-muc-giang-vien',
+            },
+            {
+              title: 'Thanh toán giảng viên theo lớp',
+              path: '/quan-ly-hoc-lai/thanh-toan-giang-vien-theo-lop',
+            },
+            {
+              title: 'Thanh toán giảng viên theo đợt',
+              path: '/quan-ly-hoc-lai/thanh-toan-giang-vien-theo-dot',
+            },
+            {
+              title: 'Quản lý thuế giảng viên',
+              path: '/quan-ly-hoc-lai/quan-ly-thue-giang-vien',
+            },
+            {
+              title: 'BC kết quả thu',
+              path: '/quan-ly-hoc-lai/bao-cao-thong-ke',
+            },
+            {
+              title: 'BC Sinh viên đăng ký',
+              path: '/quan-ly-hoc-lai/bao-cao-sinh-vien-dang-ky',
+            },
+            {
+              title: 'BC thanh toán giảng viên',
+              path: '/quan-ly-hoc-lai/bao-cao-thanh-toan-giang-vien',
+            },
+            {
+              title: 'BC SV chưa đóng tiền',
+              path: '/quan-ly-hoc-lai/sv-chua-nop-tien',
+            },
+            {
+              title: 'BC giảng viên tổng hợp',
+              path: '/quan-ly-hoc-lai/ao-cao-giang-vien-tong-hop',
+            },
           ],
         },
         {
@@ -398,19 +497,58 @@ export default {
           path: '/quan-ly-bao-ve-lai',
           icon: 'mdi-youtube-studio',
           children: [
-            { title: 'Quản lý đợt bảo vệ lại', path: '/quan-ly-bao-ve-lai/quan-ly-dot-bao-ve-lai'},
-            { title: 'DSSV được phép đăng ký', path: '/quan-ly-bao-ve-lai/sinh-vien-duoc-dang-ky'},
-            { title: 'Danh sách sinh viên đã đăng ký', path: '/quan-ly-bao-ve-lai/sinh-vien-dang-ky'},
-            { title: 'Danh sách hội đồng', path: '/quan-ly-bao-ve-lai/danh-sach-hoi-dong'},
-            { title: 'Kết quả bảo vệ', path: '/quan-ly-bao-ve-lai/ket-qua-bao-ve'},
-            { title: 'Thanh toán giảng viên theo hội đồng', path: '/quan-ly-bao-ve-lai/dinh-muc-thanh-toan-giang-vien'},
-            { title: 'Thanh toán giảng viên theo đợt', path: '/quan-ly-bao-ve-lai/dinh-muc-thanh-toan-giang-vien-theo-dot'},
-            { title: 'Định mức thanh toán theo công việc GV', path: '/quan-ly-bao-ve-lai/cau-hinh-dinh-muc-thanh-toan-giang-vien'},
-            { title: 'BC kết quả thu bảo vệ lại', path: '/quan-ly-bao-ve-lai/ket-qua-thu-bao-ve-lai'},
-            { title: 'BC Sinh viên đăng ký bảo vệ lại', path: '/quan-ly-bao-ve-lai/sinh-vien-dang-ky-bao-ve-lai'},
-            { title: 'BC SV chưa đóng tiền bảo vệ lại', path: '/quan-ly-bao-ve-lai/sv-chua-nop-tien-bao-ve-lai'},
-            { title: 'BC thanh toán giảng viên bảo vệ lại', path: '/quan-ly-bao-ve-lai/thanh-toan-giang-vien-bao-ve-lai'},
-            { title: 'BC tổng hợp sinh viên bảo vệ lại', path: '/quan-ly-bao-ve-lai/bao-cao-tong-hop-sinh-vien'},
+            {
+              title: 'Quản lý đợt bảo vệ lại',
+              path: '/quan-ly-bao-ve-lai/quan-ly-dot-bao-ve-lai',
+            },
+            {
+              title: 'DSSV được phép đăng ký',
+              path: '/quan-ly-bao-ve-lai/sinh-vien-duoc-dang-ky',
+            },
+            {
+              title: 'Danh sách sinh viên đã đăng ký',
+              path: '/quan-ly-bao-ve-lai/sinh-vien-dang-ky',
+            },
+            {
+              title: 'Danh sách hội đồng',
+              path: '/quan-ly-bao-ve-lai/danh-sach-hoi-dong',
+            },
+            {
+              title: 'Kết quả bảo vệ',
+              path: '/quan-ly-bao-ve-lai/ket-qua-bao-ve',
+            },
+            {
+              title: 'Thanh toán giảng viên theo hội đồng',
+              path: '/quan-ly-bao-ve-lai/dinh-muc-thanh-toan-giang-vien',
+            },
+            {
+              title: 'Thanh toán giảng viên theo đợt',
+              path: '/quan-ly-bao-ve-lai/dinh-muc-thanh-toan-giang-vien-theo-dot',
+            },
+            {
+              title: 'Định mức thanh toán theo công việc GV',
+              path: '/quan-ly-bao-ve-lai/cau-hinh-dinh-muc-thanh-toan-giang-vien',
+            },
+            {
+              title: 'BC kết quả thu bảo vệ lại',
+              path: '/quan-ly-bao-ve-lai/ket-qua-thu-bao-ve-lai',
+            },
+            {
+              title: 'BC Sinh viên đăng ký bảo vệ lại',
+              path: '/quan-ly-bao-ve-lai/sinh-vien-dang-ky-bao-ve-lai',
+            },
+            {
+              title: 'BC SV chưa đóng tiền bảo vệ lại',
+              path: '/quan-ly-bao-ve-lai/sv-chua-nop-tien-bao-ve-lai',
+            },
+            {
+              title: 'BC thanh toán giảng viên bảo vệ lại',
+              path: '/quan-ly-bao-ve-lai/thanh-toan-giang-vien-bao-ve-lai',
+            },
+            {
+              title: 'BC tổng hợp sinh viên bảo vệ lại',
+              path: '/quan-ly-bao-ve-lai/bao-cao-tong-hop-sinh-vien',
+            },
           ],
         },
         {
@@ -479,7 +617,9 @@ export default {
       const items = [{ text: 'Trang chủ', to: '/', exact: true }]
 
       const isRetakeGradeSheet =
-        /^\/quan-ly-hoc-lai\/danh-sach-lop-hoc\/[^/]+\/bang-diem\/?$/.test(currentPath)
+        /^\/quan-ly-hoc-lai\/danh-sach-lop-hoc\/[^/]+\/bang-diem\/?$/.test(
+          currentPath
+        )
 
       if (isRetakeGradeSheet) {
         items.push({ text: 'Quản lý học lại', disabled: true })
@@ -768,7 +908,8 @@ export default {
   min-height: 38px !important;
   background-color: rgba(0, 0, 0, 0.15) !important;
 }
-.sub-menu-item:hover, .menu-item-active {
+.sub-menu-item:hover,
+.menu-item-active {
   background-color: #83161f !important;
 }
 .sub-menu-active {

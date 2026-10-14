@@ -15,5 +15,5 @@ export const mutations = {
 
 export const getters = {
   pageTitle: (state) => state.pageTitle,
-  isLoading: (state) => state.isLoading
+  isLoading: (state) => state.isLoading,
 }

@@ -1,6 +1,6 @@
 import Api from '~/api/Api.js'
 
-export default  {
+export default {
   getList(params) {
     return Api.get('/api/mail-config', { params })
   },
@@ -11,6 +11,5 @@ export default  {
 
   updateStatus(id, status) {
     return Api.put(`/api/mail-config/${id}/status`, { status })
-  }
+  },
 }
-

@@ -21,14 +21,16 @@ export default {
     meta: [
       { charset: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { hid: 'description', name: 'description', content: 'Hệ thống Quản lý học lại, bảo vệ lại và thi lại Bách Khoa' },
+      {
+        hid: 'description',
+        name: 'description',
+        content: 'Hệ thống Quản lý học lại, bảo vệ lại và thi lại Bách Khoa',
+      },
     ],
     link: [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }],
   },
 
-  css: [
-    '~/assets/scss/main.scss'
-  ],
+  css: ['~/assets/scss/main.scss'],
 
   plugins: [
     { src: '~/plugins/common.js', mode: 'client' },
@@ -45,27 +47,16 @@ export default {
 
   components: true,
 
-  buildModules: [
-    '@nuxtjs/eslint-module',
-    '@nuxtjs/vuetify',
-  ],
+  buildModules: ['@nuxtjs/eslint-module', '@nuxtjs/vuetify'],
 
-  modules: [
-    '@nuxtjs/axios',
-    '@nuxtjs/style-resources',
-  ],
+  modules: ['@nuxtjs/axios', '@nuxtjs/style-resources'],
 
   styleResources: {
-    scss: [
-      '~/assets/scss/colors.scss',
-      '~/assets/scss/variables.scss',
-    ],
+    scss: ['~/assets/scss/colors.scss', '~/assets/scss/variables.scss'],
   },
 
-// Đăng ký server middleware để proxy request API
-  serverMiddleware: [
-    '~/server/proxy.js'
-  ],
+  // Đăng ký server middleware để proxy request API
+  serverMiddleware: ['~/server/proxy.js'],
 
   // Cấu hình Axios trỏ về gốc '/' để gọi qua proxy của Nuxt server
   axios: {

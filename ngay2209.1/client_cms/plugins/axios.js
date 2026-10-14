@@ -59,7 +59,9 @@ export default function ({ $axios, store, redirect, app }) {
       if (app.$showError) app.$showError('Phiên đăng nhập đã hết hạn')
       redirect('/dang-nhap')
     } else {
-      const msg = error.response?.data?.error?.message || 'Có lỗi xảy ra, vui lòng thử lại'
+      const msg =
+        error.response?.data?.error?.message ||
+        'Có lỗi xảy ra, vui lòng thử lại'
       if (app.$showError) app.$showError(msg)
     }
 

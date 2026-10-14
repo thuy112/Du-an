@@ -1,9 +1,15 @@
 <template>
   <v-dialog v-model="internalValue" width="850px" persistent scrollable>
-    <v-card class="modal-auto-size rounded-lg overflow-hidden d-flex flex-column">
+    <v-card
+      class="modal-auto-size rounded-lg overflow-hidden d-flex flex-column"
+    >
       <!-- HEADER DIALOG -->
-      <v-card-title class="bg-red-bk white--text pa-3 d-flex justify-space-between align-center flex-shrink-0">
-        <span class="text-subtitle-1 font-weight-bold">Thêm sinh viên phải học lại</span>
+      <v-card-title
+        class="bg-red-bk white--text pa-3 d-flex justify-space-between align-center flex-shrink-0"
+      >
+        <span class="text-subtitle-1 font-weight-bold"
+          >Thêm sinh viên phải học lại</span
+        >
         <v-btn icon dark small class="ma-0" @click="closeModal">
           <v-icon small>mdi-close</v-icon>
         </v-btn>
@@ -13,24 +19,52 @@
       <v-card-text class="pa-5 black--text overflow-y-auto style-scrollbar">
         <div class="d-flex">
           <!-- BÊN TRÁI: ĐIỀU HƯỚNG BƯỚC STEPPER -->
-          <div class="stepper-left-bar flex-shrink-0" style="width: 170px;">
+          <div class="stepper-left-bar flex-shrink-0" style="width: 170px">
             <!-- BƯỚC 1 -->
             <div class="d-flex align-center gap-2 mb-8">
-              <span :class="['step-icon', currentStep === 1 ? 'bg-red-bk white--text' : 'bg-green-check white--text']">
+              <span
+                :class="[
+                  'step-icon',
+                  currentStep === 1
+                    ? 'bg-red-bk white--text'
+                    : 'bg-green-check white--text',
+                ]"
+              >
                 <v-icon v-if="currentStep > 1" x-small dark>mdi-check</v-icon>
                 <template v-else>1</template>
               </span>
-              <span :class="['text-caption', currentStep === 1 ? 'font-weight-bold black--text' : 'text-grey-color']">
+              <span
+                :class="[
+                  'text-caption',
+                  currentStep === 1
+                    ? 'font-weight-bold black--text'
+                    : 'text-grey-color',
+                ]"
+              >
                 Thông tin cá nhân
               </span>
             </div>
 
             <!-- BƯỚC 2 -->
             <div class="d-flex align-center gap-2">
-              <span :class="['step-icon', currentStep === 2 ? 'bg-red-bk white--text' : 'bg-grey-light text-grey-dark']">
+              <span
+                :class="[
+                  'step-icon',
+                  currentStep === 2
+                    ? 'bg-red-bk white--text'
+                    : 'bg-grey-light text-grey-dark',
+                ]"
+              >
                 2
               </span>
-              <span :class="['text-caption', currentStep === 2 ? 'font-weight-bold black--text' : 'text-grey-color']">
+              <span
+                :class="[
+                  'text-caption',
+                  currentStep === 2
+                    ? 'font-weight-bold black--text'
+                    : 'text-grey-color',
+                ]"
+              >
                 Thông tin lớp
               </span>
             </div>
@@ -58,10 +92,10 @@
                   clearable
                   return-object
                   class="student-select-field mx-auto"
-                  style="max-width: 380px;"
+                  style="max-width: 380px"
                   @change="onStudentSelect"
                 >
-                  <template v-slot:item="{ item }">
+                  <template #item="{ item }">
                     <v-list-item-content>
                       <v-list-item-title class="text-caption">
                         {{ item.studentCode }} - {{ item.fullName }}
@@ -75,42 +109,75 @@
               <div v-if="selectedStudent" class="mt-2 animate-fade-in">
                 <div class="d-flex align-center mb-3">
                   <div class="red-bar-indicator mr-2"></div>
-                  <span class="text-subtitle-1 font-weight-bold black--text">Thông tin cá nhân</span>
+                  <span class="text-subtitle-1 font-weight-bold black--text"
+                    >Thông tin cá nhân</span
+                  >
                 </div>
 
                 <v-row dense class="text-caption">
                   <v-col cols="6" class="py-1">
-                    Họ tên: <span class="font-weight-bold text-red-bold">{{ selectedStudent.fullName }}</span>
+                    Họ tên:
+                    <span class="font-weight-bold text-red-bold">{{
+                      selectedStudent.fullName
+                    }}</span>
                   </v-col>
                   <v-col cols="6" class="py-1">
-                    Mã SV: <span class="font-weight-bold text-red-bold">{{ selectedStudent.studentCode }}</span>
+                    Mã SV:
+                    <span class="font-weight-bold text-red-bold">{{
+                      selectedStudent.studentCode
+                    }}</span>
                   </v-col>
 
                   <v-col cols="6" class="py-1">
-                    Giới tính: <span class="font-weight-bold text-red-bold">{{ selectedStudent.gender || 'Khác' }}</span>
+                    Giới tính:
+                    <span class="font-weight-bold text-red-bold">{{
+                      selectedStudent.gender || 'Khác'
+                    }}</span>
                   </v-col>
                   <v-col cols="6" class="py-1">
-                    Lớp: <span class="font-weight-bold text-red-bold">{{ selectedStudent.className }}</span>
+                    Lớp:
+                    <span class="font-weight-bold text-red-bold">{{
+                      selectedStudent.className
+                    }}</span>
                   </v-col>
 
                   <v-col cols="12" class="py-1">
-                    Email trường: <span class="font-weight-bold text-red-bold">{{ selectedStudent.email }}</span>
+                    Email trường:
+                    <span class="font-weight-bold text-red-bold">{{
+                      selectedStudent.email
+                    }}</span>
                   </v-col>
 
                   <v-col cols="6" class="py-1">
-                    Khóa: <span class="font-weight-bold text-red-bold">{{ selectedStudent.academicYear || 'Khóa 67' }}</span>
+                    Khóa:
+                    <span class="font-weight-bold text-red-bold">{{
+                      selectedStudent.academicYear || 'Khóa 67'
+                    }}</span>
                   </v-col>
                   <v-col cols="6" class="py-1">
-                    Loại hình đào tạo: <span class="font-weight-bold text-red-bold">{{ selectedStudent.trainingType || 'Vừa làm vừa học' }}</span>
+                    Loại hình đào tạo:
+                    <span class="font-weight-bold text-red-bold">{{
+                      selectedStudent.trainingType || 'Vừa làm vừa học'
+                    }}</span>
                   </v-col>
 
                   <v-col cols="12" class="py-1">
-                    Ngành: <span class="font-weight-bold text-red-bold">{{ selectedStudent.majorName || 'Kế toán' }}</span>
+                    Ngành:
+                    <span class="font-weight-bold text-red-bold">{{
+                      selectedStudent.majorName || 'Kế toán'
+                    }}</span>
                   </v-col>
                 </v-row>
 
                 <div class="d-flex justify-end mt-4">
-                  <v-btn color="#A62229" dark small class="px-6 text-none font-weight-medium rounded-sm" elevation="0" @click="goToStep2">
+                  <v-btn
+                    color="#A62229"
+                    dark
+                    small
+                    class="px-6 text-none font-weight-medium rounded-sm"
+                    elevation="0"
+                    @click="goToStep2"
+                  >
                     Tiếp tục
                   </v-btn>
                 </div>
@@ -118,7 +185,13 @@
 
               <!-- NÚT TIẾP TỤC CHƯA CHỌN SV -->
               <div v-else class="d-flex justify-end mt-4">
-                <v-btn color="#E0E0E0" small disabled class="px-6 text-none font-weight-medium rounded-sm" elevation="0">
+                <v-btn
+                  color="#E0E0E0"
+                  small
+                  disabled
+                  class="px-6 text-none font-weight-medium rounded-sm"
+                  elevation="0"
+                >
                   Tiếp tục
                 </v-btn>
               </div>
@@ -152,60 +225,137 @@
                 </v-col>
 
                 <v-col cols="6">
-                  <v-text-field v-model="form.examClassType" placeholder="Loại lớp thi" outlined dense hide-details></v-text-field>
+                  <v-text-field
+                    v-model="form.examClassType"
+                    placeholder="Loại lớp thi"
+                    outlined
+                    dense
+                    hide-details
+                  ></v-text-field>
                 </v-col>
                 <v-col cols="6">
-                  <v-text-field v-model="form.examClassCode" placeholder="Mã lớp thi" outlined dense hide-details></v-text-field>
+                  <v-text-field
+                    v-model="form.examClassCode"
+                    placeholder="Mã lớp thi"
+                    outlined
+                    dense
+                    hide-details
+                  ></v-text-field>
                 </v-col>
 
                 <v-col cols="12">
-                  <v-textarea v-model="form.note" placeholder="Ghi chú" outlined dense hide-details rows="2"></v-textarea>
+                  <v-textarea
+                    v-model="form.note"
+                    placeholder="Ghi chú"
+                    outlined
+                    dense
+                    hide-details
+                    rows="2"
+                  ></v-textarea>
                 </v-col>
 
                 <v-col cols="6">
-                  <v-select v-model="form.type" :items="['Học lại', 'Thi lại']" placeholder="Học lại / Thi lại" outlined dense hide-details></v-select>
+                  <v-select
+                    v-model="form.type"
+                    :items="['Học lại', 'Thi lại']"
+                    placeholder="Học lại / Thi lại"
+                    outlined
+                    dense
+                    hide-details
+                  ></v-select>
                 </v-col>
                 <v-col cols="6">
-                  <v-text-field v-model="form.bonusScore" placeholder="Điểm thưởng" outlined dense hide-details></v-text-field>
+                  <v-text-field
+                    v-model="form.bonusScore"
+                    placeholder="Điểm thưởng"
+                    outlined
+                    dense
+                    hide-details
+                  ></v-text-field>
                 </v-col>
 
                 <v-col cols="6">
-                  <v-text-field v-model="form.charScore" placeholder="Điểm chữ" outlined dense hide-details></v-text-field>
+                  <v-text-field
+                    v-model="form.charScore"
+                    placeholder="Điểm chữ"
+                    outlined
+                    dense
+                    hide-details
+                  ></v-text-field>
                 </v-col>
                 <v-col cols="6">
-                  <v-text-field v-model="form.attendanceScore" placeholder="Điểm chuyên cần" outlined dense hide-details></v-text-field>
+                  <v-text-field
+                    v-model="form.attendanceScore"
+                    placeholder="Điểm chuyên cần"
+                    outlined
+                    dense
+                    hide-details
+                  ></v-text-field>
                 </v-col>
 
                 <v-col cols="6">
-                  <v-text-field v-model="form.midtermScore" placeholder="Điểm giữa kỳ" outlined dense hide-details></v-text-field>
+                  <v-text-field
+                    v-model="form.midtermScore"
+                    placeholder="Điểm giữa kỳ"
+                    outlined
+                    dense
+                    hide-details
+                  ></v-text-field>
                 </v-col>
                 <v-col cols="6">
-                  <v-text-field v-model="form.processScore" placeholder="Điểm quá trình" outlined dense hide-details></v-text-field>
+                  <v-text-field
+                    v-model="form.processScore"
+                    placeholder="Điểm quá trình"
+                    outlined
+                    dense
+                    hide-details
+                  ></v-text-field>
                 </v-col>
 
                 <v-col cols="6">
-                  <v-text-field v-model="form.practiceScore" placeholder="Điểm thực hành thí nghiệm" outlined dense hide-details></v-text-field>
+                  <v-text-field
+                    v-model="form.practiceScore"
+                    placeholder="Điểm thực hành thí nghiệm"
+                    outlined
+                    dense
+                    hide-details
+                  ></v-text-field>
                 </v-col>
                 <v-col cols="6">
-                  <v-text-field v-model="form.weight" placeholder="Trọng số" outlined dense hide-details></v-text-field>
+                  <v-text-field
+                    v-model="form.weight"
+                    placeholder="Trọng số"
+                    outlined
+                    dense
+                    hide-details
+                  ></v-text-field>
                 </v-col>
 
                 <v-col cols="12">
-                  <v-select v-model="form.teacherId" :items="teacherOptions" placeholder="Giảng viên" outlined dense hide-details></v-select>
+                  <v-select
+                    v-model="form.teacherId"
+                    :items="teacherOptions"
+                    placeholder="Giảng viên"
+                    outlined
+                    dense
+                    hide-details
+                  ></v-select>
                 </v-col>
               </v-row>
 
               <!-- DANH SÁCH HỌC PHẦN -->
               <div class="mt-4">
                 <div class="text-caption font-weight-bold black--text mb-2">
-                  Danh sách học phần (<span class="text-red-bold">{{ selectedSubjects.length }} / {{ totalSubjects }}</span>)
+                  Danh sách học phần (<span class="text-red-bold"
+                    >{{ selectedSubjects.length }} / {{ totalSubjects }}</span
+                  >)
                 </div>
 
                 <v-simple-table dense class="border-table">
-                  <template v-slot:default>
+                  <template #default>
                     <thead>
                       <tr class="bg-gray-head">
-                        <th style="width: 36px;">
+                        <th style="width: 36px">
                           <v-checkbox
                             v-model="selectAllSubjects"
                             :disabled="!isUnregistered"
@@ -215,20 +365,36 @@
                             @change="toggleSelectAll"
                           ></v-checkbox>
                         </th>
-                        <th class="text-left font-weight-bold text-caption">STT</th>
-                        <th class="text-left font-weight-bold text-caption">Mã học phần</th>
-                        <th class="text-left font-weight-bold text-caption">Tên học phần</th>
-                        <th class="text-center font-weight-bold text-caption">Số tín chỉ học phí</th>
-                        <th class="text-center font-weight-bold text-caption">Số tín chỉ đào tạo</th>
+                        <th class="text-left font-weight-bold text-caption">
+                          STT
+                        </th>
+                        <th class="text-left font-weight-bold text-caption">
+                          Mã học phần
+                        </th>
+                        <th class="text-left font-weight-bold text-caption">
+                          Tên học phần
+                        </th>
+                        <th class="text-center font-weight-bold text-caption">
+                          Số tín chỉ học phí
+                        </th>
+                        <th class="text-center font-weight-bold text-caption">
+                          Số tín chỉ đào tạo
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr v-if="subjectList.length === 0">
-                        <td colspan="6" class="text-center py-5 text-caption text-grey-color">
+                        <td
+                          colspan="6"
+                          class="text-center py-5 text-caption text-grey-color"
+                        >
                           Không có dữ liệu
                         </td>
                       </tr>
-                      <tr v-for="(item, index) in subjectList" :key="item.id || index">
+                      <tr
+                        v-for="(item, index) in subjectList"
+                        :key="item.id || index"
+                      >
                         <td>
                           <v-checkbox
                             v-model="selectedSubjects"
@@ -242,8 +408,12 @@
                         <td class="text-caption">{{ index + 1 }}</td>
                         <td class="text-caption">{{ item.code }}</td>
                         <td class="text-caption">{{ item.name }}</td>
-                        <td class="text-center text-caption">{{ item.tuitionCredits }}</td>
-                        <td class="text-center text-caption">{{ item.trainingCredits }}</td>
+                        <td class="text-center text-caption">
+                          {{ item.tuitionCredits }}
+                        </td>
+                        <td class="text-center text-caption">
+                          {{ item.trainingCredits }}
+                        </td>
                       </tr>
                     </tbody>
                   </template>
@@ -252,7 +422,14 @@
 
               <!-- NÚT QUAY LẠI -->
               <div class="d-flex justify-start mt-4">
-                <v-btn color="#A62229" dark small class="px-5 text-none font-weight-medium rounded-sm" elevation="0" @click="currentStep = 1">
+                <v-btn
+                  color="#A62229"
+                  dark
+                  small
+                  class="px-5 text-none font-weight-medium rounded-sm"
+                  elevation="0"
+                  @click="currentStep = 1"
+                >
                   Quay lại
                 </v-btn>
               </div>
@@ -265,8 +442,16 @@
         <div class="toast-item" :style="{ backgroundColor: snackbar.color }">
           <div class="toast-content">
             <v-icon left dark>{{ snackbar.icon }}</v-icon>
-            <span class="white--text font-weight-medium flex-grow-1">{{ snackbar.text }}</span>
-            <v-btn icon dark x-small aria-label="Đóng thông báo" @click="snackbar.show = false">
+            <span class="white--text font-weight-medium flex-grow-1">{{
+              snackbar.text
+            }}</span>
+            <v-btn
+              icon
+              dark
+              x-small
+              aria-label="Đóng thông báo"
+              @click="snackbar.show = false"
+            >
               <v-icon small>mdi-close</v-icon>
             </v-btn>
           </div>
@@ -284,8 +469,16 @@
       <v-divider></v-divider>
 
       <!-- FOOTER DIALOG -->
-      <v-card-actions class="pa-3 d-flex justify-end gap-2 bg-white flex-shrink-0">
-        <v-btn outlined small color="#333333" class="text-none px-4 border-btn-grey" @click="closeModal">
+      <v-card-actions
+        class="pa-3 d-flex justify-end gap-2 bg-white flex-shrink-0"
+      >
+        <v-btn
+          outlined
+          small
+          color="#333333"
+          class="text-none px-4 border-btn-grey"
+          @click="closeModal"
+        >
           Đóng <v-icon right x-small class="ml-1">mdi-close</v-icon>
         </v-btn>
 
@@ -299,7 +492,8 @@
           :loading="submitting"
           @click="saveData"
         >
-          Lưu <v-icon right x-small class="ml-1">mdi-content-save-outline</v-icon>
+          Lưu
+          <v-icon right x-small class="ml-1">mdi-content-save-outline</v-icon>
         </v-btn>
       </v-card-actions>
     </v-card>
@@ -314,12 +508,12 @@ export default {
   props: {
     value: {
       type: Boolean,
-      default: false
+      default: false,
     },
     // Truyền dữ liệu sinh viên ban đầu khi nhấn nút +
     initialStudent: {
       type: Object,
-      default: null
+      default: null,
     },
     // DANH SÁCH SINH VIÊN LẤY TỪ TRANG "Danh sách sinh viên phải học lại"
     mustRetakeStudents: {
@@ -333,7 +527,7 @@ export default {
           academicYear: 'Khóa 68',
           majorName: 'Tin học kinh tế',
           className: 'Tin học kinh tế',
-          trainingType: 'Chính quy'
+          trainingType: 'Chính quy',
         },
         {
           fullName: 'Lê Tuấn Anh',
@@ -343,7 +537,7 @@ export default {
           academicYear: 'Khóa 66',
           majorName: 'Công nghệ thông tin',
           className: 'ĐH-BK-CNTT1.2-K66',
-          trainingType: 'Chính quy'
+          trainingType: 'Chính quy',
         },
         {
           fullName: 'Đỗ Tiến Tây Anh',
@@ -353,7 +547,7 @@ export default {
           academicYear: 'Khóa 66',
           majorName: 'Công nghệ thông tin',
           className: 'ĐH-BK-CNTT1.1-K66',
-          trainingType: 'Chính quy'
+          trainingType: 'Chính quy',
         },
         {
           fullName: 'Nguyễn Linh Anh',
@@ -363,7 +557,7 @@ export default {
           academicYear: 'Khóa 66',
           majorName: 'Công nghệ thông tin',
           className: 'ĐH-BK-CNTT1.1-K66',
-          trainingType: 'Chính quy'
+          trainingType: 'Chính quy',
         },
         {
           fullName: 'Nguyễn Quang Anh',
@@ -373,23 +567,23 @@ export default {
           academicYear: 'Khóa 66',
           majorName: 'Công nghệ thông tin',
           className: 'ĐH-BK-CNTT1.2-K66',
-          trainingType: 'Chính quy'
-        }
-      ]
+          trainingType: 'Chính quy',
+        },
+      ],
     },
     // DANH SÁCH LỚP HỌC LẠI ĐÃ ĐĂNG KÝ TỪ quan-ly-hoc-lai/danh-sach-lop-hoc
     registeredClassesList: {
       type: Array,
-      default: () => []
+      default: () => [],
     },
     mockMode: {
       type: Boolean,
-      default: false
+      default: false,
     },
     isUnregistered: {
       type: Boolean,
-      default: true
-    }
+      default: true,
+    },
   },
   data() {
     return {
@@ -419,7 +613,7 @@ export default {
         processScore: '',
         practiceScore: '',
         weight: '',
-        teacherId: null
+        teacherId: null,
       },
       snackbar: {
         show: false,
@@ -427,14 +621,18 @@ export default {
         color: '#2E7D32',
         icon: 'mdi-check-circle',
         duration: 3000,
-        key: 0
-      }
+        key: 0,
+      },
     }
   },
   computed: {
     internalValue: {
-      get() { return this.value },
-      set(val) { this.$emit('input', val) }
+      get() {
+        return this.value
+      },
+      set(val) {
+        this.$emit('input', val)
+      },
     },
     // DANH SÁCH LẤY TRỰC TIẾP TỪ TRANG SỬ DỤNG
     studentOptions() {
@@ -442,7 +640,7 @@ export default {
     },
     totalSubjects() {
       return this.subjectList.length
-    }
+    },
   },
   watch: {
     value(val) {
@@ -452,7 +650,7 @@ export default {
           this.selectedStudent = { ...this.initialStudent }
         }
       }
-    }
+    },
   },
   methods: {
     showNotification(message, color = '#2E7D32', icon = 'mdi-check-circle') {
@@ -507,11 +705,13 @@ export default {
         return
       }
 
-      const sessionRecords = this.getStudentRecords().filter(item =>
-        String(item.sessionId || item.sessionCode || '').trim() === String(val).trim()
+      const sessionRecords = this.getStudentRecords().filter(
+        (item) =>
+          String(item.sessionId || item.sessionCode || '').trim() ===
+          String(val).trim()
       )
       this.termOptions = sessionRecords
-        .map(item => item.termId || item.termCode)
+        .map((item) => item.termId || item.termCode)
         .filter((term, index, terms) => term && terms.indexOf(term) === index)
       this.form.termId = this.termOptions[0] || null
       this.filterSubjects()
@@ -524,22 +724,35 @@ export default {
 
     // HÀM LỌC DANH SÁCH HỌC PHẦN
     filterSubjects() {
-      if (!this.selectedStudent || !this.selectedStudent.studentCode || !this.form.sessionId) {
+      if (
+        !this.selectedStudent ||
+        !this.selectedStudent.studentCode ||
+        !this.form.sessionId
+      ) {
         this.subjectList = []
         this.selectedSubjects = []
         this.selectAllSubjects = false
         return
       }
 
-      const studentCode = String(this.selectedStudent.studentCode).trim().toLowerCase()
+      const studentCode = String(this.selectedStudent.studentCode)
+        .trim()
+        .toLowerCase()
       const selectedSession = this.form.sessionId
       const selectedTerm = this.form.termId
 
-      const filtered = (this.registeredClassesList || []).filter(item => {
-        const matchStudent = String(item.studentCode || '').trim().toLowerCase() === studentCode
-        const matchSession = String(item.sessionId || item.sessionCode || '').trim() === String(selectedSession).trim()
-        const matchTerm = !selectedTerm ||
-          String(item.termId || item.termCode || '').trim() === String(selectedTerm).trim()
+      const filtered = (this.registeredClassesList || []).filter((item) => {
+        const matchStudent =
+          String(item.studentCode || '')
+            .trim()
+            .toLowerCase() === studentCode
+        const matchSession =
+          String(item.sessionId || item.sessionCode || '').trim() ===
+          String(selectedSession).trim()
+        const matchTerm =
+          !selectedTerm ||
+          String(item.termId || item.termCode || '').trim() ===
+            String(selectedTerm).trim()
         return matchStudent && matchSession && matchTerm
       })
 
@@ -548,7 +761,7 @@ export default {
         code: item.subjectCode,
         name: item.subjectName,
         tuitionCredits: item.tuitionCredits,
-        trainingCredits: item.trainingCredits
+        trainingCredits: item.trainingCredits,
       }))
 
       this.selectedSubjects = []
@@ -556,16 +769,21 @@ export default {
     },
 
     getStudentRecords() {
-      const studentCode = String(this.selectedStudent?.studentCode || '').trim().toLowerCase()
-      return (this.registeredClassesList || []).filter(item =>
-        String(item.studentCode || '').trim().toLowerCase() === studentCode
+      const studentCode = String(this.selectedStudent?.studentCode || '')
+        .trim()
+        .toLowerCase()
+      return (this.registeredClassesList || []).filter(
+        (item) =>
+          String(item.studentCode || '')
+            .trim()
+            .toLowerCase() === studentCode
       )
     },
 
     toggleSelectAll(val) {
       if (!this.isUnregistered) return
       if (val) {
-        this.selectedSubjects = this.subjectList.map(item => item.id)
+        this.selectedSubjects = this.subjectList.map((item) => item.id)
       } else {
         this.selectedSubjects = []
       }
@@ -576,8 +794,11 @@ export default {
       this.form.sessionId = null
       this.form.termId = null
       this.sessionOptions = this.getStudentRecords()
-        .map(item => item.sessionId || item.sessionCode)
-        .filter((session, index, sessions) => session && sessions.indexOf(session) === index)
+        .map((item) => item.sessionId || item.sessionCode)
+        .filter(
+          (session, index, sessions) =>
+            session && sessions.indexOf(session) === index
+        )
       this.termOptions = []
       this.filterSubjects()
     },
@@ -586,18 +807,23 @@ export default {
       const missingFields = this.validateRequiredFields()
 
       if (missingFields.length > 0) {
-        const message = missingFields.length === 1
-          ? `Bạn chưa chọn ${missingFields[0]}.`
-          : `Bạn chưa chọn: ${missingFields.join(', ')}.`
+        const message =
+          missingFields.length === 1
+            ? `Bạn chưa chọn ${missingFields[0]}.`
+            : `Bạn chưa chọn: ${missingFields.join(', ')}.`
         this.showNotification(message, '#F9A825', 'mdi-alert-circle')
         return
       }
 
-      const selectedSubjects = this.subjectList.filter(subject =>
+      const selectedSubjects = this.subjectList.filter((subject) =>
         this.selectedSubjects.includes(subject.id)
       )
       if (selectedSubjects.length === 0) {
-        this.showNotification('Bạn chưa chọn học phần.', '#F9A825', 'mdi-alert-circle')
+        this.showNotification(
+          'Bạn chưa chọn học phần.',
+          '#F9A825',
+          'mdi-alert-circle'
+        )
         return
       }
 
@@ -620,12 +846,16 @@ export default {
           failingScore: '',
           failedScore: '',
           status: 'Chưa đăng ký',
-          isRegistered: false
+          isRegistered: false,
         }))
 
         if (this.mockMode) {
           this.$emit('success', newStudentData)
-          this.showNotification('Đã thêm vào danh sách thử nghiệm (chưa lưu lên máy chủ).', '#2E7D32', 'mdi-check-circle')
+          this.showNotification(
+            'Đã thêm vào danh sách thử nghiệm (chưa lưu lên máy chủ).',
+            '#2E7D32',
+            'mdi-check-circle'
+          )
           this.closeModal()
           return
         }
@@ -633,22 +863,34 @@ export default {
         const payload = {
           studentCode: this.selectedStudent?.studentCode,
           selectedSubjects: this.selectedSubjects,
-          ...this.form
+          ...this.form,
         }
         const res = await retakeCourseServices.addMustRetakeStudent(payload)
         if (res && res.success) {
-          const savedStudents = newStudentData.map(item => ({
+          const savedStudents = newStudentData.map((item) => ({
             ...(res.data || {}),
-            ...item
+            ...item,
           }))
-          this.showNotification('Thêm sinh viên phải học lại thành công!', '#2E7D32', 'mdi-check-circle')
+          this.showNotification(
+            'Thêm sinh viên phải học lại thành công!',
+            '#2E7D32',
+            'mdi-check-circle'
+          )
           this.$emit('success', savedStudents)
           this.closeModal()
         } else {
-          this.showNotification('Không thể thêm sinh viên phải học lại!', '#F44336', 'mdi-alert-circle')
+          this.showNotification(
+            'Không thể thêm sinh viên phải học lại!',
+            '#F44336',
+            'mdi-alert-circle'
+          )
         }
       } catch (err) {
-        this.showNotification('Lỗi khi lưu dữ liệu!', '#F44336', 'mdi-alert-circle')
+        this.showNotification(
+          'Lỗi khi lưu dữ liệu!',
+          '#F44336',
+          'mdi-alert-circle'
+        )
       } finally {
         this.submitting = false
       }
@@ -668,8 +910,8 @@ export default {
 
     closeModal() {
       this.internalValue = false
-    }
-  }
+    },
+  },
 }
 </script>
 
@@ -680,10 +922,18 @@ export default {
   max-height: 85vh !important;
 }
 
-.bg-red-bk { background-color: #A62229 !important; }
-.text-red-bold { color: #A62229 !important; }
-.text-grey-color { color: #757575 !important; }
-.bg-green-check { background-color: #A62229 !important; }
+.bg-red-bk {
+  background-color: #a62229 !important;
+}
+.text-red-bold {
+  color: #a62229 !important;
+}
+.text-grey-color {
+  color: #757575 !important;
+}
+.bg-green-check {
+  background-color: #a62229 !important;
+}
 
 .step-icon {
   width: 26px;
@@ -696,26 +946,32 @@ export default {
   font-weight: bold;
 }
 
-.bg-grey-light { background-color: #E0E0E0; }
-.text-grey-dark { color: #616161; }
+.bg-grey-light {
+  background-color: #e0e0e0;
+}
+.text-grey-dark {
+  color: #616161;
+}
 
 .border-left-divider {
-  border-left: 1px solid #E0E0E0;
+  border-left: 1px solid #e0e0e0;
 }
 
 .red-bar-indicator {
   width: 4px;
   height: 18px;
-  background-color: #A62229;
+  background-color: #a62229;
 }
 
 .border-table {
-  border: 1px solid #E0E0E0;
+  border: 1px solid #e0e0e0;
   border-radius: 4px;
   overflow: hidden;
 }
 
-.bg-gray-head { background-color: #F5F5F5; }
+.bg-gray-head {
+  background-color: #f5f5f5;
+}
 
 .custom-form-dense >>> .v-input__slot {
   min-height: 36px !important;
@@ -724,18 +980,20 @@ export default {
 }
 
 .border-btn-grey {
-  border: 1px solid #BDBDBD !important;
+  border: 1px solid #bdbdbd !important;
 }
 
 .style-scrollbar::-webkit-scrollbar {
   width: 5px;
 }
 .style-scrollbar::-webkit-scrollbar-thumb {
-  background: #C1C1C1;
+  background: #c1c1c1;
   border-radius: 4px;
 }
 
-.gap-2 { gap: 8px; }
+.gap-2 {
+  gap: 8px;
+}
 
 .toast-container {
   position: fixed;
@@ -780,12 +1038,22 @@ export default {
 }
 
 @keyframes toastCountdown {
-  from { width: 100%; }
-  to { width: 0; }
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0;
+  }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(3px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 </style>

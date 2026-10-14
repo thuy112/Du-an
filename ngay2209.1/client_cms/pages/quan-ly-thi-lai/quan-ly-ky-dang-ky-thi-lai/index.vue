@@ -3,7 +3,11 @@
     <!-- ==================== HEADER & TIÊU ĐỀ ==================== -->
     <div class="filter-header-wrapper mb-3">
       <div class="text-subtitle-1 font-weight-medium black--text mb-2">
-        Danh sách kỳ đăng ký thi lại ( <span class="red--text text--darken-3 font-weight-bold">{{ totalItemsCount }}</span> )
+        Danh sách kỳ đăng ký thi lại (
+        <span class="red--text text--darken-3 font-weight-bold">{{
+          totalItemsCount
+        }}</span>
+        )
       </div>
 
       <div class="d-flex align-center justify-end gap-2 flex-wrap">
@@ -89,17 +93,34 @@
         ></v-select>
 
         <!-- Nút Refresh -->
-        <v-btn icon color="#a2212b" class="action-btn rounded-sm" @click="resetFilters">
+        <v-btn
+          icon
+          color="#a2212b"
+          class="action-btn rounded-sm"
+          @click="resetFilters"
+        >
           <v-icon color="#a2212b" size="24">mdi-refresh</v-icon>
         </v-btn>
 
         <!-- Nút Tìm kiếm -->
-        <v-btn color="#a2212b" dark elevation="0" class="action-btn min-w-0 px-3 rounded-sm" @click="handleSearch">
+        <v-btn
+          color="#a2212b"
+          dark
+          elevation="0"
+          class="action-btn min-w-0 px-3 rounded-sm"
+          @click="handleSearch"
+        >
           <v-icon size="24">mdi-magnify</v-icon>
         </v-btn>
 
         <!-- Nút Thêm mới -->
-        <v-btn color="#a2212b" dark elevation="0" class="action-btn min-w-0 px-3 rounded-sm" @click="openCreateModal">
+        <v-btn
+          color="#a2212b"
+          dark
+          elevation="0"
+          class="action-btn min-w-0 px-3 rounded-sm"
+          @click="openCreateModal"
+        >
           <v-icon size="24">mdi-plus</v-icon>
         </v-btn>
       </div>
@@ -116,11 +137,15 @@
         :hide-default-footer="true"
         class="custom-responsive-table"
       >
-        <template v-slot:body="{ items }">
+        <template #body="{ items }">
           <tbody>
             <tr v-if="loading">
               <td colspan="7" class="text-center py-6">
-                <v-progress-circular indeterminate color="#a2212b" size="32"></v-progress-circular>
+                <v-progress-circular
+                  indeterminate
+                  color="#a2212b"
+                  size="32"
+                ></v-progress-circular>
               </td>
             </tr>
             <tr v-else-if="items.length === 0">
@@ -128,29 +153,48 @@
                 Không có dữ liệu.
               </td>
             </tr>
-            <tr v-for="(item, index) in items" :key="item.id || index" class="responsive-row">
+            <tr
+              v-for="(item, index) in items"
+              :key="item.id || index"
+              class="responsive-row"
+            >
               <td class="text-center" data-label="STT">
-                <span class="mobile-label font-weight-bold d-md-none">STT: </span>
+                <span class="mobile-label font-weight-bold d-md-none"
+                  >STT:
+                </span>
                 {{ (page - 1) * itemsPerPage + index + 1 }}
               </td>
-              <td class="font-weight-medium" data-label="Tên kỳ đăng ký thi lại">
-                <span class="mobile-label font-weight-bold d-md-none">Tên kỳ thi lại: </span>
+              <td
+                class="font-weight-medium"
+                data-label="Tên kỳ đăng ký thi lại"
+              >
+                <span class="mobile-label font-weight-bold d-md-none"
+                  >Tên kỳ thi lại:
+                </span>
                 {{ item.name }}
               </td>
               <td data-label="Mã kỳ đăng ký thi lại">
-                <span class="mobile-label font-weight-bold d-md-none">Mã kỳ thi lại: </span>
+                <span class="mobile-label font-weight-bold d-md-none"
+                  >Mã kỳ thi lại:
+                </span>
                 {{ item.code }}
               </td>
               <td data-label="Học kỳ">
-                <span class="mobile-label font-weight-bold d-md-none">Học kỳ: </span>
+                <span class="mobile-label font-weight-bold d-md-none"
+                  >Học kỳ:
+                </span>
                 {{ item.semester || '—' }}
               </td>
               <td class="text-center" data-label="Thời gian đăng ký">
-                <span class="mobile-label font-weight-bold d-md-none">Thời gian đăng ký: </span>
+                <span class="mobile-label font-weight-bold d-md-none"
+                  >Thời gian đăng ký:
+                </span>
                 {{ item.fromTime }} - {{ item.toTime }}
               </td>
               <td class="text-center" data-label="Trạng thái">
-                <span class="mobile-label font-weight-bold d-md-none">Trạng thái: </span>
+                <span class="mobile-label font-weight-bold d-md-none"
+                  >Trạng thái:
+                </span>
                 <v-select
                   :value="item.status"
                   :items="statusSelectItems"
@@ -161,16 +205,30 @@
                   flat
                   hide-details
                   class="status-select-btn"
-                  :class="item.status === 'ACTIVE' ? 'status-active' : 'status-inactive'"
+                  :class="
+                    item.status === 'ACTIVE'
+                      ? 'status-active'
+                      : 'status-inactive'
+                  "
                   @change="(val) => openConfirmStatusDialog(item, val)"
                 ></v-select>
               </td>
               <td class="text-center" data-label="Chức năng">
-                <span class="mobile-label font-weight-bold d-md-none">Chức năng: </span>
-                <div class="d-flex align-center justify-end justify-md-center gap-1">
+                <span class="mobile-label font-weight-bold d-md-none"
+                  >Chức năng:
+                </span>
+                <div
+                  class="d-flex align-center justify-end justify-md-center gap-1"
+                >
                   <v-tooltip bottom>
                     <template #activator="{ on, attrs }">
-                      <v-btn icon x-small v-bind="attrs" v-on="on" @click="viewDetail(item)">
+                      <v-btn
+                        icon
+                        x-small
+                        v-bind="attrs"
+                        v-on="on"
+                        @click="viewDetail(item)"
+                      >
                         <v-icon size="20" color="blue">mdi-eye</v-icon>
                       </v-btn>
                     </template>
@@ -179,7 +237,13 @@
 
                   <v-tooltip bottom>
                     <template #activator="{ on, attrs }">
-                      <v-btn icon x-small v-bind="attrs" v-on="on" @click="openEditModal(item)">
+                      <v-btn
+                        icon
+                        x-small
+                        v-bind="attrs"
+                        v-on="on"
+                        @click="openEditModal(item)"
+                      >
                         <v-icon size="20" color="warning">mdi-pencil</v-icon>
                       </v-btn>
                     </template>
@@ -188,7 +252,13 @@
 
                   <v-tooltip bottom>
                     <template #activator="{ on, attrs }">
-                      <v-btn icon x-small v-bind="attrs" v-on="on" @click="openDeleteDialog(item)">
+                      <v-btn
+                        icon
+                        x-small
+                        v-bind="attrs"
+                        v-on="on"
+                        @click="openDeleteDialog(item)"
+                      >
                         <v-icon size="20" color="red">mdi-trash-can</v-icon>
                       </v-btn>
                     </template>
@@ -203,7 +273,9 @@
     </div>
 
     <!-- ==================== THANH PHÂN TRANG CỐ ĐỊNH GÓC DƯỚI BÊN PHẢI ==================== -->
-    <div class="fixed-footer-pagination d-flex align-center justify-end px-4 py-2 bg-white flex-wrap gap-3">
+    <div
+      class="fixed-footer-pagination d-flex align-center justify-end px-4 py-2 bg-white flex-wrap gap-3"
+    >
       <!-- Cụm bên trái: Chọn bản ghi & Nhập trang & Nút Đi -->
       <div class="d-flex align-center gap-2">
         <div class="d-flex align-center text-caption gap-1">
@@ -254,14 +326,23 @@
           small
           elevation="0"
           :color="p === page ? '#a2212b' : 'transparent'"
-          :class="p === page ? 'white--text font-weight-bold' : 'grey--text text--darken-2'"
+          :class="
+            p === page
+              ? 'white--text font-weight-bold'
+              : 'grey--text text--darken-2'
+          "
           class="pagination-square-btn min-w-0"
           @click="changePage(p)"
         >
           {{ p }}
         </v-btn>
 
-        <v-btn icon small :disabled="page === totalPages" @click="changePage(page + 1)">
+        <v-btn
+          icon
+          small
+          :disabled="page === totalPages"
+          @click="changePage(page + 1)"
+        >
           <v-icon>mdi-chevron-right</v-icon>
         </v-btn>
       </div>
@@ -270,8 +351,12 @@
     <!-- DIALOG THÊM / SỬA -->
     <v-dialog v-model="formDialog" max-width="600px" persistent>
       <v-card class="rounded-lg overflow-hidden">
-        <v-card-title class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center red-header">
-          <span>{{ isEdit ? 'Chỉnh sửa kỳ thi lại' : 'Thêm mới kỳ thi lại' }}</span>
+        <v-card-title
+          class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center red-header"
+        >
+          <span>{{
+            isEdit ? 'Chỉnh sửa kỳ thi lại' : 'Thêm mới kỳ thi lại'
+          }}</span>
           <v-btn icon dark x-small @click="formDialog = false">
             <v-icon>mdi-close</v-icon>
           </v-btn>
@@ -287,7 +372,7 @@
                   outlined
                   dense
                   class="custom-field"
-                  :rules="[v => !!v || 'Vui lòng nhập tên kỳ thi lại']"
+                  :rules="[(v) => !!v || 'Vui lòng nhập tên kỳ thi lại']"
                 ></v-text-field>
               </v-col>
 
@@ -298,7 +383,7 @@
                   outlined
                   dense
                   class="custom-field"
-                  :rules="[v => !!v || 'Vui lòng nhập mã kỳ thi lại']"
+                  :rules="[(v) => !!v || 'Vui lòng nhập mã kỳ thi lại']"
                 ></v-text-field>
               </v-col>
 
@@ -310,7 +395,7 @@
                   outlined
                   dense
                   class="custom-field"
-                  :rules="[v => !!v || 'Vui lòng chọn học kỳ']"
+                  :rules="[(v) => !!v || 'Vui lòng chọn học kỳ']"
                 ></v-select>
               </v-col>
 
@@ -321,7 +406,7 @@
                   outlined
                   dense
                   class="custom-field"
-                  :rules="[v => !!v || 'Vui lòng nhập thời gian bắt đầu']"
+                  :rules="[(v) => !!v || 'Vui lòng nhập thời gian bắt đầu']"
                 ></v-text-field>
               </v-col>
 
@@ -332,7 +417,7 @@
                   outlined
                   dense
                   class="custom-field"
-                  :rules="[v => !!v || 'Vui lòng nhập thời gian kết thúc']"
+                  :rules="[(v) => !!v || 'Vui lòng nhập thời gian kết thúc']"
                 ></v-text-field>
               </v-col>
             </v-row>
@@ -340,10 +425,21 @@
         </v-card-text>
 
         <v-card-actions class="pa-4 pt-0 d-flex justify-end gap-2">
-          <v-btn outlined color="#a2212b" class="px-4 font-weight-bold rounded-sm text-capitalize border-btn" @click="formDialog = false">
+          <v-btn
+            outlined
+            color="#a2212b"
+            class="px-4 font-weight-bold rounded-sm text-capitalize border-btn"
+            @click="formDialog = false"
+          >
             Đóng <v-icon small right>mdi-close</v-icon>
           </v-btn>
-          <v-btn color="#a2212b" dark elevation="0" class="px-4 font-weight-bold rounded-sm text-capitalize" @click="saveForm">
+          <v-btn
+            color="#a2212b"
+            dark
+            elevation="0"
+            class="px-4 font-weight-bold rounded-sm text-capitalize"
+            @click="saveForm"
+          >
             Lưu
           </v-btn>
         </v-card-actions>
@@ -353,7 +449,9 @@
     <!-- DIALOG CHI TIẾT -->
     <v-dialog v-model="detailDialog" max-width="520px" persistent>
       <v-card class="rounded-lg overflow-hidden">
-        <v-card-title class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center red-header">
+        <v-card-title
+          class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center red-header"
+        >
           <span>Chi tiết kỳ thi lại</span>
           <v-btn icon dark x-small @click="detailDialog = false">
             <v-icon>mdi-close</v-icon>
@@ -364,22 +462,30 @@
           <v-row class="mb-2">
             <v-col cols="12" sm="6" class="py-1">
               <span class="grey--text text--darken-2">Tên kỳ thi lại: </span>
-              <span class="font-weight-bold red--text text--darken-3">{{ selectedItem.name }}</span>
+              <span class="font-weight-bold red--text text--darken-3">{{
+                selectedItem.name
+              }}</span>
             </v-col>
             <v-col cols="12" sm="6" class="py-1">
               <span class="grey--text text--darken-2">Mã kỳ thi lại: </span>
-              <span class="font-weight-bold red--text text--darken-3">{{ selectedItem.code }}</span>
+              <span class="font-weight-bold red--text text--darken-3">{{
+                selectedItem.code
+              }}</span>
             </v-col>
           </v-row>
 
           <v-row class="mb-2">
             <v-col cols="12" sm="6" class="py-1">
               <span class="grey--text text--darken-2">Học kỳ: </span>
-              <span class="font-weight-bold grey--text text--darken-3">{{ selectedItem.semester || '—' }}</span>
+              <span class="font-weight-bold grey--text text--darken-3">{{
+                selectedItem.semester || '—'
+              }}</span>
             </v-col>
             <v-col cols="12" sm="6" class="py-1">
               <span class="grey--text text--darken-2">Loại hình: </span>
-              <span class="font-weight-bold red--text text--darken-3">{{ selectedItem.type || 'RETAKE_EXAM' }}</span>
+              <span class="font-weight-bold red--text text--darken-3">{{
+                selectedItem.type || 'RETAKE_EXAM'
+              }}</span>
             </v-col>
           </v-row>
 
@@ -398,17 +504,28 @@
               <v-chip
                 small
                 dark
-                :color="selectedItem.status === 'ACTIVE' ? '#a2212b' : '#757575'"
+                :color="
+                  selectedItem.status === 'ACTIVE' ? '#a2212b' : '#757575'
+                "
                 class="font-weight-bold px-3"
               >
-                {{ selectedItem.status === 'ACTIVE' ? 'Kích hoạt' : 'Chưa kích hoạt' }}
+                {{
+                  selectedItem.status === 'ACTIVE'
+                    ? 'Kích hoạt'
+                    : 'Chưa kích hoạt'
+                }}
               </v-chip>
             </v-col>
           </v-row>
         </v-card-text>
 
         <v-card-actions class="pa-4 pt-0 d-flex justify-end">
-          <v-btn outlined color="#a2212b" class="px-4 font-weight-bold rounded-sm text-capitalize border-btn" @click="detailDialog = false">
+          <v-btn
+            outlined
+            color="#a2212b"
+            class="px-4 font-weight-bold rounded-sm text-capitalize border-btn"
+            @click="detailDialog = false"
+          >
             Đóng <v-icon small right>mdi-close</v-icon>
           </v-btn>
         </v-card-actions>
@@ -418,7 +535,9 @@
     <!-- DIALOG ĐỔI TRẠNG THÁI -->
     <v-dialog v-model="confirmStatusDialog" max-width="450px" persistent>
       <v-card class="rounded-lg overflow-hidden">
-        <v-card-title class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center red-header">
+        <v-card-title
+          class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center red-header"
+        >
           <span>Xác nhận</span>
           <v-btn icon dark x-small @click="confirmStatusDialog = false">
             <v-icon>mdi-close</v-icon>
@@ -426,23 +545,42 @@
         </v-card-title>
 
         <v-card-text class="pa-5 black--text body-2">
-          Bạn có chắc chắn muốn đổi trạng thái từ 
+          Bạn có chắc chắn muốn đổi trạng thái từ
           <span class="font-weight-bold italic-text">
-            {{ pendingStatusChange.oldStatus === 'ACTIVE' ? 'Kích hoạt' : 'Chưa kích hoạt' }}
-          </span> 
-          sang 
+            {{
+              pendingStatusChange.oldStatus === 'ACTIVE'
+                ? 'Kích hoạt'
+                : 'Chưa kích hoạt'
+            }}
+          </span>
+          sang
           <span class="font-weight-bold italic-text">
-            {{ pendingStatusChange.newStatus === 'ACTIVE' ? 'Kích hoạt' : 'Chưa kích hoạt' }}
-          </span> 
+            {{
+              pendingStatusChange.newStatus === 'ACTIVE'
+                ? 'Kích hoạt'
+                : 'Chưa kích hoạt'
+            }}
+          </span>
           không?
         </v-card-text>
 
         <v-card-actions class="pa-4 pt-0 d-flex justify-end gap-2">
-          <v-btn outlined color="#a2212b" class="px-4 font-weight-bold rounded-sm text-capitalize border-btn" @click="confirmStatusDialog = false">
+          <v-btn
+            outlined
+            color="#a2212b"
+            class="px-4 font-weight-bold rounded-sm text-capitalize border-btn"
+            @click="confirmStatusDialog = false"
+          >
             Đóng <v-icon small right>mdi-close</v-icon>
           </v-btn>
 
-          <v-btn color="#a2212b" dark elevation="0" class="px-4 font-weight-bold rounded-sm text-capitalize" @click="confirmStatusUpdate">
+          <v-btn
+            color="#a2212b"
+            dark
+            elevation="0"
+            class="px-4 font-weight-bold rounded-sm text-capitalize"
+            @click="confirmStatusUpdate"
+          >
             Xác Nhận
           </v-btn>
         </v-card-actions>
@@ -452,7 +590,9 @@
     <!-- DIALOG XÓA -->
     <v-dialog v-model="deleteDialog" max-width="450px" persistent>
       <v-card class="rounded-lg overflow-hidden">
-        <v-card-title class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center red-header">
+        <v-card-title
+          class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center red-header"
+        >
           <span>Xác nhận</span>
           <v-btn icon dark x-small @click="deleteDialog = false">
             <v-icon>mdi-close</v-icon>
@@ -460,15 +600,30 @@
         </v-card-title>
 
         <v-card-text class="pa-5 black--text body-2">
-          Xác nhận xóa <span class="font-weight-bold red--text text--darken-3">{{ itemToDelete.name }}</span>
+          Xác nhận xóa
+          <span class="font-weight-bold red--text text--darken-3">{{
+            itemToDelete.name
+          }}</span>
         </v-card-text>
 
         <v-card-actions class="pa-4 pt-0 d-flex justify-end gap-2">
-          <v-btn outlined color="#a2212b" class="px-4 font-weight-bold rounded-sm text-capitalize border-btn" @click="deleteDialog = false">
+          <v-btn
+            outlined
+            color="#a2212b"
+            class="px-4 font-weight-bold rounded-sm text-capitalize border-btn"
+            @click="deleteDialog = false"
+          >
             Đóng <v-icon small right>mdi-close</v-icon>
           </v-btn>
 
-          <v-btn color="#a2212b" dark elevation="0" class="px-4 font-weight-bold rounded-sm text-capitalize" :loading="deleteLoading" @click="confirmDelete">
+          <v-btn
+            color="#a2212b"
+            dark
+            elevation="0"
+            class="px-4 font-weight-bold rounded-sm text-capitalize"
+            :loading="deleteLoading"
+            @click="confirmDelete"
+          >
             Xác Nhận
           </v-btn>
         </v-card-actions>
@@ -476,11 +631,20 @@
     </v-dialog>
 
     <!-- TOAST THÔNG BÁO -->
-    <v-snackbar v-model="toast.show" :color="toast.color" timeout="3000" top right elevation="3">
+    <v-snackbar
+      v-model="toast.show"
+      :color="toast.color"
+      timeout="3000"
+      top
+      right
+      elevation="3"
+    >
       <div class="d-flex align-center justify-space-between w-100">
         <div class="d-flex align-center gap-2">
           <v-icon color="white" small>mdi-check-circle-outline</v-icon>
-          <span class="white--text font-weight-medium">{{ toast.message }}</span>
+          <span class="white--text font-weight-medium">{{
+            toast.message
+          }}</span>
         </div>
         <v-btn icon dark x-small class="ml-4" @click="toast.show = false">
           <v-icon small>mdi-close</v-icon>
@@ -497,10 +661,10 @@ import examServices from '~/services/examServices'
 
 export default {
   name: 'QuanLyKyDangKyThiLaiPage',
-  middleware: 'authenticated',
   components: {
-    BaseTable
+    BaseTable,
   },
+  middleware: 'authenticated',
 
   data() {
     return {
@@ -511,7 +675,12 @@ export default {
 
       // Bộ lọc
       filters: { search: '', startDate: null, endDate: null, status: null },
-      appliedFilters: { search: '', startDate: null, endDate: null, status: null },
+      appliedFilters: {
+        search: '',
+        startDate: null,
+        endDate: null,
+        status: null,
+      },
       menuFilterStartDate: false,
       menuFilterEndDate: false,
 
@@ -527,7 +696,7 @@ export default {
         fromTime: '',
         toTime: '',
         status: 'INACTIVE',
-        type: 'RETAKE_EXAM'
+        type: 'RETAKE_EXAM',
       },
 
       semesterList: ['20241', '20242', '20251', '20252'],
@@ -559,16 +728,39 @@ export default {
       ],
 
       headers: [
-        { text: 'STT', value: 'stt', width: '60px', align: 'center', sortable: false },
+        {
+          text: 'STT',
+          value: 'stt',
+          width: '60px',
+          align: 'center',
+          sortable: false,
+        },
         { text: 'Tên kỳ đăng ký thi lại', value: 'name', width: '220px' },
         { text: 'Mã kỳ đăng ký thi lại', value: 'code', width: '150px' },
         { text: 'Học kỳ', value: 'semester', width: '100px' },
-        { text: 'Thời gian đăng ký', value: 'registrationTime', width: '220px', align: 'center' },
-        { text: 'Trạng thái', value: 'status', width: '150px', align: 'center', sortable: false },
-        { text: 'Chức năng', value: 'actions', width: '110px', align: 'center', sortable: false },
+        {
+          text: 'Thời gian đăng ký',
+          value: 'registrationTime',
+          width: '220px',
+          align: 'center',
+        },
+        {
+          text: 'Trạng thái',
+          value: 'status',
+          width: '150px',
+          align: 'center',
+          sortable: false,
+        },
+        {
+          text: 'Chức năng',
+          value: 'actions',
+          width: '110px',
+          align: 'center',
+          sortable: false,
+        },
       ],
 
-      items: MOCK_DATA_KY_THI || []
+      items: MOCK_DATA_KY_THI || [],
     }
   },
 
@@ -583,10 +775,14 @@ export default {
         const code = item.code || ''
         const matchSearch =
           !this.appliedFilters.search ||
-          name.toLowerCase().includes(this.appliedFilters.search.toLowerCase()) ||
+          name
+            .toLowerCase()
+            .includes(this.appliedFilters.search.toLowerCase()) ||
           code.toLowerCase().includes(this.appliedFilters.search.toLowerCase())
 
-        const matchStatus = !this.appliedFilters.status || item.status === this.appliedFilters.status
+        const matchStatus =
+          !this.appliedFilters.status ||
+          item.status === this.appliedFilters.status
 
         return matchSearch && matchStatus
       })
@@ -634,8 +830,18 @@ export default {
     },
 
     resetFilters() {
-      this.filters = { search: '', startDate: null, endDate: null, status: null }
-      this.appliedFilters = { search: '', startDate: null, endDate: null, status: null }
+      this.filters = {
+        search: '',
+        startDate: null,
+        endDate: null,
+        status: null,
+      }
+      this.appliedFilters = {
+        search: '',
+        startDate: null,
+        endDate: null,
+        status: null,
+      }
       this.page = 1
       this.pageInput = 1
     },
@@ -662,7 +868,16 @@ export default {
 
     openCreateModal() {
       this.isEdit = false
-      this.formData = { id: null, name: '', code: '', semester: '', fromTime: '', toTime: '', status: 'INACTIVE', type: 'RETAKE_EXAM' }
+      this.formData = {
+        id: null,
+        name: '',
+        code: '',
+        semester: '',
+        fromTime: '',
+        toTime: '',
+        status: 'INACTIVE',
+        type: 'RETAKE_EXAM',
+      }
       this.formDialog = true
     },
 
@@ -709,7 +924,8 @@ export default {
             this.pendingStatusChange.item.id,
             this.pendingStatusChange.newStatus
           )
-          this.pendingStatusChange.item.status = this.pendingStatusChange.newStatus
+          this.pendingStatusChange.item.status =
+            this.pendingStatusChange.newStatus
           this.showToast('Cập nhật trạng thái thành công', '#4caf50')
         } catch (error) {
           this.showToast('Cập nhật trạng thái thất bại', '#f44336')
@@ -776,9 +992,15 @@ export default {
   background-color: #fff;
 }
 
-.gap-1 { gap: 4px; }
-.gap-2 { gap: 8px; }
-.gap-3 { gap: 12px; }
+.gap-1 {
+  gap: 4px;
+}
+.gap-2 {
+  gap: 8px;
+}
+.gap-3 {
+  gap: 12px;
+}
 
 /* Ô FILTER INPUT RESPONSIVE */
 .custom-filter-input {
@@ -854,7 +1076,7 @@ export default {
   z-index: 99;
   background-color: #ffffff;
   border-top: none !important;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.05) !important;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05) !important;
   justify-content: flex-end !important;
 }
 

@@ -164,7 +164,10 @@ export default {
           return
         }
       } catch (err) {
-        console.warn('API thật không khả dụng trên Vercel, dùng session dự phòng:', err)
+        console.warn(
+          'API thật không khả dụng trên Vercel, dùng session dự phòng:',
+          err
+        )
       }
 
       // 2. Fallback tự động khi API thật lỗi/chặn
@@ -187,7 +190,7 @@ export default {
 
       localStorage.setItem('user_info', JSON.stringify(userInfo))
       localStorage.setItem('login_success', 'true')
-      
+
       // Đánh dấu cờ tạm để middleware không chặn
       sessionStorage.setItem('is_logged_in', 'true')
 
