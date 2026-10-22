@@ -405,12 +405,14 @@ export default {
     },
     primaryTeacherName() {
       return (
-        this.detailData?.teacherName ||
         this.detailData?.mainTeacherName ||
+        this.detailData?.teacherName ||
         this.detailData?.mainTeacher?.fullName ||
         this.detailData?.mainTeacher?.name ||
         this.detailData?.teacher?.fullName ||
         this.detailData?.original?.mainTeacherName ||
+        this.detailData?.original?.teacherName ||
+        this.detailData?.original?.mainTeacher?.fullName ||
         ''
       )
     },
@@ -419,6 +421,8 @@ export default {
         this.detailData?.teacherCode ||
         this.detailData?.mainTeacher?.code ||
         this.detailData?.teacher?.code ||
+        this.detailData?.original?.mainTeacher?.code ||
+        this.detailData?.original?.teacherCode ||
         '---'
       )
     },
@@ -433,6 +437,8 @@ export default {
         this.detailData?.assistantTeacherName ||
         this.detailData?.assistantTeacher?.fullName ||
         this.detailData?.assistantTeacher?.name ||
+        this.detailData?.original?.assistantTeacherName ||
+        this.detailData?.original?.assistantTeacher?.fullName ||
         ''
       )
     },
@@ -440,6 +446,7 @@ export default {
       return (
         this.detailData?.assistantTeacherCode ||
         this.detailData?.assistantTeacher?.code ||
+        this.detailData?.original?.assistantTeacher?.code ||
         '---'
       )
     },

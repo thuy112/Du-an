@@ -1,20 +1,23 @@
-/* Quản lý hệ số lớp, hệ số quy đổi */
-import Api from '~/api/Api'
+import Api from '~/api/Api.js'
 
 export default {
   getList(params) {
-    return Api.get('/api/v1/coefficients', { params })
+    // Dùng cú pháp truyền params trực tiếp tương thích y hệt $axios gốc
+    return Api.get('/api/coefficient', { params })
   },
-
   create(data) {
-    return Api.post('/api/v1/coefficients', data)
+    return Api.post('/api/coefficient', data)
   },
-
   update(id, data) {
-    return Api.put(`/api/v1/coefficients/${id}`, data)
+    return Api.put(`/api/coefficient/${id}`, data)
   },
-
-  delete(id) {
-    return Api.delete(`/api/v1/coefficients/${id}`)
+  delete(id, params) {
+    return Api.delete(`/api/coefficient/${id}`, { params })
   },
+  getUserInfo(params) {
+    return Api.get('/api/user/info', { params })
+  },
+  getPageRole(params) {
+    return Api.get('/api/auth/getPageRole', { params })
+  }
 }

@@ -16,6 +16,13 @@ export default {
   getRetakeSessions(params) {
     return Api.get('/api/retakeSession', params)
   },
+  changeStatusCourse(id, data) {
+    return Api.put(`/api/retakeCourse/changeRetakeCourseStatus/${id}`, data)
+  },
+  // Cập nhật trạng thái duyệt lớp học lại
+  updateCourseStatus(id, data) {
+    return Api.put(`/api/retakeCourse/${id}/status`, data)
+  },
 
   // Thêm mới đợt đăng ký học lại
   createRetakeSession(data) {

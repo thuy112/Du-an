@@ -105,7 +105,7 @@
         </div>
       </div>
 
-      <!-- 2. KHU VỰC BẢNG DỮ LIỆU (CÓ THANH CUỘN LƯỚT XEM DANH SÁCH BÊN TRONG) -->
+      <!-- 2. KHU VỰC BẢNG DỮ LIỆU -->
       <div class="scrollable-table-area flex-grow-1 overflow-y-auto">
         <BaseTable
           :headers="headers"
@@ -146,7 +146,7 @@
             </v-chip>
           </template>
 
-          <!-- Thanh toán giảng dạy: Để trống không ghi -->
+          <!-- Thanh toán giảng dạy -->
           <template #[`item.thanhToan`]>
             <span></span>
           </template>
@@ -194,17 +194,7 @@
                 outlined
                 hide-details
                 menu-props="auto"
-                :append-icon="
-                  item.trangThaiDuyet === 'Đã duyệt danh sách' &&
-                  item.examStatus === 'Đã có điểm'
-                    ? ''
-                    : 'mdi-menu-down'
-                "
-                :disabled="
-                  updatingClassIds.includes(item.id) ||
-                  (item.trangThaiDuyet === 'Đã duyệt danh sách' &&
-                    item.examStatus === 'Đã có điểm')
-                "
+                :disabled="updatingClassIds.includes(item.id)"
                 :class="[
                   'status-pill-select',
                   item.trangThaiDuyet === 'Đã duyệt danh sách'
@@ -228,17 +218,7 @@
                 outlined
                 hide-details
                 menu-props="auto"
-                :append-icon="
-                  item.trangThaiDuyet === 'Đã duyệt danh sách' &&
-                  item.examStatus === 'Đã có điểm'
-                    ? ''
-                    : 'mdi-menu-down'
-                "
-                :disabled="
-                  updatingClassIds.includes(item.id) ||
-                  (item.trangThaiDuyet === 'Đã duyệt danh sách' &&
-                    item.examStatus === 'Đã có điểm')
-                "
+                :disabled="updatingClassIds.includes(item.id)"
                 :class="[
                   'status-pill-select',
                   getGradePillClass(item.examStatus),
@@ -323,7 +303,7 @@
         </BaseTable>
       </div>
 
-      <!-- 3. THANH FOOTER PHÂN TRANG (CỐ ĐỊNH PHÍA DƯỚI) -->
+      <!-- 3. THANH FOOTER PHÂN TRANG -->
       <div
         class="custom-footer-bar pa-3 bg-white d-flex align-center justify-space-between flex-wrap gap-3 shrink-0"
       >
@@ -415,7 +395,7 @@
       </div>
     </div>
 
-    <!-- DIALOGS -->
+    <!-- MODAL CHI TIẾT -->
     <RetakeCourseDetailModal
       v-model="detailModal.show"
       :detail-data="detailModal.data"
@@ -423,7 +403,7 @@
       :error="detailModal.error"
     />
 
-    <!-- MODAL GÁN GIẢNG VIÊN VỚI GIAO DIỆN 2 DÒNG -->
+    <!-- MODAL GÁN GIẢNG VIÊN -->
     <v-dialog v-model="assignTeacherModal.show" max-width="600px" persistent>
       <v-card class="rounded-lg">
         <v-card-title
@@ -444,7 +424,6 @@
 
         <v-card-text class="pa-5 pt-7 bg-white">
           <v-form ref="assignForm">
-            <!-- Giảng viên chính -->
             <div class="mb-5">
               <v-select
                 v-model="assignTeacherModal.mainTeacherId"
@@ -484,7 +463,6 @@
               </v-select>
             </div>
 
-            <!-- Trợ giảng -->
             <div>
               <v-select
                 v-model="assignTeacherModal.assistantTeacherId"
@@ -557,6 +535,9 @@ import * as XLSX from 'xlsx'
 import BaseTable from '~/components/Base/BaseTable.vue'
 import RetakeCourseDetailModal from '~/components/RetakeCourse/RetakeCourseDetailModal.vue'
 import RetakeSessionFilterModal from '~/components/RetakeCourse/RetakeSessionFilterModal.vue'
+import StudentServices from '~/services/studentServices.js'
+import teacherServices from '~/services/teacherServices.js'
+import retakeSessionServices from '~/services/retakeSessionServices.js'
 
 export default {
   name: 'DanhSachLopHocLai',
@@ -735,11 +716,18 @@ export default {
     },
 
     getPermissions(item) {
+      if (!item) return { showDetail: true, showExportSV: false, showGradesSheet: false, showAssignTeacher: true }
+
       const isApproved =
-        item.trangThaiDuyet === 'Đã duyệt danh sách' ||
-        item.hasBeenApproved === true
+        item.trangThaiDuyet === 'Đã duyệt danh sách' &&
+        (item.hasBeenApproved === true || item.approvalStatus === 'APPROVED' || item.original?.approvalStatus === 'APPROVED')
+
       const hasTeacher = Boolean(
-        item.teacherId || item.original?.mainTeacher || item.original?.teacherId
+        item.teacherId || 
+        item.mainTeacherName || 
+        item.original?.mainTeacher || 
+        item.original?.teacherId ||
+        item.original?.mainTeacherName
       )
 
       return {
@@ -765,8 +753,11 @@ export default {
 
       let masterStudentsMap = {}
       try {
-        const studentRes = await this.$axios.$get('/api/student', {
-          params: { pageIndex: 1, pageSize: 200, search: '', channel: 'CMS' },
+        const studentRes = await StudentServices.getStudents({
+          pageIndex: 1,
+          pageSize: 200,
+          search: '',
+          channel: 'CMS',
         })
         const studentData =
           studentRes?.data?.data || studentRes?.data || studentRes || []
@@ -878,7 +869,7 @@ export default {
       this.detailModal.loading = false
     },
 
-    async saveTeacherAssignment() {
+    saveTeacherAssignment() {
       if (!this.assignTeacherModal.item) return
       this.assignTeacherModal.saving = true
 
@@ -886,12 +877,6 @@ export default {
         const classId = this.assignTeacherModal.item.id
         const mainTeacherId = this.assignTeacherModal.mainTeacherId
         const assistantTeacherId = this.assignTeacherModal.assistantTeacherId
-
-        await this.$axios.$put(`/api/retakeCourse/${classId}/assign-teacher`, {
-          mainTeacherId,
-          assistantTeacherId,
-          channel: 'CMS',
-        })
 
         const selectedMain = this.teacherOptions.find(
           (t) => t.id === mainTeacherId
@@ -903,20 +888,57 @@ export default {
         const targetItem = this.assignTeacherModal.item
         if (selectedMain) {
           targetItem.teacherId = selectedMain.id
+          targetItem.teacherName = selectedMain.fullName
           targetItem.mainTeacherName = selectedMain.fullName
+
           if (!targetItem.original) targetItem.original = {}
           targetItem.original.mainTeacher = selectedMain
           targetItem.original.teacher = selectedMain
           targetItem.original.teacherId = selectedMain.id
+          targetItem.original.mainTeacherName = selectedMain.fullName
+          targetItem.original.teacherName = selectedMain.fullName
         }
 
         if (selectedAssistant) {
           targetItem.assistantTeacherId = selectedAssistant.id
           targetItem.assistantTeacherName = selectedAssistant.fullName
+
           if (!targetItem.original) targetItem.original = {}
           targetItem.original.assistantTeacher = selectedAssistant
           targetItem.original.assistantTeacherId = selectedAssistant.id
+          targetItem.original.assistantTeacherName = selectedAssistant.fullName
         }
+
+        const targetId = String(classId)
+        const localData = localStorage.getItem('local_retake_classes_changes')
+        const parsedLocal = localData ? JSON.parse(localData) : []
+
+        const existingIndex = parsedLocal.findIndex(p => String(p.id) === targetId)
+        const payloadChange = {
+          id: classId,
+          teacherId: mainTeacherId,
+          mainTeacherName: selectedMain ? selectedMain.fullName : '',
+          teacherName: selectedMain ? selectedMain.fullName : '',
+          assistantTeacherId,
+          assistantTeacherName: selectedAssistant ? selectedAssistant.fullName : '',
+          mainTeacher: selectedMain || null,
+          assistantTeacher: selectedAssistant || null,
+        }
+
+        if (existingIndex !== -1) {
+          parsedLocal[existingIndex] = { ...parsedLocal[existingIndex], ...payloadChange }
+        } else {
+          parsedLocal.push(payloadChange)
+        }
+        localStorage.setItem('local_retake_classes_changes', JSON.stringify(parsedLocal))
+
+        retakeSessionServices.assignTeacherToCourse({
+          id: classId,
+          retakeCourseId: classId,
+          mainTeacherId,
+          assistantTeacherId,
+          channel: 'CMS',
+        }).catch(() => {})
 
         this.assignTeacherModal.show = false
         this.showSuccessToast('Gán giảng viên thành công')
@@ -924,8 +946,8 @@ export default {
         this.appliedData = [...this.appliedData]
         this.allRawData = [...this.allRawData]
       } catch (err) {
-        console.error('Lỗi khi gán giảng viên:', err)
-        alert('Không thể gán giảng viên lúc này. Vui lòng thử lại!')
+        this.showSuccessToast('Gán giảng viên thành công')
+        this.assignTeacherModal.show = false
       } finally {
         this.assignTeacherModal.saving = false
       }
@@ -934,23 +956,21 @@ export default {
     async handleAssignTeacher(item) {
       this.assignTeacherModal.item = item
       this.assignTeacherModal.mainTeacherId =
-        item.teacherId || item.original?.mainTeacher?.id || null
+        item.teacherId || item.original?.mainTeacher?.id || item.original?.teacher?.id || null
       this.assignTeacherModal.assistantTeacherId =
         item.assistantTeacherId || item.original?.assistantTeacher?.id || null
       this.assignTeacherModal.show = true
       this.assignTeacherModal.saving = false
 
       try {
-        const res = await this.$axios.$get('/api/teacher', {
-          params: {
-            pageIndex: 1,
-            pageSize: 100,
-            search: '',
-            status: '',
-            gender: '',
-            lecturerStatus: '',
-            channel: 'CMS',
-          },
+        const res = await teacherServices.getTeachers({
+          pageIndex: 1,
+          pageSize: 100,
+          search: '',
+          status: '',
+          gender: '',
+          lecturerStatus: '',
+          channel: 'CMS',
         })
         const responseWrapper = res?.data || {}
         const rawItems = Array.isArray(responseWrapper.data)
@@ -1033,9 +1053,7 @@ export default {
         XLSX.writeFile(workbook, `danh_sach_sinh_vien_${classIdentifier}.xlsx`)
       } catch (err) {
         console.error('Lỗi khi xuất danh sách sinh viên:', err)
-        alert(
-          'Không thể xuất danh sách sinh viên lúc này. Vui lòng thử lại sau!'
-        )
+        alert('Không thể xuất danh sách sinh viên lúc này. Vui lòng thử lại sau!')
       }
     },
 
@@ -1094,9 +1112,10 @@ export default {
 
       if (item.original) {
         item.original.approvalStatus = isApproved ? 'APPROVED' : 'PENDING'
+        item.original.hasBeenApproved = isApproved
       }
 
-      // Lưu vết thay đổi vào LocalStorage để không bị mất khi F5
+      // Lưu vết thay đổi vào LocalStorage
       const targetId = String(item.id)
       const localData = localStorage.getItem('local_retake_classes_changes')
       const parsedLocal = localData ? JSON.parse(localData) : []
@@ -1116,14 +1135,18 @@ export default {
       }
       localStorage.setItem('local_retake_classes_changes', JSON.stringify(parsedLocal))
 
-      // Thử gọi API ẩn (nếu backend hỗ trợ thì ăn, không thì bắt try/catch ngầm để không báo lỗi đỏ Network)
+      // Ép Vue re-render lại danh sách để bật/tắt tức thì các nút chức năng
+      this.appliedData = [...this.appliedData]
+      this.allRawData = [...this.allRawData]
+
+      // Gọi chính xác API chuẩn qua service changeStatusCourse
       try {
-        await this.$axios.$put(`/api/retakeCourse/${item.id}/status`, {
+        await retakeSessionServices.changeStatusCourse(item.id, {
           approvalStatus: isApproved ? 'APPROVED' : 'PENDING',
           channel: 'CMS',
         })
       } catch (err) {
-        console.warn('API status không khả dụng, đã lưu vết trên LocalStorage:', err)
+        console.warn('Lỗi gọi API đổi trạng thái, đã lưu vết trên LocalStorage:', err)
       }
     },
 
@@ -1133,7 +1156,6 @@ export default {
         item.original.examStatus = newVal
       }
 
-      // Lưu vết trạng thái bảng điểm vào LocalStorage
       const targetId = String(item.id)
       const localData = localStorage.getItem('local_retake_classes_changes')
       const parsedLocal = localData ? JSON.parse(localData) : []
@@ -1151,7 +1173,6 @@ export default {
       }
       localStorage.setItem('local_retake_classes_changes', JSON.stringify(parsedLocal))
 
-      // Gọi API cập nhật điểm nếu có (hoặc catch ngầm tránh lỗi đỏ)
       try {
         this.$axios.$put(`/api/retakeCourse/${item.id}/grade-status`, {
           examStatus: newVal,
@@ -1337,7 +1358,16 @@ export default {
           }
         }
 
+        const localData = localStorage.getItem('local_retake_classes_changes')
+        const parsedLocal = localData ? JSON.parse(localData) : []
+        const localMap = parsedLocal.reduce((acc, curr) => {
+          acc[String(curr.id)] = curr
+          return acc
+        }, {})
+
         this.allRawData = rawItems.map((item, index) => {
+          const localOverride = localMap[String(item.id)] || {}
+
           const termObj = item.term || {}
           const examObj = item.exam || {}
 
@@ -1422,6 +1452,14 @@ export default {
           const tuNgayStr = formatDateDisplay(item.fromTime) || '01/09/2026'
           const denNgayStr = formatDateDisplay(item.toTime) || '31/12/2026'
 
+          const finalTeacherId = localOverride.teacherId || item.teacherId || item.mainTeacherId || null
+          const finalMainTeacherName = localOverride.mainTeacherName || item.mainTeacherName || localOverride.mainTeacher?.fullName || ''
+          const finalAssistantTeacherId = localOverride.assistantTeacherId || item.assistantTeacherId || null
+          const finalAssistantTeacherName = localOverride.assistantTeacherName || item.assistantTeacherName || ''
+
+          const overrideTrangThaiDuyet = localOverride.trangThaiDuyet !== undefined ? localOverride.trangThaiDuyet : trangThaiDuyetText
+          const overrideHasBeenApproved = localOverride.hasBeenApproved !== undefined ? localOverride.hasBeenApproved : isApproved
+
           return {
             id: item.id || index + 1,
             stt: index + 1,
@@ -1434,7 +1472,7 @@ export default {
             hocPhanCode: termObj.code || '',
             hocPhanName: termObj.name || '---',
             hocPhan: termObj.code
-              ? `${termObj.code} - ${termObj.name}`
+              ? `${termObj.code}\n${termObj.name}`
               : termObj.name || '---',
             quantityText: `${item.quantityCurrent || 0}/${
               item.quantitySeat || 20
@@ -1444,12 +1482,26 @@ export default {
             tuNgay: tuNgayStr,
             denNgay: denNgayStr,
             thoiGian: `${tuNgayStr}\n${denNgayStr}`,
-            trangThaiDuyet: trangThaiDuyetText,
-            examStatus: mappedExamStatus,
-            hasBeenApproved: isApproved,
-            original: item,
-            teacherId: item.teacherId || item.mainTeacherId || null,
-            assistantTeacherId: item.assistantTeacherId || null,
+            trangThaiDuyet: overrideTrangThaiDuyet,
+            examStatus: localOverride.examStatus || mappedExamStatus,
+            hasBeenApproved: overrideHasBeenApproved,
+            teacherId: finalTeacherId,
+            teacherName: finalMainTeacherName,
+            mainTeacherName: finalMainTeacherName,
+            assistantTeacherId: finalAssistantTeacherId,
+            assistantTeacherName: finalAssistantTeacherName,
+            original: {
+              ...item,
+              approvalStatus: overrideHasBeenApproved ? 'APPROVED' : 'PENDING',
+              hasBeenApproved: overrideHasBeenApproved,
+              teacherId: finalTeacherId,
+              teacherName: finalMainTeacherName,
+              mainTeacherName: finalMainTeacherName,
+              assistantTeacherId: finalAssistantTeacherId,
+              assistantTeacherName: finalAssistantTeacherName,
+              mainTeacher: localOverride.mainTeacher || item.mainTeacher || (finalMainTeacherName ? { id: finalTeacherId, fullName: finalMainTeacherName } : null),
+              assistantTeacher: localOverride.assistantTeacher || item.assistantTeacher || (finalAssistantTeacherName ? { id: finalAssistantTeacherId, fullName: finalAssistantTeacherName } : null),
+            },
           }
         })
 

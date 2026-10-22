@@ -20,4 +20,9 @@ export default {
   getUserInfo(params) {
     return Api.get('/api/user/info', params)
   },
+
+  // Bổ sung hàm gán/cập nhật giảng viên cho lớp học lại
+  assignTeacher(classId, data) {
+    return Api.put(`/api/retakeSession/${classId}`, data)
+  },
 }

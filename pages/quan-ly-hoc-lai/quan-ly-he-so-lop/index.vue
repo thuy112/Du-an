@@ -415,6 +415,7 @@
 
 <script>
 import BaseTable from '@/components/Base/BaseTable.vue'
+import coefficientServices from '~/services/coefficientServices.js'
 
 const parseCoefficientData = (apiData) => {
   return (apiData || []).map((item) => {
@@ -435,14 +436,14 @@ const parseCoefficientData = (apiData) => {
       loaiLopVN = 'Lớp mở'
     }
 
-    const min = item.minStudent || 0
-    const max = item.maxStudent || 0
+    const min = item.minStudent !== undefined ? item.minStudent : (item.minSv || 0)
+    const max = item.maxStudent !== undefined ? item.maxStudent : (item.maxSv || 0)
 
     return {
       id: item.id || Date.now(),
       loaiLop: loaiLopVN,
-      thuHocPhiSv: item.coefficient ?? 1.0,
-      thanhToanGiangDay: item.coefficientTeacher ?? '',
+      thuHocPhiSv: item.coefficient ?? item.thuHocPhiSv ?? 1.0,
+      thanhToanGiangDay: item.coefficientTeacher ?? item.thanhToanGiangDay ?? '',
       description: item.description || '',
       minSv: min,
       maxSv: max,
@@ -568,9 +569,7 @@ export default {
   methods: {
     async fetchUserInfo() {
       try {
-        const res = await this.$axios.$get('/api/user/info', {
-          params: { channel: 'CMS' },
-        })
+        const res = await coefficientServices.getUserInfo({ channel: 'CMS' })
         this.userInfo = res?.data || res
       } catch (err) {
         console.error('Lỗi tải thông tin user:', err)
@@ -579,15 +578,12 @@ export default {
 
     async fetchPageRole() {
       try {
-        await this.$axios.$get('/api/auth/getPageRole', {
-          params: { channel: 'CMS' },
-        })
+        await coefficientServices.getPageRole({ channel: 'CMS' })
       } catch (err) {
         console.error('Lỗi kiểm tra quyền trang:', err)
       }
     },
 
-    // 1. MỌI THAO TÁC GỌI API ĐỀU ĐI QUA ĐÂY (KẾT HỢP GỬI PARAM SEARCH LÊN SERVER)
     async fetchData() {
       this.loading = true
       let serverList = []
@@ -597,9 +593,9 @@ export default {
           params: {
             pageIndex: this.page || 1,
             pageSize: this.itemsPerPage || 50,
-            search: this.filters.search || '',
-            coefficient: this.filters.coefficient || '',
+            search: '', // Để rỗng để lấy toàn bộ dữ liệu về lọc ở client
             channel: 'CMS',
+            transid: '8d00cd51-a742-4f85-a582-4b6b46461116'
           },
         })
         const rawData = res?.data?.data || res?.data?.items || res?.data || []
@@ -609,37 +605,30 @@ export default {
         serverList = []
       }
 
-      // Kế thừa kết hợp localStorage
-      try {
-        const localData = localStorage.getItem('local_coefficient_changes')
-        if (localData) {
-          const parsedLocal = JSON.parse(localData)
-
-          const deletedIds = parsedLocal.filter(p => p.isDeletedLocal).map(p => String(p.id))
-          serverList = serverList.filter(item => !deletedIds.includes(String(item.id)))
-
-          serverList = serverList.map(item => {
-            const foundLocal = parsedLocal.find(p => String(p.id) === String(item.id))
-            return foundLocal && !foundLocal.isCreatedLocal ? { ...item, ...foundLocal } : item
-          })
-
-          const localCreated = parsedLocal.filter(p => p.isCreatedLocal && !p.isDeletedLocal)
-          serverList = [...localCreated, ...serverList]
-        }
-      } catch (e) {
-        console.error('Lỗi đọc localStorage:', e)
+      this.dataList = serverList
+      
+      // Thực hiện lọc trực tiếp theo từ khóa tìm kiếm và hệ số ngay trên client
+      let result = [...this.dataList]
+      
+      if (this.filters.search && this.filters.search.trim() !== '') {
+        const keyword = this.filters.search.toLowerCase().trim()
+        result = result.filter(item => 
+          (item.loaiLop && item.loaiLop.toLowerCase().includes(keyword)) ||
+          (item.description && item.description.toLowerCase().includes(keyword))
+        )
       }
 
-      this.dataList = serverList
-      this.appliedData = [...this.dataList]
+      if (this.filters.coefficient !== '' && this.filters.coefficient !== null && this.filters.coefficient !== undefined) {
+        const coeffKeyword = String(this.filters.coefficient).trim()
+        result = result.filter(item => 
+          String(item.thuHocPhiSv).includes(coeffKeyword)
+        )
+      }
+
+      this.appliedData = result
       this.loading = false
     },
 
-    saveLocalChanges(updatedList) {
-      localStorage.setItem('local_coefficient_changes', JSON.stringify(updatedList))
-    },
-
-    // 2. KHI BẤM TÌM KIẾM HOẶC ENTER -> GỌI LẠI API THAY VÌ CHỈ LỌC CHAY
     async handleExecuteSearch(resetPage = true) {
       if (resetPage) {
         this.page = 1
@@ -648,7 +637,6 @@ export default {
       await this.fetchData()
     },
 
-    // 3. BẤM NÚT "ĐI" CHUYỂN TRANG -> GỌI LẠI API
     async handleGoBtnClick() {
       const targetPage = parseInt(this.pageInput, 10)
       if (targetPage && targetPage >= 1 && targetPage <= this.totalPages) {
@@ -660,7 +648,6 @@ export default {
       await this.fetchData()
     },
 
-    // 4. BẤM LÀM MỚI (REFRESH) -> GỌI LẠI API VÀ XÓA FILTER
     async resetFilters() {
       this.filters = { search: '', coefficient: '' }
       this.page = 1
@@ -668,7 +655,6 @@ export default {
       await this.fetchData()
     },
 
-    // 5. BẤM CHUYỂN TRANG (NÚT PHÂN TRANG) -> GỌI LẠI API
     async changePage(p) {
       if (p >= 1 && p <= this.totalPages) {
         this.page = p
@@ -737,77 +723,51 @@ export default {
 
       if (newMin > newMax) {
         this.alertColor = '#ffc107'
-        this.alertMessage =
-          'Số lượng tối thiểu không được lớn hơn số lượng tối đa!'
+        this.alertMessage = 'Số lượng tối thiểu không được lớn hơn số lượng tối đa!'
         return
       }
 
-      let calculatedLoaiLop = 'Lớp mở'
+      let classType = 'NEW_CLASS'
+      let courseType = null
+
       if (this.formData.baseLoaiLop === 'Lớp ghép') {
-        calculatedLoaiLop =
-          this.formData.loaiHocPhan === 'Chuyên ngành'
-            ? 'Lớp ghép (Chuyên ngành)'
-            : 'Lớp ghép (Đại cương)'
+        classType = 'COMBINE_CLASS'
+        courseType = this.formData.loaiHocPhan === 'Chuyên ngành' ? 'SPECIALIZED' : 'GENERAL'
       } else if (this.formData.baseLoaiLop === 'Đồ án môn học') {
-        calculatedLoaiLop = this.formData.isCourseNormal
-          ? 'Đồ án môn học (HPTT)'
-          : 'Đồ án môn học (HP.DAMH)'
-      }
-
-      const isOverlap = this.dataList.some((item) => {
-        if (this.isEdit && String(item.id) === String(this.selectedItem.id)) return false
-        if (item.loaiLop === calculatedLoaiLop) {
-          const overlapRange = !(newMax < item.minSv || newMin > item.maxSv)
-          if (overlapRange) {
-            const sameFee = Number(item.thuHocPhiSv) === newThuHocPhi
-            const sameTeaching = Number(item.thanhToanGiangDay) === newThanhToan
-            if (sameFee && sameTeaching) return true
-          }
-        }
-        return false
-      })
-
-      if (isOverlap) {
-        this.alertColor = '#ffc107'
-        this.alertMessage = `Cấu hình số lượng sinh viên cho loại ${calculatedLoaiLop} đã tồn tại!`
-        return
-      }
-
-      const targetId = this.isEdit ? this.selectedItem.id : 'local_' + Date.now()
-      const itemPayload = {
-        id: targetId,
-        loaiLop: calculatedLoaiLop,
-        thuHocPhiSv: newThuHocPhi,
-        thanhToanGiangDay: newThanhToan,
-        description: this.formData.description || '',
-        minSv: newMin,
-        maxSv: newMax,
-        isCourseNormal: this.formData.isCourseNormal,
-        isCreatedLocal: !this.isEdit,
-        isModifiedLocal: this.isEdit,
-      }
-
-      const localData = localStorage.getItem('local_coefficient_changes')
-      const parsedLocal = localData ? JSON.parse(localData) : []
-
-      if (this.isEdit) {
-        const index = parsedLocal.findIndex(p => String(p.id) === String(targetId))
-        if (index !== -1) {
-          parsedLocal[index] = { ...parsedLocal[index], ...itemPayload }
-        } else {
-          parsedLocal.push(itemPayload)
-        }
-        this.alertColor = '#4caf50'
-        this.alertMessage = 'Cập nhật hệ số lớp thành công!'
+        classType = 'PROJECT_BASED_CLASS'
       } else {
-        parsedLocal.unshift(itemPayload)
-        this.alertColor = '#4caf50'
-        this.alertMessage = 'Thêm mới hệ số lớp thành công!'
+        classType = 'NEW_CLASS'
       }
 
-      this.saveLocalChanges(parsedLocal)
-      this.formDialog = false
-      await this.fetchData()
+      const payload = {
+        classType,
+        courseType,
+        coefficient: newThuHocPhi,
+        coefficientTeacher: newThanhToan,
+        description: this.formData.description || '',
+        minStudent: newMin,
+        maxStudent: newMax,
+        isCourseNormal: this.formData.isCourseNormal,
+        channel: 'CMS'
+      }
+
+      try {
+        if (this.isEdit) {
+          await coefficientServices.update(this.selectedItem.id, payload)
+          this.alertColor = '#4caf50'
+          this.alertMessage = 'Cập nhật hệ số lớp thành công!'
+        } else {
+          await coefficientServices.create(payload)
+          this.alertColor = '#4caf50'
+          this.alertMessage = 'Thêm mới hệ số lớp thành công!'
+        }
+
+        this.formDialog = false
+        await this.fetchData()
+      } catch (err) {
+        console.error('Lỗi khi lưu dữ liệu:', err)
+        this.alertMessage = ''
+      }
     },
 
     openDeleteModal(item) {
@@ -817,23 +777,20 @@ export default {
 
     async confirmDelete() {
       if (!this.selectedItem) return
-      const targetId = String(this.selectedItem.id)
 
-      const localData = localStorage.getItem('local_coefficient_changes')
-      const parsedLocal = localData ? JSON.parse(localData) : []
+      try {
+        await coefficientServices.delete(this.selectedItem.id, {
+          channel: 'CMS'
+        })
 
-      const existing = parsedLocal.find(p => String(p.id) === targetId)
-      if (existing) {
-        existing.isDeletedLocal = true
-      } else {
-        parsedLocal.push({ id: this.selectedItem.id, isDeletedLocal: true })
+        this.deleteDialog = false
+        await this.fetchData()
+        this.alertColor = '#4caf50'
+        this.alertMessage = 'Xóa hệ số lớp thành công!'
+      } catch (err) {
+        console.error('Lỗi khi xóa hệ số lớp:', err)
+        this.alertMessage = ''
       }
-
-      this.saveLocalChanges(parsedLocal)
-      this.deleteDialog = false
-      await this.fetchData()
-      this.alertColor = '#4caf50'
-      this.alertMessage = 'Xóa hệ số lớp thành công!'
     },
   },
 }

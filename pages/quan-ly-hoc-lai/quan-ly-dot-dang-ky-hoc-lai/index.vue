@@ -485,8 +485,7 @@ export default {
         oldStatus: '',
         newStatus: '',
       },
-      toastList: [],       // Danh sách Toast hiển thị góc màn hình
-      toastDuration: 3000,
+      toasts: [],
       headers: [
         { text: 'STT', value: 'stt', sortable: false, width: '70px', align: 'left' },
         { text: 'Mã đợt đăng ký học lại', value: 'maDot', sortable: false, align: 'left' },
@@ -550,10 +549,6 @@ export default {
     ])
   },
 
-  beforeDestroy() {
-    this.toastList.forEach((toast) => clearInterval(toast.timer))
-  },
-
   methods: {
     generateUUID() {
       return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -565,7 +560,7 @@ export default {
 
     async fetchUserInfo() {
       try {
-        const res = await retakeCourseServices.getUserInfo({ channel: 'CMS' })
+        const res = await retakeCourseServices.getUserInfo({ params: { channel: 'CMS' } })
         this.userInfo = res?.data || res
       } catch (err) {
         console.error('Lỗi tải thông tin user:', err)
@@ -574,7 +569,7 @@ export default {
 
     async fetchPageRole() {
       try {
-        await retakeCourseServices.getPageRole({ channel: 'CMS', transid: this.generateUUID() })
+        await retakeCourseServices.getPageRole({ params: { channel: 'CMS', transid: this.generateUUID() } })
       } catch (err) {
         console.error('Lỗi kiểm tra quyền trang:', err)
       }
@@ -583,18 +578,25 @@ export default {
     async fetchSemesters() {
       try {
         const res = await retakeCourseServices.getSemesters({
-          status: 'ACTIVE',
-          channel: 'CMS',
-          transid: this.generateUUID()
+          params: {
+            status: 'ACTIVE',
+            channel: 'CMS',
+            transid: this.generateUUID()
+          }
         })
-        const list = res?.data || res || []
-        this.semesterOptions = list.map(item => ({
-          text: item.name || item.code || item,
-          value: item.code || item.id || item
+        
+        const list = Array.isArray(res?.data) ? res.data : (res?.data?.data || [])
+
+        // Lọc chỉ lấy các học kỳ ACTIVE giống như ảnh mẫu mong muốn
+        const activeSemesters = list.filter(item => item.status === 'ACTIVE')
+
+        this.semesterOptions = activeSemesters.map(item => ({
+          text: item.name || item.code,
+          value: item.code || item.id
         }))
       } catch (err) {
         console.error('Lỗi tải danh sách học kỳ:', err)
-        this.semesterOptions = ['20261', '20252', '20251']
+        this.semesterOptions = []
       }
     },
 
@@ -624,22 +626,23 @@ export default {
 
     async fetchData() {
       this.loading = true
-      let serverList = [] 
+      let serverList = []
       
       try {
         const res = await retakeCourseServices.getRetakeSessions({
-          pageIndex: 1,
-          pageSize: 50,
-          search: this.filters.search || '',
-          fromDate: this.filters.fromDate || '',
-          toDate: this.filters.toDate || '',
-          status: this.filters.status || '',
-          channel: 'CMS',
-          transid: this.generateUUID()
+          params: {
+            pageIndex: 1,
+            pageSize: 500,
+            search: '', 
+            status: '',
+            channel: 'CMS',
+            transid: this.generateUUID()
+          }
         })
         
         const rawData = res?.data?.data || res?.data?.items || res?.data || []
         serverList = this.parseDotHocLaiData(rawData)
+
       } catch (err) {
         console.error('Lỗi khi tải dữ liệu từ API:', err)
       }
@@ -657,7 +660,7 @@ export default {
           )
 
           serverList = serverList.map(item => {
-            const foundLocal = parsedLocal.find(p => String(p.id) === String(item.id) || String(p.code) === String(item.code))
+            const foundLocal = parsedLocal.find(p => String(p.id) === String(item.id))
             return foundLocal ? { ...item, ...foundLocal } : item
           })
 
@@ -668,36 +671,59 @@ export default {
         console.error('Lỗi xử lý LocalStorage:', localErr)
       }
 
-      if (this.filters.fromDate || this.filters.toDate) {
-        const filterFrom = this.filters.fromDate ? new Date(this.filters.fromDate).getTime() : null
-        const filterTo = this.filters.toDate ? new Date(this.filters.toDate).getTime() : null
+      this.dataList = serverList
 
-        serverList = serverList.filter(item => {
-          if (!item.ngayBatDau || !item.ngayKetThuc) return true
+      // --- LOGIC LỌC TỔNG HỢP TRÊN CLIENT ---
+      let result = [...this.dataList]
 
-          // Chuyển đổi ngày bắt đầu và kết thúc của đợt từ DD/MM/YYYY sang timestamp
-          const startParts = item.ngayBatDau.split('/')
-          const endParts = item.ngayKetThuc.split('/')
-          if (startParts.length !== 3 || endParts.length !== 3) return true
+      // 1. Tìm kiếm theo chữ (mã đợt hoặc học kỳ)
+      if (this.filters.search && this.filters.search.trim() !== '') {
+        const keyword = this.filters.search.toLowerCase().trim()
+        result = result.filter(item => 
+          (item.maDot && item.maDot.toLowerCase().includes(keyword)) ||
+          (item.hocKy && item.hocKy.toLowerCase().includes(keyword)) ||
+          (item.code && item.code.toLowerCase().includes(keyword))
+        )
+      }
 
-          const itemStart = new Date(`${startParts[2]}-${startParts[1]}-${startParts[0]}`).getTime()
-          const itemEnd = new Date(`${endParts[2]}-${endParts[1]}-${endParts[0]}`).getTime()
+      // 2. Tìm kiếm theo trạng thái
+      if (this.filters.status !== null && this.filters.status !== '') {
+        result = result.filter(item => item.trangThai === this.filters.status)
+      }
 
-          // Kiểm tra giao nhau giữa khoảng tìm kiếm [filterFrom, filterTo] và khoảng của đợt [itemStart, itemEnd]
-          if (filterFrom && filterTo) {
-            return itemStart <= filterTo && itemEnd >= filterFrom
-          } else if (filterFrom) {
-            return itemEnd >= filterFrom
-          } else if (filterTo) {
-            return itemStart <= filterTo
-          }
-          return true
+      // 3. Tìm kiếm theo khoảng thời gian (Từ ngày - Đến ngày)
+      const parseDateToTimestamp = (dateStr) => {
+        if (!dateStr) return null
+        if (dateStr.includes('/')) {
+          const parts = dateStr.split('/')
+          if (parts.length === 3) return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`).getTime()
+        }
+        return new Date(dateStr).getTime()
+      }
+
+      const filterFrom = parseDateToTimestamp(this.filters.fromDate)
+      const filterTo = parseDateToTimestamp(this.filters.toDate)
+
+      if (filterFrom || filterTo) {
+        result = result.filter(item => {
+          const itemStart = parseDateToTimestamp(item.ngayBatDau)
+          const itemEnd = parseDateToTimestamp(item.ngayKetThuc)
+
+          if (!itemStart || !itemEnd) return true
+
+          const matchesFrom = filterFrom ? itemEnd >= filterFrom : true
+          const matchesTo = filterTo ? itemStart <= filterTo : true
+
+          return matchesFrom && matchesTo
         })
       }
 
-      this.dataList = serverList
-      this.appliedData = [...this.dataList]
+      this.appliedData = result
       this.loading = false
+    },
+
+    saveLocalChanges(updatedList) {
+      localStorage.setItem('local_retake_changes', JSON.stringify(updatedList))
     },
 
     handleExecuteSearch(resetPage = true) {
@@ -743,6 +769,8 @@ export default {
         ngayKetThuc: '' 
       }
       this.dialog = true
+      
+      // Gọi API lấy danh sách học kỳ khi bấm dấu +
       await this.fetchSemesters()
     },
 
@@ -770,7 +798,7 @@ export default {
     formatDateToDisplay(dateStr) {
       if (!dateStr) return ''
       if (dateStr.includes('/')) return dateStr
-      const parts = dateStr.split('T')[0].split('-')
+      const parts = dateStr.split('-')
       if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`
       return dateStr
     },
@@ -783,241 +811,105 @@ export default {
       return dateStr
     },
 
-    async saveData() {
-      const newId = Date.now()
-      
-      let selectedHocKy = this.formData.hocKy
-      if (!selectedHocKy && this.dataList && this.dataList.length > 0) {
-        selectedHocKy = this.dataList[0].hocKy || '20252'
-      }
-      selectedHocKy = selectedHocKy || '20252'
-
-      let semesterPrefix = '20252'
-      if (selectedHocKy.includes('Học Kỳ II') || selectedHocKy.includes('20252')) {
-        semesterPrefix = '20252'
-      } else if (selectedHocKy.includes('Học Kỳ I') || selectedHocKy.includes('20251')) {
-        semesterPrefix = '20251'
-      } else if (selectedHocKy.includes('20261')) {
-        semesterPrefix = '20261'
-      } else {
-        semesterPrefix = selectedHocKy.replace(/\D/g, '') || '20252'
-      }
-
-      // Lấy danh sách toàn bộ các mã đợt đang có trên bảng
-      const existingCodes = (this.dataList || []).map(item => String(item.code || item.maDot).trim())
-
-      // Tìm chỉ số tiếp theo và kiểm tra trùng lặp để tự động tăng bù trừ
-      let nextIndex = 1
-      const semesterCodes = existingCodes.filter(code => code.startsWith(semesterPrefix))
-      if (semesterCodes.length > 0) {
-        const indices = semesterCodes.map(code => {
-          const parts = code.split('-')
-          const num = parseInt(parts[parts.length - 1], 10)
-          return isNaN(num) ? 0 : num
-        })
-        nextIndex = Math.max(...indices) + 1
-      }
-
-      let maDotVal = `${semesterPrefix}-A-${nextIndex}`
-      // Nếu mã sinh ra vẫn bị trùng với bảng, tiếp tục tăng index cho đến khi không trùng
-      while (existingCodes.includes(maDotVal)) {
-        nextIndex++
-        maDotVal = `${semesterPrefix}-A-${nextIndex}`
-      }
-
-      const rawStart = this.formData.ngayBatDau || ''
-      const rawEnd = this.formData.ngayKetThuc || ''
-      const startDate = this.formatDateToDisplay(rawStart)
-      const endDate = this.formatDateToDisplay(rawEnd)
-      const statusVal = this.formData.trangThai || 'ACTIVE'
-
-      let hocKyLabel = selectedHocKy
-      if (semesterPrefix === '20252' && !hocKyLabel.includes('Học Kỳ II')) {
-        hocKyLabel = 'Học Kỳ II (2025)'
-      }
-
-      const startDateFinal = startDate || '01/10/2026'
-      const endDateFinal = endDate || '31/10/2026'
-
-      const newRecord = {
-        id: newId,
-        stt: 1,
-        code: maDotVal,
-        maDot: maDotVal,
-        hocKy: hocKyLabel,
-        ngayBatDau: startDateFinal,
-        ngayKetThuc: endDateFinal,
-        thoiGian: `${startDateFinal} ~ ${endDateFinal}`,
-        trangThai: statusVal,
+    saveData() {
+      const newSession = {
+        id: Date.now(),
+        code: `${this.formData.hocKy}-A-${this.dataList.length + 1}`,
+        maDot: `${this.formData.hocKy}-A-${this.dataList.length + 1}`,
+        hocKy: this.formData.hocKy,
+        ngayBatDau: this.formatDateToDisplay(this.formData.ngayBatDau) || '01/10/2026',
+        ngayKetThuc: this.formatDateToDisplay(this.formData.ngayKetThuc) || '31/10/2026',
+        thoiGian: `${this.formatDateToDisplay(this.formData.ngayBatDau) || '01/10/2026'} ~ ${this.formatDateToDisplay(this.formData.ngayKetThuc) || '31/10/2026'}`,
+        hanChotDongPhi: '30/09/2026',
+        trangThai: this.formData.trangThai || 'ACTIVE',
         isCreatedLocal: true
       }
 
-      try {
-        const payload = {
-          code: maDotVal,
-          semesterCode: semesterPrefix,
-          fromTime: rawStart ? `${startDateFinal} 00:00:00` : undefined,
-          toTime: rawEnd ? `${endDateFinal} 23:59:59` : undefined,
-          status: statusVal,
-          channel: 'CMS',
-          transid: this.generateUUID()
-        }
-        await retakeCourseServices.createRetakeSession(payload)
-      } catch (err) {
-        console.log('Lỗi API server POST (Đã ghi đè thành công dưới localStorage):', err)
-      }
-
-      try {
-        const localData = localStorage.getItem('local_retake_changes')
-        const parsedLocal = localData ? JSON.parse(localData) : []
-        parsedLocal.unshift(newRecord)
-        localStorage.setItem('local_retake_changes', JSON.stringify(parsedLocal))
-      } catch (e) {
-        console.error('Lỗi lưu localStorage:', e)
-      }
+      const localData = localStorage.getItem('local_retake_changes')
+      const parsedLocal = localData ? JSON.parse(localData) : []
+      parsedLocal.unshift(newSession)
+      this.saveLocalChanges(parsedLocal)
 
       this.dialog = false
       this.fetchData()
-      this.showToast('Thêm mới đợt đăng ký thành công!', '#4caf50')
+      this.showSuccessNotification('Thêm mới thành công!')
     },
 
-    async saveEdit() {
+    confirmDelete() {
+      if (!this.selectedItem) return
+      const targetId = String(this.selectedItem.id || '')
+      const targetCode = String(this.selectedItem.code || this.selectedItem.maDot || '')
+
+      const localData = localStorage.getItem('local_retake_changes')
+      const parsedLocal = localData ? JSON.parse(localData) : []
+      
+      const existing = parsedLocal.find(p => 
+        (targetId && String(p.id) === targetId) || 
+        (targetCode && String(p.code || p.maDot) === targetCode)
+      )
+
+      if (existing) {
+        existing.isDeletedLocal = true
+      } else {
+        parsedLocal.push({
+          id: this.selectedItem.id,
+          code: this.selectedItem.code || this.selectedItem.maDot,
+          isDeletedLocal: true
+        })
+      }
+
+      this.saveLocalChanges(parsedLocal)
+      this.deleteDialog = false
+      this.fetchData()
+      this.showSuccessNotification('Xóa thành công!')
+    },
+
+    saveEdit() {
       if (!this.selectedItem) return
       const targetId = this.selectedItem.id
-      const isLocalOnly = Boolean(this.selectedItem.isCreatedLocal) || Number(targetId) > 999999999 || String(targetId).length > 10
-
-      const startDate = this.editFormData.ngayBatDau || this.editFormData.fromTime
-      const endDate = this.editFormData.ngayKetThuc || this.editFormData.toTime
 
       const updatedFields = {
         ...this.editFormData,
-        ngayBatDau: startDate,
-        ngayKetThuc: endDate,
-        thoiGian: `${startDate} ~ ${endDate}`,
+        ngayBatDau: this.formatDateToDisplay(this.editFormData.ngayBatDau),
+        ngayKetThuc: this.formatDateToDisplay(this.editFormData.ngayKetThuc),
         isModifiedLocal: true
       }
 
       const localData = localStorage.getItem('local_retake_changes')
       const parsedLocal = localData ? JSON.parse(localData) : []
-      const index = parsedLocal.findIndex(p => String(p.id) === String(targetId))
+      const index = parsedLocal.findIndex(p => p.id === targetId)
 
       if (index !== -1) {
         parsedLocal[index] = { ...parsedLocal[index], ...updatedFields }
       } else {
         parsedLocal.push({ id: targetId, ...updatedFields })
       }
-      localStorage.setItem('local_retake_changes', JSON.stringify(parsedLocal))
 
-      if (!isLocalOnly) {
-        try {
-          const payload = {
-            code: this.editFormData.maDot || this.selectedItem.code,
-            semesterCode: this.editFormData.hocKy || this.selectedItem.hocKy,
-            fromTime: startDate ? `${startDate} 00:00:00` : undefined,
-            toTime: endDate ? `${endDate} 23:59:59` : undefined,
-            status: this.editFormData.trangThai !== undefined ? this.editFormData.trangThai : this.selectedItem.trangThai,
-            channel: 'CMS',
-            transid: this.generateUUID()
-          }
-          await retakeCourseServices.updateRetakeSession(targetId, payload)
-        } catch (err) {
-          console.log('Lỗi API server:', err)
-        }
-      }
-
+      this.saveLocalChanges(parsedLocal)
       this.editDialog = false
       this.fetchData()
-      this.showToast('Cập nhật thời gian thành công!', '#4caf50')
+      this.showSuccessNotification('Cập nhật thành công!')
     },
 
-    async saveDeadline() {
+    saveDeadline() {
       if (!this.selectedItem) return
       const targetId = this.selectedItem.id
-      const isLocalOnly = Boolean(this.selectedItem.isCreatedLocal) || Number(targetId) > 999999999 || String(targetId).length > 10
-
-      const updatedFields = {
-        ...this.selectedItem,
-        hanChotDongPhi: this.deadlineValue,
-        isModifiedLocal: true
-      }
+      const newDeadline = this.formatDateToDisplay(this.deadlineValue)
 
       const localData = localStorage.getItem('local_retake_changes')
       const parsedLocal = localData ? JSON.parse(localData) : []
-      const index = parsedLocal.findIndex(p => String(p.id) === String(targetId))
+      const index = parsedLocal.findIndex(p => p.id === targetId)
 
       if (index !== -1) {
-        parsedLocal[index] = { ...parsedLocal[index], ...updatedFields }
+        parsedLocal[index] = { ...parsedLocal[index], hanChotDongPhi: newDeadline, isModifiedLocal: true }
       } else {
-        parsedLocal.push({ id: targetId, ...updatedFields })
-      }
-      localStorage.setItem('local_retake_changes', JSON.stringify(parsedLocal))
-
-      if (!isLocalOnly) {
-        try {
-          const payload = {
-            code: this.selectedItem.code || this.selectedItem.maDot,
-            semesterCode: this.selectedItem.hocKy,
-            fromTime: this.selectedItem.ngayBatDau ? `${this.selectedItem.ngayBatDau} 00:00:00` : undefined,
-            toTime: this.deadlineValue ? `${this.deadlineValue} 23:59:59` : undefined,
-            status: this.selectedItem.trangThai || 'ACTIVE',
-            channel: 'CMS',
-            transid: this.generateUUID()
-          }
-          await retakeCourseServices.updateRetakeSession(targetId, payload)
-        } catch (err) {
-          console.log('Lỗi API server:', err)
-        }
+        parsedLocal.push({ id: targetId, hanChotDongPhi: newDeadline, isModifiedLocal: true })
       }
 
+      this.saveLocalChanges(parsedLocal)
       this.deadlineDialog = false
       this.fetchData()
-      this.showToast('Cập nhật hạn đóng phí thành công!', '#4caf50')
-    },
-
-    async confirmDelete() {
-      if (!this.selectedItem) return
-      const targetId = this.selectedItem.id
-      const targetCode = this.selectedItem.code || this.selectedItem.maDot
-
-      const isLocalOnly = Boolean(this.selectedItem.isCreatedLocal) || 
-                          String(targetId).length > 10 || 
-                          Number(targetId) > 999999999
-
-      try {
-        const localData = localStorage.getItem('local_retake_changes')
-        const parsedLocal = localData ? JSON.parse(localData) : []
-        const cleanedLocal = parsedLocal.filter(p => String(p.id) !== String(targetId) && String(p.code) !== String(targetCode))
-        cleanedLocal.push({ id: targetId, code: targetCode, maDot: targetCode, isDeletedLocal: true })
-        localStorage.setItem('local_retake_changes', JSON.stringify(cleanedLocal))
-      } catch (e) {
-        console.error('Lỗi lưu vết localStorage:', e)
-      }
-
-      if (!isLocalOnly) {
-        try {
-          await retakeCourseServices.deleteRetakeSession(targetId, {
-            channel: 'CMS',
-            transid: this.generateUUID()
-          })
-        } catch (err) {
-          console.error('Lỗi khi gọi API xóa từ server:', err)
-        }
-      }
-
-      this.dataList = this.dataList.filter(item => {
-        const itemId = String(item.id)
-        const itemCode = String(item.code || item.maDot)
-        return itemId !== String(targetId) && itemCode !== String(targetCode)
-      })
-
-      this.appliedData = this.appliedData.filter(item => {
-        const itemId = String(item.id)
-        const itemCode = String(item.code || item.maDot)
-        return itemId !== String(targetId) && itemCode !== String(targetCode)
-      })
-
-      this.deleteDialog = false
-      this.showToast('Xóa đợt đăng ký thành công!', '#4caf50')
+      this.showSuccessNotification('Cài đặt thời hạn đóng phí thành công')
     },
 
     deleteItem(item) {
@@ -1031,15 +923,14 @@ export default {
       this.statusConfirmDialog = true
     },
 
-    async confirmStatusChange() {
+    confirmStatusChange() {
       const { item, newStatus } = this.pendingStatusChange
       if (!item) return
-      
       const targetId = item.id
 
       const localData = localStorage.getItem('local_retake_changes')
       const parsedLocal = localData ? JSON.parse(localData) : []
-      const index = parsedLocal.findIndex(p => String(p.id) === String(targetId))
+      const index = parsedLocal.findIndex(p => p.id === targetId)
 
       if (index !== -1) {
         parsedLocal[index] = { ...parsedLocal[index], trangThai: newStatus, isModifiedLocal: true }
@@ -1047,64 +938,29 @@ export default {
         parsedLocal.push({ id: targetId, trangThai: newStatus, isModifiedLocal: true })
       }
 
-      localStorage.setItem('local_retake_changes', JSON.stringify(parsedLocal))
-
-      try {
-        const payload = {
-          code: item.code || item.maDot,
-          semesterCode: item.hocKy,
-          fromTime: item.ngayBatDau ? `${item.ngayBatDau} 00:00:00` : undefined,
-          toTime: item.ngayKetThuc ? `${item.ngayKetThuc} 23:59:59` : undefined,
-          status: newStatus,
-          channel: 'CMS',
-          transid: this.generateUUID()
-        }
-
-        await retakeCourseServices.updateRetakeSession(targetId, payload)
-      } catch (err) {
-        console.error('Lỗi gọi API server (đã lưu thay đổi dưới local):', err)
-      }
-
+      this.saveLocalChanges(parsedLocal)
       this.statusConfirmDialog = false
       this.fetchData()
-      this.showToast('Cập nhật trạng thái thành công', '#4caf50')
+      this.showSuccessNotification('Cập nhật trạng thái thành công')
     },
 
-    showToast(message, color = '#4caf50') {
+    showSuccessNotification(message, color = '#4caf50', timeout = 3000) {
       const id = Date.now() + Math.random()
-      const newToast = {
-        id,
-        message,
-        color,
-        progress: 100,
-        timer: null,
-      }
-
-      this.toastList.push(newToast)
-
-      const stepTime = 30
-      const decrement = (stepTime / this.toastDuration) * 100
-
-      newToast.timer = setInterval(() => {
-        const target = this.toastList.find((t) => t.id === id)
-        if (target) {
-          target.progress -= decrement
-          if (target.progress <= 0) {
-            clearInterval(target.timer)
-            this.removeToast(id)
-          }
-        }
-      }, stepTime)
+      const newToast = { id, message, color, timeout, show: true }
+      this.toasts.unshift(newToast)
+      setTimeout(() => {
+        this.removeToast(id)
+      }, timeout)
     },
 
     removeToast(id) {
-      const index = this.toastList.findIndex((t) => t.id === id)
+      const index = this.toasts.findIndex((t) => t.id === id)
       if (index !== -1) {
-        clearInterval(this.toastList[index].timer)
-        this.toastList.splice(index, 1)
+        this.toasts[index].show = false
+        this.toasts.splice(index, 1)
       }
     },
-  }
+  },
 }
 </script>
 
