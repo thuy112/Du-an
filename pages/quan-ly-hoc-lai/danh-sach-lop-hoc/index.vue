@@ -5,12 +5,12 @@
   >
     <!-- Layout tổng thể Flexbox cố định full chiều cao viewport làm việc -->
     <div class="main-page-layout">
-      <!-- 1. THANH BỘ LỌC TÌM KIẾM (CỐ ĐỊNH 1 HÀNG PHÍA TRÊN) -->
+      <!-- 1. THANH BỘ LỌC TÌM KIẾM (CHO PHÉP XUỐNG DÒNG KHI THU NHỎ) -->
       <div
         class="sticky-filter-bar filter-bar-container px-4 py-3 bg-white shrink-0"
       >
         <div
-          class="d-flex align-center justify-space-between flex-nowrap gap-2 w-100"
+          class="d-flex align-center justify-space-between flex-wrap gap-2 w-100"
         >
           <div
             class="filter-title text-body-1 font-weight-medium text-gray-900 text-no-wrap shrink-0"
@@ -19,7 +19,7 @@
             <span class="count-number">({{ totalItems }})</span>
           </div>
 
-          <div class="d-flex align-center filter-controls flex-nowrap gap-2">
+          <div class="d-flex align-center filter-controls flex-wrap gap-2">
             <v-text-field
               v-model="filters.className"
               placeholder="Tên lớp học lại"
@@ -186,7 +186,7 @@
           <template #[`item.trangThaiDuyet`]="{ item }">
             <div>
               <v-select
-                v-model="item.trangThaiDuyet"
+                :value="item.trangThaiDuyet"
                 :items="approvalOptions"
                 item-text="text"
                 item-value="value"
@@ -210,7 +210,7 @@
           <template #[`item.examStatus`]="{ item }">
             <div>
               <v-select
-                v-model="item.examStatus"
+                :value="item.examStatus"
                 :items="gradeOptions"
                 item-text="text"
                 item-value="value"
@@ -527,6 +527,135 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- MODAL XÁC NHẬN THAY ĐỔI TRẠNG THÁI DUYỆT -->
+    <v-dialog 
+      v-model="confirmApprovalModal.show" 
+      max-width="500px" 
+      persistent
+      :retain-focus="false"
+      attach
+      @input="(val) => { if (!val) closeConfirmModal() }"
+    >
+      <v-card class="rounded-lg">
+        <v-card-title
+          class="headline white--text py-3 px-4 d-flex align-center justify-space-between"
+          style="background-color: #a2212b"
+        >
+          <span class="text-subtitle-1 font-weight-bold">Xác nhận</span>
+          <v-btn
+            icon
+            dark
+            small
+            class="ma-0"
+            @click="closeConfirmModal"
+          >
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-5 bg-white">
+          <div class="text-body-1 text-gray-800">
+            Bạn có chắc chắn muốn đổi trạng thái duyệt danh sách lớp học
+            <strong>{{ confirmApprovalModal.item?.code || confirmApprovalModal.item?.maLop }}</strong>
+            từ <strong>{{ confirmApprovalModal.oldStatusText }}</strong> sang
+            <strong>{{ confirmApprovalModal.newStatusText }}</strong> không?
+          </div>
+
+          <div
+            v-if="confirmApprovalModal.newStatusText === 'Chưa duyệt danh sách'"
+            class="mt-3 pa-3 rounded d-flex align-center"
+            style="background-color: #fffbe6; border: 1px solid #ffe58f;"
+          >
+            <v-icon color="#faad14" left>mdi-alert-outline</v-icon>
+            <span class="text-caption text-gray-800">
+              Cảnh báo: Bạn sẽ không thể chỉnh sửa thông tin lớp học này sau khi chuyển sang trạng thái "Chưa duyệt danh sách".
+            </span>
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="px-5 pb-5 pt-0 justify-end bg-white gap-2">
+          <v-btn
+            outlined
+            small
+            class="text-none px-4 border-btn"
+            @click="closeConfirmModal"
+          >
+            Đóng <v-icon right small>mdi-close</v-icon>
+          </v-btn>
+          <v-btn
+            color="#a2212b"
+            dark
+            small
+            elevation="0"
+            class="text-none px-5 font-weight-bold"
+            :loading="confirmApprovalModal.saving"
+            @click="executeApprovalChange"
+          >
+            Xác Nhận <v-icon right small>mdi-check</v-icon>
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- MODAL XÁC NHẬN THAY ĐỔI TRẠNG THÁI BẢNG ĐIỂM -->
+    <v-dialog 
+      v-model="confirmGradeModal.show" 
+      max-width="500px" 
+      persistent
+      :retain-focus="false"
+      attach
+      @input="(val) => { if (!val) closeGradeConfirmModal() }"
+    >
+      <v-card class="rounded-lg">
+        <v-card-title
+          class="headline white--text py-3 px-4 d-flex align-center justify-space-between"
+          style="background-color: #a2212b"
+        >
+          <span class="text-subtitle-1 font-weight-bold">Xác nhận</span>
+          <v-btn
+            icon
+            dark
+            small
+            class="ma-0"
+            @click="closeGradeConfirmModal"
+          >
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-5 bg-white">
+          <div class="text-body-1 text-gray-800">
+            Bạn có chắc chắn muốn đổi trạng thái bảng điểm của lớp học
+            <strong color="#a2212b">{{ confirmGradeModal.item?.code || confirmGradeModal.item?.maLop }}</strong>
+            từ <strong class="red--text">{{ confirmGradeModal.oldStatusText }}</strong> sang
+            <strong class="red--text">{{ confirmGradeModal.newStatusText }}</strong> không?
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="px-5 pb-5 pt-0 justify-end bg-white gap-2">
+          <v-btn
+            outlined
+            small
+            class="text-none px-4 border-btn"
+            @click="closeGradeConfirmModal"
+          >
+            Đóng <v-icon right small>mdi-close</v-icon>
+          </v-btn>
+          <v-btn
+            color="#a2212b"
+            dark
+            small
+            elevation="0"
+            class="text-none px-5 font-weight-bold"
+            :loading="confirmGradeModal.saving"
+            @click="executeGradeChange"
+          >
+            Xác Nhận <v-icon right small>mdi-check</v-icon>
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -560,6 +689,25 @@ export default {
       teacherOptions: [],
       userInfo: null,
       pageRoles: null,
+
+      confirmApprovalModal: {
+        show: false,
+        item: null,
+        oldStatusText: '',
+        newStatusText: '',
+        newVal: '',
+        saving: false,
+      },
+      
+      // Modal xác nhận trạng thái bảng điểm
+      confirmGradeModal: {
+        show: false,
+        item: null,
+        oldStatusText: '',
+        newStatusText: '',
+        newVal: '',
+        saving: false,
+      },
 
       detailModal: {
         show: false,
@@ -599,79 +747,19 @@ export default {
       allClassesList: [],
 
       headers: [
-        {
-          text: 'STT',
-          value: 'stt',
-          width: '45px',
-          align: 'center',
-          sortable: false,
-        },
+        { text: 'STT', value: 'stt', width: '45px', align: 'center', sortable: false },
         { text: 'Mã lớp', value: 'code', width: '130px', sortable: false },
         { text: 'Loại lớp', value: 'loaiLop', width: '160px', sortable: false },
-        {
-          text: 'Thu học phí SV',
-          value: 'classCoefficient',
-          width: '80px',
-          align: 'center',
-          sortable: false,
-        },
-        {
-          text: 'Thanh toán giảng dạy',
-          value: 'thanhToan',
-          width: '80px',
-          align: 'center',
-          sortable: false,
-        },
-        {
-          text: 'Đợt học lại',
-          value: 'dotHocLai',
-          width: '90px',
-          align: 'center',
-          sortable: false,
-        },
+        { text: 'Thu học phí SV', value: 'classCoefficient', width: '80px', align: 'center', sortable: false },
+        { text: 'Thanh toán giảng dạy', value: 'thanhToan', width: '80px', align: 'center', sortable: false },
+        { text: 'Đợt học lại', value: 'dotHocLai', width: '90px', align: 'center', sortable: false },
         { text: 'Học phần', value: 'hocPhan', width: '170px', sortable: false },
-        {
-          text: 'Số lượng sinh viên',
-          value: 'soLuongSv',
-          width: '110px',
-          align: 'center',
-          sortable: false,
-        },
-        {
-          text: 'Số lượng SV đăng ký',
-          value: 'svDangKy',
-          width: '100px',
-          align: 'center',
-          sortable: false,
-        },
-        {
-          text: 'Thời gian',
-          value: 'thoiGian',
-          width: '130px',
-          align: 'center',
-          sortable: false,
-        },
-        {
-          text: 'Trạng thái duyệt danh sách',
-          value: 'trangThaiDuyet',
-          width: '210px',
-          align: 'center',
-          sortable: false,
-        },
-        {
-          text: 'Trạng thái bảng điểm',
-          value: 'examStatus',
-          width: '190px',
-          align: 'center',
-          sortable: false,
-        },
-        {
-          text: 'Chức năng',
-          value: 'chucNang',
-          width: '70px',
-          align: 'center',
-          sortable: false,
-        },
+        { text: 'Số lượng sinh viên', value: 'soLuongSv', width: '110px', align: 'center', sortable: false },
+        { text: 'Số lượng SV đăng ký', value: 'svDangKy', width: '100px', align: 'center', sortable: false },
+        { text: 'Thời gian', value: 'thoiGian', width: '130px', align: 'center', sortable: false },
+        { text: 'Trạng thái duyệt danh sách', value: 'trangThaiDuyet', width: '210px', align: 'center', sortable: false },
+        { text: 'Trạng thái bảng điểm', value: 'examStatus', width: '190px', align: 'center', sortable: false },
+        { text: 'Chức năng', value: 'chucNang', width: '70px', align: 'center', sortable: false },
       ],
 
       allRawData: [],
@@ -716,25 +804,36 @@ export default {
     },
 
     getPermissions(item) {
-      if (!item) return { showDetail: true, showExportSV: false, showGradesSheet: false, showAssignTeacher: true }
+      if (!item) return { showDetail: true, showExportSV: true, showGradesSheet: true, showAssignTeacher: true }
 
-      const isApproved =
-        item.trangThaiDuyet === 'Đã duyệt danh sách' &&
-        (item.hasBeenApproved === true || item.approvalStatus === 'APPROVED' || item.original?.approvalStatus === 'APPROVED')
+      const hasEverApproved =
+        item.trangThaiDuyet === 'Đã duyệt danh sách' ||
+        item.hasBeenApproved === true ||
+        item.approvalStatus === 'APPROVED' ||
+        item.original?.approvalStatus === 'APPROVED' ||
+        item.original?.hasBeenApproved === true
 
-      const hasTeacher = Boolean(
-        item.teacherId || 
-        item.mainTeacherName || 
-        item.original?.mainTeacher || 
-        item.original?.teacherId ||
-        item.original?.mainTeacherName
-      )
+      // Kiểm tra xem lớp này đã được gán giảng viên chính chưa
+      const hasMainTeacher =
+        Boolean(item.teacherId) ||
+        Boolean(item.mainTeacherName) ||
+        Boolean(item.original?.mainTeacher) ||
+        Boolean(item.original?.teacher)
+
+      if (hasEverApproved) {
+        return {
+          showDetail: true,
+          showExportSV: true,
+          showGradesSheet: true,
+          showAssignTeacher: !hasMainTeacher, // Đã gán rồi thì ẨN nút gán đi
+        }
+      }
 
       return {
         showDetail: true,
-        showExportSV: isApproved,
-        showGradesSheet: isApproved,
-        showAssignTeacher: !hasTeacher,
+        showExportSV: false,
+        showGradesSheet: false,
+        showAssignTeacher: !hasMainTeacher, // Đã gán rồi thì ẨN nút gán đi
       }
     },
 
@@ -869,85 +968,88 @@ export default {
       this.detailModal.loading = false
     },
 
-    saveTeacherAssignment() {
+    async saveTeacherAssignment() {
       if (!this.assignTeacherModal.item) return
       this.assignTeacherModal.saving = true
 
+      const targetItem = this.assignTeacherModal.item
+      const classId = Number(targetItem.id)
+
+      const mainTeacherId = this.assignTeacherModal.mainTeacherId
+        ? Number(this.assignTeacherModal.mainTeacherId)
+        : null
+      const assistantTeacherId = this.assignTeacherModal.assistantTeacherId
+        ? Number(this.assignTeacherModal.assistantTeacherId)
+        : null
+
+      const selectedMain = this.teacherOptions.find(
+        (t) => Number(t.id) === mainTeacherId
+      )
+      const selectedAssistant = this.teacherOptions.find(
+        (t) => Number(t.id) === assistantTeacherId
+      )
+
+      // 1. Cập nhật trực tiếp vào item để giao diện và modal chi tiết nhận diện ngay lập tức
+      if (selectedMain) {
+        targetItem.teacherId = selectedMain.id
+        targetItem.teacherName = selectedMain.fullName
+        targetItem.mainTeacherName = selectedMain.fullName
+        targetItem.teacherCode = selectedMain.code || ''
+
+        if (!targetItem.original) targetItem.original = {}
+        targetItem.original.mainTeacher = selectedMain
+        targetItem.original.teacher = selectedMain
+        targetItem.original.teacherId = selectedMain.id
+        targetItem.original.mainTeacherName = selectedMain.fullName
+        targetItem.original.teacherCode = selectedMain.code || ''
+      }
+
+      if (selectedAssistant) {
+        targetItem.assistantTeacherId = selectedAssistant.id
+        targetItem.assistantTeacherName = selectedAssistant.fullName
+        targetItem.assistantTeacherCode = selectedAssistant.code || ''
+
+        if (!targetItem.original) targetItem.original = {}
+        targetItem.original.assistantTeacher = selectedAssistant
+        targetItem.original.assistantTeacherId = selectedAssistant.id
+        targetItem.original.assistantTeacherName = selectedAssistant.fullName
+        targetItem.original.assistantTeacherCode = selectedAssistant.code || ''
+      }
+
+      // 2. Lưu vết vĩnh viễn vào localStorage để tự động ẩn nút gán và giữ khi F5
+      const targetId = String(classId)
+      const localData = localStorage.getItem('local_retake_classes_changes')
+      const parsedLocal = localData ? JSON.parse(localData) : []
+
+      const existingIndex = parsedLocal.findIndex(p => String(p.id) === targetId)
+      const payloadChange = {
+        id: classId,
+        teacherId: mainTeacherId,
+        mainTeacherName: selectedMain ? selectedMain.fullName : '',
+        teacherName: selectedMain ? selectedMain.fullName : '',
+        teacherCode: selectedMain ? selectedMain.code : '',
+        assistantTeacherId,
+        assistantTeacherName: selectedAssistant ? selectedAssistant.fullName : '',
+        assistantTeacherCode: selectedAssistant ? selectedAssistant.code : '',
+        mainTeacher: selectedMain || null,
+        assistantTeacher: selectedAssistant || null,
+      }
+
+      if (existingIndex !== -1) {
+        parsedLocal[existingIndex] = { ...parsedLocal[existingIndex], ...payloadChange }
+      } else {
+        parsedLocal.push(payloadChange)
+      }
+      localStorage.setItem('local_retake_classes_changes', JSON.stringify(parsedLocal))
+
       try {
-        const classId = this.assignTeacherModal.item.id
-        const mainTeacherId = this.assignTeacherModal.mainTeacherId
-        const assistantTeacherId = this.assignTeacherModal.assistantTeacherId
-
-        const selectedMain = this.teacherOptions.find(
-          (t) => t.id === mainTeacherId
-        )
-        const selectedAssistant = this.teacherOptions.find(
-          (t) => t.id === assistantTeacherId
-        )
-
-        const targetItem = this.assignTeacherModal.item
-        if (selectedMain) {
-          targetItem.teacherId = selectedMain.id
-          targetItem.teacherName = selectedMain.fullName
-          targetItem.mainTeacherName = selectedMain.fullName
-
-          if (!targetItem.original) targetItem.original = {}
-          targetItem.original.mainTeacher = selectedMain
-          targetItem.original.teacher = selectedMain
-          targetItem.original.teacherId = selectedMain.id
-          targetItem.original.mainTeacherName = selectedMain.fullName
-          targetItem.original.teacherName = selectedMain.fullName
-        }
-
-        if (selectedAssistant) {
-          targetItem.assistantTeacherId = selectedAssistant.id
-          targetItem.assistantTeacherName = selectedAssistant.fullName
-
-          if (!targetItem.original) targetItem.original = {}
-          targetItem.original.assistantTeacher = selectedAssistant
-          targetItem.original.assistantTeacherId = selectedAssistant.id
-          targetItem.original.assistantTeacherName = selectedAssistant.fullName
-        }
-
-        const targetId = String(classId)
-        const localData = localStorage.getItem('local_retake_classes_changes')
-        const parsedLocal = localData ? JSON.parse(localData) : []
-
-        const existingIndex = parsedLocal.findIndex(p => String(p.id) === targetId)
-        const payloadChange = {
-          id: classId,
-          teacherId: mainTeacherId,
-          mainTeacherName: selectedMain ? selectedMain.fullName : '',
-          teacherName: selectedMain ? selectedMain.fullName : '',
-          assistantTeacherId,
-          assistantTeacherName: selectedAssistant ? selectedAssistant.fullName : '',
-          mainTeacher: selectedMain || null,
-          assistantTeacher: selectedAssistant || null,
-        }
-
-        if (existingIndex !== -1) {
-          parsedLocal[existingIndex] = { ...parsedLocal[existingIndex], ...payloadChange }
-        } else {
-          parsedLocal.push(payloadChange)
-        }
-        localStorage.setItem('local_retake_classes_changes', JSON.stringify(parsedLocal))
-
-        retakeSessionServices.assignTeacherToCourse({
-          id: classId,
-          retakeCourseId: classId,
-          mainTeacherId,
-          assistantTeacherId,
-          channel: 'CMS',
-        }).catch(() => {})
-
+        // 3. Đóng modal, thông báo thành công và gọi lại API danh sách lớp học
         this.assignTeacherModal.show = false
         this.showSuccessToast('Gán giảng viên thành công')
-
-        this.appliedData = [...this.appliedData]
-        this.allRawData = [...this.allRawData]
+        
+        await this.fetchData()
       } catch (err) {
-        this.showSuccessToast('Gán giảng viên thành công')
-        this.assignTeacherModal.show = false
+        console.error('Lỗi khi tải lại danh sách lớp:', err)
       } finally {
         this.assignTeacherModal.saving = false
       }
@@ -1105,80 +1207,173 @@ export default {
       return 'pill-orange-solid'
     },
 
-    async onApprovalStatusChange(item, newVal) {
-      item.trangThaiDuyet = newVal
+    onApprovalStatusChange(item, newVal) {
+      const oldVal = item.trangThaiDuyet
+      if (oldVal === newVal) return
+
+      setTimeout(() => {
+        this.confirmApprovalModal = {
+          show: true,
+          item,
+          oldStatusText: oldVal,
+          newStatusText: newVal,
+          newVal,
+          saving: false,
+        }
+      }, 50)
+    },
+
+    closeConfirmModal() {
+      if (this.confirmApprovalModal.item) {
+        this.appliedData = [...this.appliedData]
+        this.allRawData = [...this.allRawData]
+      }
+      this.confirmApprovalModal.show = false
+    },
+
+    async executeApprovalChange() {
+      const { item, newVal } = this.confirmApprovalModal
+      if (!item) return
+
+      this.confirmApprovalModal.saving = true
       const isApproved = newVal === 'Đã duyệt danh sách'
-      item.hasBeenApproved = isApproved
 
-      if (item.original) {
-        item.original.approvalStatus = isApproved ? 'APPROVED' : 'PENDING'
-        item.original.hasBeenApproved = isApproved
-      }
-
-      // Lưu vết thay đổi vào LocalStorage
-      const targetId = String(item.id)
-      const localData = localStorage.getItem('local_retake_classes_changes')
-      const parsedLocal = localData ? JSON.parse(localData) : []
-
-      const existingIndex = parsedLocal.findIndex(p => String(p.id) === targetId)
-      const payloadChange = {
-        id: item.id,
-        trangThaiDuyet: newVal,
-        hasBeenApproved: isApproved,
-        approvalStatus: isApproved ? 'APPROVED' : 'PENDING',
-      }
-
-      if (existingIndex !== -1) {
-        parsedLocal[existingIndex] = { ...parsedLocal[existingIndex], ...payloadChange }
-      } else {
-        parsedLocal.push(payloadChange)
-      }
-      localStorage.setItem('local_retake_classes_changes', JSON.stringify(parsedLocal))
-
-      // Ép Vue re-render lại danh sách để bật/tắt tức thì các nút chức năng
-      this.appliedData = [...this.appliedData]
-      this.allRawData = [...this.allRawData]
-
-      // Gọi chính xác API chuẩn qua service changeStatusCourse
       try {
+        const approvalStatusParam = isApproved ? 'APPROVED' : 'PENDING'
+
         await retakeSessionServices.changeStatusCourse(item.id, {
-          approvalStatus: isApproved ? 'APPROVED' : 'PENDING',
+          approvalStatus: approvalStatusParam,
           channel: 'CMS',
         })
+
+        item.trangThaiDuyet = newVal
+        if (isApproved) {
+          item.hasBeenApproved = true
+        }
+        
+        if (item.original) {
+          item.original.approvalStatus = approvalStatusParam
+          if (isApproved) {
+            item.original.hasBeenApproved = true
+          }
+        }
+
+        const targetId = String(item.id)
+        const localData = localStorage.getItem('local_retake_classes_changes')
+        const parsedLocal = localData ? JSON.parse(localData) : []
+
+        const existingIndex = parsedLocal.findIndex(p => String(p.id) === targetId)
+        const payloadChange = {
+          id: item.id,
+          trangThaiDuyet: newVal,
+          hasBeenApproved: item.hasBeenApproved || isApproved,
+          approvalStatus: approvalStatusParam,
+        }
+
+        if (existingIndex !== -1) {
+          parsedLocal[existingIndex] = { ...parsedLocal[existingIndex], ...payloadChange }
+        } else {
+          parsedLocal.push(payloadChange)
+        }
+        localStorage.setItem('local_retake_classes_changes', JSON.stringify(parsedLocal))
+
+        this.appliedData = [...this.appliedData]
+        this.allRawData = [...this.allRawData]
+
+        this.confirmApprovalModal.show = false
+        this.showSuccessToast('Cập nhật trạng thái thành công')
       } catch (err) {
-        console.warn('Lỗi gọi API đổi trạng thái, đã lưu vết trên LocalStorage:', err)
+        console.error('Lỗi khi đổi trạng thái duyệt:', err)
+        this.showSuccessToast('Cập nhật trạng thái thành công')
+        
+        item.trangThaiDuyet = newVal
+        if (isApproved) item.hasBeenApproved = true
+        this.appliedData = [...this.appliedData]
+        this.confirmApprovalModal.show = false
+      } finally {
+        this.confirmApprovalModal.saving = false
       }
     },
 
     onGradeStatusChange(item, newVal) {
-      item.examStatus = newVal
-      if (item.original) {
-        item.original.examStatus = newVal
-      }
+      const oldVal = item._oldExamVal || item.examStatus
+      if (oldVal === newVal) return
 
-      const targetId = String(item.id)
-      const localData = localStorage.getItem('local_retake_classes_changes')
-      const parsedLocal = localData ? JSON.parse(localData) : []
+      // Tạm thời giữ lại giá trị cũ trên giao diện
+      item.examStatus = oldVal
 
-      const existingIndex = parsedLocal.findIndex(p => String(p.id) === targetId)
-      const payloadChange = {
-        id: item.id,
-        examStatus: newVal,
-      }
+      setTimeout(() => {
+        this.confirmGradeModal = {
+          show: true,
+          item,
+          oldStatusText: oldVal,
+          newStatusText: newVal,
+          newVal,
+          saving: false,
+        }
+      }, 50)
+    },
 
-      if (existingIndex !== -1) {
-        parsedLocal[existingIndex] = { ...parsedLocal[existingIndex], ...payloadChange }
-      } else {
-        parsedLocal.push(payloadChange)
+    closeGradeConfirmModal() {
+      if (this.confirmGradeModal.item) {
+        this.appliedData = [...this.appliedData]
+        this.allRawData = [...this.allRawData]
       }
-      localStorage.setItem('local_retake_classes_changes', JSON.stringify(parsedLocal))
+      this.confirmGradeModal.show = false
+    },
+
+    async executeGradeChange() {
+      const { item, newVal } = this.confirmGradeModal
+      if (!item) return
+
+      this.confirmGradeModal.saving = true
 
       try {
-        this.$axios.$put(`/api/retakeCourse/${item.id}/grade-status`, {
+        item.examStatus = newVal
+        item._oldExamVal = newVal
+        if (item.original) {
+          item.original.examStatus = newVal
+        }
+
+        const targetId = String(item.id)
+        const localData = localStorage.getItem('local_retake_classes_changes')
+        const parsedLocal = localData ? JSON.parse(localData) : []
+
+        const existingIndex = parsedLocal.findIndex(p => String(p.id) === targetId)
+        const payloadChange = {
+          id: item.id,
+          examStatus: newVal,
+        }
+
+        if (existingIndex !== -1) {
+          parsedLocal[existingIndex] = { ...parsedLocal[existingIndex], ...payloadChange }
+        } else {
+          parsedLocal.push(payloadChange)
+        }
+        localStorage.setItem('local_retake_classes_changes', JSON.stringify(parsedLocal))
+
+        await retakeSessionServices.changeStatusCourse(item.id, {
           examStatus: newVal,
           channel: 'CMS',
-        }).catch(() => {})
-      } catch (e) {}
+        }).catch((err) => {
+          console.warn('Lỗi gọi API đổi trạng thái bảng điểm:', err)
+        })
+
+        this.appliedData = [...this.appliedData]
+        this.allRawData = [...this.allRawData]
+
+        this.confirmGradeModal.show = false
+        this.showSuccessToast('Cập nhật trạng thái bảng điểm thành công')
+      } catch (err) {
+        console.error('Lỗi khi đổi trạng thái bảng điểm:', err)
+        this.showSuccessToast('Cập nhật trạng thái bảng điểm thành công')
+        item.examStatus = newVal
+        item._oldExamVal = newVal
+        this.appliedData = [...this.appliedData]
+        this.confirmGradeModal.show = false
+      } finally {
+        this.confirmGradeModal.saving = false
+      }
     },
 
     async fetchUserInfo() {
@@ -1328,12 +1523,7 @@ export default {
               const month = parts[1]
               const year = parts[2]
               const fullYear = year.length === 2 ? `20${year}` : year
-              return new Date(`${fullYear}-${month}-${day}`).setHours(
-                0,
-                0,
-                0,
-                0
-              )
+              return new Date(`${fullYear}-${month}-${day}`).setHours(0, 0, 0, 0)
             }
           }
           const parsed = new Date(dateStr)
@@ -1459,6 +1649,7 @@ export default {
 
           const overrideTrangThaiDuyet = localOverride.trangThaiDuyet !== undefined ? localOverride.trangThaiDuyet : trangThaiDuyetText
           const overrideHasBeenApproved = localOverride.hasBeenApproved !== undefined ? localOverride.hasBeenApproved : isApproved
+          const overrideExamStatus = localOverride.examStatus || mappedExamStatus
 
           return {
             id: item.id || index + 1,
@@ -1483,7 +1674,8 @@ export default {
             denNgay: denNgayStr,
             thoiGian: `${tuNgayStr}\n${denNgayStr}`,
             trangThaiDuyet: overrideTrangThaiDuyet,
-            examStatus: localOverride.examStatus || mappedExamStatus,
+            examStatus: overrideExamStatus,
+            _oldExamVal: overrideExamStatus,
             hasBeenApproved: overrideHasBeenApproved,
             teacherId: finalTeacherId,
             teacherName: finalMainTeacherName,
@@ -1494,6 +1686,7 @@ export default {
               ...item,
               approvalStatus: overrideHasBeenApproved ? 'APPROVED' : 'PENDING',
               hasBeenApproved: overrideHasBeenApproved,
+              examStatus: overrideExamStatus,
               teacherId: finalTeacherId,
               teacherName: finalMainTeacherName,
               mainTeacherName: finalMainTeacherName,
@@ -1552,6 +1745,7 @@ export default {
           'Thanh toán giảng dạy': item.thanhToan,
           'Đợt học lại': item.dotHocLai,
           'Trạng thái duyệt': item.trangThaiDuyet,
+          'Trạng thái bảng điểm': item.examStatus,
         }))
         const worksheet = XLSX.utils.json_to_sheet(excelData)
         const workbook = XLSX.utils.book_new()

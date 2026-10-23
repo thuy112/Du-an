@@ -30,13 +30,17 @@ export default {
     return Api.getBlob('/api/retakeSession/export', { params })
   },
 
-  // Thêm hàm gán giảng viên cho lớp học lại
+  // Hàm gán giảng viên cho lớp học lại
   assignTeacher(classId, data) {
     return Api.put(`/api/retakeCourse/${classId}/assign-teacher`, data)
   },
-  // Cập nhật gán giảng viên đúng chuẩn API của hệ thống
+  
   assignTeacherToCourse(data) {
     return Api.put('/api/retakeCourse/teacher', data) 
-    // Hoặc nếu backend dùng POST thì đổi thành Api.post('/api/retakeCourse/teacher', data)
+  },
+
+  // THÊM MỚI HÀM NÀY ĐỂ GỌI ĐÚNG API ĐỔI TRẠNG THÁI DUYỆT LỚP HỌC LẠI
+  changeStatusCourse(id, data) {
+    return Api.put(`/api/retakeCourse/changeRetakeCourseStatus/${id}`, data)
   },
 }

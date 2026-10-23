@@ -427,58 +427,96 @@
             </span>
           </template>
 
+          <!-- CỘT CHỨC NĂNG VỚI CÁC ĐIỀU KIỆN HIỂN THỊ ICON ĐỘNG -->
           <template #[`item.actions`]="{ item }">
             <div class="d-flex align-center justify-center gap-1">
+              <!-- 1. ICON MẮT (CHI TIẾT): Luôn hiển thị -->
               <v-tooltip bottom>
                 <template #activator="{ on, attrs }">
-                  <v-btn
-                    icon
-                    text
-                    small
-                    class="row-action-btn"
-                    v-bind="attrs"
-                    v-on="on"
-                    @click="openDetailModal(item)"
-                  >
+                  <v-btn icon text small class="row-action-btn" v-bind="attrs" v-on="on" @click="openDetailModal(item)">
                     <v-icon size="20" color="#00bcd4">mdi-eye</v-icon>
                   </v-btn>
                 </template>
                 <span>Chi tiết</span>
               </v-tooltip>
 
-              <v-tooltip bottom>
-                <template #activator="{ on, attrs }">
-                  <v-btn
-                    icon
-                    text
-                    small
-                    class="row-action-btn"
-                    v-bind="attrs"
-                    v-on="on"
-                    @click="openApproveModal(item)"
-                  >
-                    <v-icon size="20" color="#4caf50">mdi-check-circle</v-icon>
-                  </v-btn>
-                </template>
-                <span>Xác nhận duyệt đơn</span>
-              </v-tooltip>
+              <!-- NẾU KHÔNG THỎA MÃN ĐIỀU KIỆN CHỈ HIỆN ICON MẮT THÌ MỚI HIỆN CÁC NÚT KHÁC -->
+              <template v-if="!isOnlyShowEye(item)">
+                
+                <!-- TRƯỜNG HỢP: CHỜ XÁC NHẬN (AWAITING_CONFIRMATION) -->
+                <template v-if="item.registerStudentStatus === 'AWAITING_CONFIRMATION'">
+                  <v-tooltip bottom>
+                    <template #activator="{ on, attrs }">
+                      <v-btn icon text small class="row-action-btn" v-bind="attrs" v-on="on" @click="openApproveModal(item)">
+                        <v-icon size="20" color="#4caf50">mdi-check-circle</v-icon>
+                      </v-btn>
+                    </template>
+                    <span>Xác nhận duyệt đơn</span>
+                  </v-tooltip>
 
-              <v-tooltip bottom>
-                <template #activator="{ on, attrs }">
-                  <v-btn
-                    icon
-                    text
-                    small
-                    class="row-action-btn"
-                    v-bind="attrs"
-                    v-on="on"
-                    @click="openEditModal(item)"
-                  >
-                    <v-icon size="20" color="#ffb300">mdi-pencil</v-icon>
-                  </v-btn>
+                  <v-tooltip bottom>
+                    <template #activator="{ on, attrs }">
+                      <v-btn icon text small class="row-action-btn" v-bind="attrs" v-on="on" @click="openRejectModal(item)">
+                        <v-icon size="20" color="#f93d32">mdi-close-circle</v-icon>
+                      </v-btn>
+                    </template>
+                    <span>Từ chối đơn</span>
+                  </v-tooltip>
                 </template>
-                <span>Cập nhật</span>
-              </v-tooltip>
+
+                <!-- TRƯỜNG HỢP: TỪ CHỐI (REJECTED) -->
+                <template v-else-if="item.registerStudentStatus === 'REJECTED'">
+                  <v-tooltip bottom>
+                    <template #activator="{ on, attrs }">
+                      <v-btn icon text small class="row-action-btn" v-bind="attrs" v-on="on" @click="openApproveModal(item)">
+                        <v-icon size="20" color="#4caf50">mdi-check-circle</v-icon>
+                      </v-btn>
+                    </template>
+                    <span>Xác nhận duyệt lại</span>
+                  </v-tooltip>
+
+                  <v-tooltip bottom>
+                    <template #activator="{ on, attrs }">
+                      <v-btn icon text small class="row-action-btn" v-bind="attrs" v-on="on" @click="openHistoryModal(item)">
+                        <v-icon size="20" color="#ffb300">mdi-clock-outline</v-icon>
+                      </v-btn>
+                    </template>
+                    <span>Lịch sử trạng thái</span>
+                  </v-tooltip>
+                </template>
+
+                <!-- TRƯỜNG HỢP: ĐÃ XÁC NHẬN / ĐÃ DUYỆT LỚP (CONFIRMED / CLASS_APPROVED) -->
+                <template v-else>
+                  <v-tooltip bottom>
+                    <template #activator="{ on, attrs }">
+                      <v-btn icon text small class="row-action-btn" v-bind="attrs" v-on="on" @click="openRejectModal(item)">
+                        <v-icon size="20" color="#f93d32">mdi-close-circle</v-icon>
+                      </v-btn>
+                    </template>
+                    <span>Từ chối đơn</span>
+                  </v-tooltip>
+
+                  <v-tooltip bottom>
+                    <template #activator="{ on, attrs }">
+                      <v-btn icon text small class="row-action-btn" v-bind="attrs" v-on="on" @click="openHistoryModal(item)">
+                        <v-icon size="20" color="#ffb300">mdi-clock-outline</v-icon>
+                      </v-btn>
+                    </template>
+                    <span>Lịch sử trạng thái</span>
+                  </v-tooltip>
+                </template>
+
+                <!-- ICON CÂY BÚT (CẬP NHẬT) -->
+                <v-tooltip bottom>
+                  <template #activator="{ on, attrs }">
+                    <v-btn icon text small class="row-action-btn" v-bind="attrs" v-on="on" @click="openEditModal(item)">
+                      <v-icon size="20" color="#ffb300">mdi-pencil</v-icon>
+                    </v-btn>
+                  </template>
+                  <span>Cập nhật</span>
+                </v-tooltip>
+
+              </template>
             </div>
           </template>
         </BaseTable>
@@ -580,6 +618,7 @@
       </div>
     </div>
 
+    <!-- MODAL THÊM MỚI -->
     <RegisterRetakeCourseModal
       v-model="showAddModal"
       :students-list="mustRetakeStudentOptions"
@@ -589,6 +628,399 @@
       :retake-courses-full-list="retakeCoursesList"
       @success="handleRegisterSuccess"
     />
+
+    <!-- 1. MODAL CHI TIẾT (ICON MẮT) -->
+    <v-dialog v-model="showDetailModal" max-width="900px" scrollable>
+      <v-card class="rounded-lg" v-if="selectedItem">
+        <v-card-title class="bg-red-title text-white py-3 px-4 d-flex align-center justify-space-between">
+          <span class="text-h6 font-weight-bold">Thông tin đăng ký học lại</span>
+          <v-btn icon dark small @click="showDetailModal = false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-4" style="max-height: 80vh; overflow-y: auto;">
+          <div class="section-title text-subtitle-1 font-weight-bold red--text text--dark-3 mb-2">
+            | Thông tin cá nhân
+          </div>
+          <v-row dense class="mb-3 text-body-2">
+            <v-col cols="6">Họ tên: <strong>{{ selectedItem.fullName }}</strong></v-col>
+            <v-col cols="6">Mã SV: <strong class="red--text">{{ selectedItem.code }}</strong></v-col>
+            <v-col cols="6">Email trường: {{ selectedItem.student?.email || '---' }}</v-col>
+            <v-col cols="6">Lớp: <strong>{{ selectedItem.clazz?.name || '---' }}</strong></v-col>
+            <v-col cols="6">Ngành: <strong>{{ selectedItem.major?.name || '---' }}</strong></v-col>
+            <v-col cols="6">Hình thức đào tạo: <strong>Vừa làm vừa học</strong></v-col>
+          </v-row>
+
+          <div class="section-title text-subtitle-1 font-weight-bold red--text text--dark-3 mb-2">
+            | Thông tin đăng ký
+          </div>
+          <v-row dense class="mb-3 text-body-2">
+            <v-col cols="6">Mã đơn đăng ký: <strong class="red--text">{{ selectedItem.code }}</strong></v-col>
+            <v-col cols="6">Đợt học lại: <strong>{{ selectedItem.retakeSession?.code || '---' }}</strong></v-col>
+            <v-col cols="6">Thời gian đăng ký: {{ selectedItem.registerDate }} {{ selectedItem.registerTime }}</v-col>
+            <v-col cols="6">
+              Trạng thái: 
+              <span class="status-badge" :style="getStatusStyle(selectedItem.registerStudentStatus, 'registerStudentStatusMap')">
+                {{ getStatusLabel(selectedItem.registerStudentStatus, 'registerStudentStatusMap') }}
+              </span>
+            </v-col>
+            <v-col cols="6">
+              Trạng thái trả học phí: 
+              <span class="status-badge" :style="getStatusStyle(selectedItem.tuitionStatus, 'feePaidStatusMap')">
+                {{ getStatusLabel(selectedItem.tuitionStatus, 'feePaidStatusMap') }}
+              </span>
+            </v-col>
+            <v-col cols="6">
+              Trạng thái gửi email: 
+              <span class="status-badge" :style="getStatusStyle(selectedItem.emailStatus, 'sendMailStatusMap')">
+                {{ getStatusLabel(selectedItem.emailStatus, 'sendMailStatusMap') }}
+              </span>
+            </v-col>
+          </v-row>
+
+          <div class="section-title text-subtitle-1 font-weight-bold red--text text--dark-3 mb-2">
+            | Thông tin duyệt đơn
+          </div>
+          <v-row dense class="mb-3 text-body-2">
+            <v-col cols="6">Người duyệt: <strong>{{ selectedItem.approvedBy || '---' }}</strong></v-col>
+            <v-col cols="6">Sinh viên: <strong>{{ selectedItem.fullName }}</strong></v-col>
+            <v-col cols="6">Học phí: <strong class="red--text">{{ formatCurrency(selectedItem.totalFeeOfExam) }} VNĐ</strong></v-col>
+          </v-row>
+
+          <div class="section-title text-subtitle-1 font-weight-bold text-dark mb-2">
+            Danh sách học phần đăng ký ({{ selectedItem.registerStudentTerms?.length || 0 }})
+          </div>
+          <v-simple-table dense class="border-table">
+            <thead>
+              <tr class="bg-light-gray">
+                <th>STT</th>
+                <th>Mã học phần</th>
+                <th>Tên học phần</th>
+                <th>Mã giảng viên</th>
+                <th>Tên giảng viên</th>
+                <th>Mã lớp</th>
+                <th>Định mức phí</th>
+                <th>Số tín chỉ</th>
+                <th>Thu học phí SV</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(term, idx) in selectedItem.registerStudentTerms || []" :key="idx">
+                <td>{{ idx + 1 }}</td>
+                <td>{{ term.term?.code }}</td>
+                <td>{{ term.term?.name }}</td>
+                <td>{{ term.teacherCode || '-' }}</td>
+                <td>{{ term.teacherName || '-' }}</td>
+                <td>{{ term.retakeClassCode || '-' }}</td>
+                <td>{{ formatCurrency(term.price) }}</td>
+                <td>{{ term.credits || 2 }}</td>
+                <td>1</td>
+              </tr>
+            </tbody>
+          </v-simple-table>
+        </v-card-text>
+
+        <v-card-actions class="justify-end pa-3 border-top">
+          <v-btn color="grey" text @click="showDetailModal = false">Đóng X</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- 2. MODAL XÁC NHẬN DUYỆT ĐƠN (ICON TÍCH XANH) -->
+    <v-dialog v-model="showApproveModal" max-width="600px" persistent>
+      <v-card class="rounded-lg" v-if="selectedItem">
+        <v-card-title class="bg-red-title text-white py-3 px-4 d-flex align-center justify-space-between">
+          <span class="text-h6 font-weight-bold">Xác nhận duyệt đơn</span>
+          <v-btn icon dark small @click="showApproveModal = false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-4">
+          <p class="text-body-2 mb-3">
+            Bạn có chắc chắn muốn chuyển từ trạng thái 
+            <strong class="red--text">Chờ xác nhận</strong> sang trạng thái <strong class="green--text">Đã xác nhận</strong> không?
+          </p>
+
+          <v-simple-table dense class="border-table mb-3">
+            <thead>
+              <tr class="bg-light-gray">
+                <th>STT</th>
+                <th>Mã học phần</th>
+                <th>Tên học phần</th>
+                <th>Lớp học</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(term, idx) in selectedItem.registerStudentTerms || []" :key="idx">
+                <td>{{ idx + 1 }}</td>
+                <td>{{ term.term?.code }}</td>
+                <td>{{ term.term?.name }}</td>
+                <td>
+                  <v-select
+                    v-model="term.retakeClassId"
+                    :items="classOptions"
+                    placeholder="Chọn lớp học"
+                    dense
+                    outlined
+                    hide-details
+                  ></v-select>
+                </td>
+              </tr>
+            </tbody>
+          </v-simple-table>
+        </v-card-text>
+
+        <v-card-actions class="justify-end pa-3 border-top">
+          <v-btn text @click="showApproveModal = false">Đóng X</v-btn>
+          <v-btn color="#a61c24" dark @click="confirmApprove">Xác nhận <v-icon right small>mdi-content-save</v-icon></v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- 3. MODAL TỪ CHỐI ĐƠN (ICON DẤU X) -->
+    <v-dialog v-model="showRejectModal" max-width="450px" persistent>
+      <v-card class="rounded-lg" v-if="selectedItem">
+        <v-card-title class="bg-red-title text-white py-3 px-4 d-flex align-center justify-space-between">
+          <span class="text-h6 font-weight-bold">Xác nhận</span>
+          <v-btn icon dark small @click="showRejectModal = false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-4 text-center">
+          <p class="text-body-1 mt-2">
+            Bạn có chắc chắn muốn chuyển từ trạng thái <strong>Chờ xác nhận</strong> sang trạng thái <strong class="red--text">Từ chối</strong> không?
+          </p>
+        </v-card-text>
+
+        <v-card-actions class="justify-end pa-3 border-top">
+          <v-btn text @click="showRejectModal = false">Đóng X</v-btn>
+          <v-btn color="#a61c24" dark @click="confirmReject">Từ Chối</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- 4. MODAL LỊCH SỬ / ĐỒNG HỒ (ICON ĐỒNG HỒ) -->
+    <v-dialog v-model="showHistoryModal" max-width="450px" persistent>
+      <v-card class="rounded-lg" v-if="selectedItem">
+        <v-card-title class="bg-red-title text-white py-3 px-4 d-flex align-center justify-space-between">
+          <span class="text-h6 font-weight-bold">Xác nhận</span>
+          <v-btn icon dark small @click="showHistoryModal = false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-4 text-center">
+          <p class="text-body-1 mt-2">
+            Bạn có chắc chắn muốn chuyển từ trạng thái <strong>Từ chối</strong> sang trạng thái <strong>Chờ xác nhận</strong> không?
+          </p>
+        </v-card-text>
+
+        <v-card-actions class="justify-end pa-3 border-top">
+          <v-btn text @click="showHistoryModal = false">Đóng X</v-btn>
+          <v-btn color="#a61c24" dark @click="confirmResetStatus">Xác Nhận</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- 5. MODAL CẬP NHẬT ĐĂNG KÝ (ICON CÂY BÚT) -->
+    <v-dialog v-model="showEditModal" max-width="800px" persistent>
+      <v-card class="rounded-lg" v-if="selectedItem">
+        <v-card-title class="bg-red-title text-white py-3 px-4 d-flex align-center justify-space-between">
+          <span class="text-h6 font-weight-bold">Cập nhật đăng ký học lại</span>
+          <v-btn icon dark small @click="showEditModal = false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-4">
+          <v-select
+            v-model="selectedItem.retakeSessionId"
+            :items="sessionOptions"
+            label="Đợt học lại"
+            outlined
+            dense
+            class="mb-3"
+          ></v-select>
+
+          <div class="text-subtitle-2 font-weight-bold mb-2">
+            Danh sách học phần ({{ selectedItem.registerStudentTerms?.length || 0 }})
+          </div>
+
+          <v-simple-table dense class="border-table">
+            <thead>
+              <tr class="bg-light-gray">
+                <th><v-checkbox hide-details dense></v-checkbox></th>
+                <th>STT</th>
+                <th>Mã học phần</th>
+                <th>Tên học phần</th>
+                <th>Mã giảng viên</th>
+                <th>Tên giảng viên</th>
+                <th>Định mức</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(term, idx) in selectedItem.registerStudentTerms || []" :key="idx">
+                <td><v-checkbox v-model="term.selected" hide-details dense></v-checkbox></td>
+                <td>{{ idx + 1 }}</td>
+                <td>{{ term.term?.code }}</td>
+                <td>{{ term.term?.name }}</td>
+                <td>{{ term.teacherCode || '-' }}</td>
+                <td>{{ term.teacherName || '-' }}</td>
+                <td>{{ formatCurrency(term.price || 350000) }} đ</td>
+              </tr>
+            </tbody>
+          </v-simple-table>
+        </v-card-text>
+
+        <v-card-actions class="justify-end pa-3 border-top">
+          <v-btn text @click="showEditModal = false">Đóng X</v-btn>
+          <v-btn color="#a61c24" dark @click="handleUpdateCourseRegistration">Lưu <v-icon right small>mdi-content-save</v-icon></v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- 2. MODAL XÁC NHẬN DUYỆT ĐƠN (ICON TÍCH XANH) -->
+    <v-dialog v-model="showApproveModal" max-width="600px" persistent>
+      <v-card class="rounded-lg">
+        <v-card-title class="bg-red-title text-white py-3 px-4 d-flex align-center justify-space-between">
+          <span class="text-h6 font-weight-bold">Xác nhận duyệt đơn</span>
+          <v-btn icon dark small @click="showApproveModal = false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-4">
+          <p class="text-body-2 mb-3">
+            Bạn có chắc chắn muốn chuyển từ trạng thái 
+            <strong class="red--text">Chờ xác nhận</strong> sang trạng thái <strong class="green--text">Đã xác nhận</strong> không?
+          </p>
+
+          <v-simple-table dense class="border-table mb-3">
+            <thead>
+              <tr class="bg-light-gray">
+                <th>STT</th>
+                <th>Mã học phần</th>
+                <th>Tên học phần</th>
+                <th>Lớp học</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(term, idx) in selectedItem?.registerStudentTerms || []" :key="idx">
+                <td>{{ idx + 1 }}</td>
+                <td>{{ term.term?.code }}</td>
+                <td>{{ term.term?.name }}</td>
+                <td>
+                  <v-select
+                    v-model="term.retakeClassCode"
+                    :items="term.availableClassOptions || []"
+                    item-text="text"
+                    item-value="value"
+                    placeholder="Chọn lớp học"
+                    no-data-text="Không có lớp"
+                    dense
+                    outlined
+                    hide-details
+                  ></v-select>
+                </td>
+              </tr>
+            </tbody>
+          </v-simple-table>
+        </v-card-text>
+
+        <v-card-actions class="justify-end pa-3 border-top">
+          <v-btn text @click="showApproveModal = false">Đóng X</v-btn>
+          <v-btn color="#a61c24" dark @click="confirmApprove">Xác nhận <v-icon right small>mdi-content-save</v-icon></v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- 3. MODAL TỪ CHỐI ĐƠN (ICON DẤU X) -->
+    <v-dialog v-model="showRejectModal" max-width="450px" persistent>
+      <v-card class="rounded-lg">
+        <v-card-title class="bg-red-title text-white py-3 px-4 d-flex align-center justify-space-between">
+          <span class="text-h6 font-weight-bold">Xác nhận</span>
+          <v-btn icon dark small @click="showRejectModal = false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-4 text-center">
+          <p class="text-body-1 mt-2">
+            Bạn có chắc chắn muốn chuyển từ trạng thái <strong>Chờ xác nhận</strong> sang trạng thái <strong class="red--text">Từ chối</strong> không?
+          </p>
+        </v-card-text>
+
+        <v-card-actions class="justify-end pa-3 border-top">
+          <v-btn text @click="showRejectModal = false">Đóng X</v-btn>
+          <v-btn color="#a61c24" dark @click="confirmReject">Từ Chối</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- 4. MODAL LỊCH SỬ / ĐỒNG HỒ (ICON ĐỒNG HỒ) -->
+    <v-dialog v-model="showHistoryModal" max-width="450px" persistent>
+      <v-card class="rounded-lg">
+        <v-card-title class="bg-red-title text-white py-3 px-4 d-flex align-center justify-space-between">
+          <span class="text-h6 font-weight-bold">Xác nhận</span>
+          <v-btn icon dark small @click="showHistoryModal = false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-4 text-center">
+          <p class="text-body-1 mt-2">
+            Bạn có chắc chắn muốn chuyển từ trạng thái <strong>Từ chối</strong> sang trạng thái <strong>Chờ xác nhận</strong> không?
+          </p>
+        </v-card-text>
+
+        <v-card-actions class="justify-end pa-3 border-top">
+          <v-btn text @click="showHistoryModal = false">Đóng X</v-btn>
+          <v-btn color="#a61c24" dark @click="confirmResetStatus">Xác Nhận</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- 5. MODAL CẬP NHẬT ĐĂNG KÝ (ICON CÂY BÚT) -->
+    <v-dialog v-model="showEditModal" max-width="800px" persistent>
+      <v-card class="rounded-lg">
+        <v-card-title class="bg-red-title text-white py-3 px-4 d-flex align-center justify-space-between">
+          <span class="text-h6 font-weight-bold">Cập nhật đăng ký học lại</span>
+          <v-btn icon dark small @click="showEditModal = false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-4">
+          <v-select
+            v-model="selectedItem.retakeSessionId"
+            :items="sessionOptions"
+            label="Đợt học lại"
+            outlined
+            dense
+            class="mb-3"
+          ></v-select>
+
+          <div class="text-subtitle-2 font-weight-bold mb-2">
+            Danh sách học phần ({{ selectedItem?.registerStudentTerms?.length || 0 }})
+          </div>
+
+          <v-simple-table dense class="border-table">
+            <thead>
+              <tr class="bg-light-gray">
+                <th><v-checkbox hide-details dense></v-checkbox></th>
+                <th>STT</th>
+                <th>Mã học phần</th>
+                <th>Tên học phần</th>
+                <th>Mã giảng viên</th>
+                <th>Tên giảng viên</th>
+                <th>Định mức</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(term, idx) in selectedItem?.registerStudentTerms || []" :key="idx">
+                <td><v-checkbox v-model="term.selected" hide-details dense></v-checkbox></td>
+                <td>{{ idx + 1 }}</td>
+                <td>{{ term.term?.code }}</td>
+                <td>{{ term.term?.name }}</td>
+                <td>{{ term.teacherCode || '-' }}</td>
+                <td>{{ term.teacherName || '-' }}</td>
+                <td>{{ formatCurrency(term.price || 350000) }} đ</td>
+              </tr>
+            </tbody>
+          </v-simple-table>
+        </v-card-text>
+
+        <v-card-actions class="justify-end pa-3 border-top">
+          <v-btn text @click="showEditModal = false">Đóng X</v-btn>
+          <v-btn color="#a61c24" dark @click="handleUpdateCourseRegistration">Lưu <v-icon right small>mdi-content-save</v-icon></v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -616,6 +1048,14 @@ export default {
       pageInput: '1',
       totalItems: 0,
 
+      // SỬA TỪ null THÀNH {} ĐỂ TRÁNH LỖI ĐỌC THUỘC TÍNH CỦA NULL
+      selectedItem: {}, 
+      showDetailModal: false,
+      showApproveModal: false,
+      showRejectModal: false,
+      showHistoryModal: false,
+      showEditModal: false,
+      
       filters: {
         keyword: '',
         major: null,
@@ -797,6 +1237,261 @@ export default {
     ])
   },
   methods: {
+    // 1. CHI TIẾT (ICON MẮT)
+    async openDetailModal(item) {
+      this.loading = true
+      try {
+        const res = await this.$axios.$get(`/api/registerRetakeCourse/${item.id}`, {
+          params: { channel: 'CMS' }
+        })
+        this.selectedItem = res?.data || res || item
+        this.showDetailModal = true
+      } catch (error) {
+        console.error('Không thể lấy chi tiết sinh viên:', error)
+        this.selectedItem = item
+        this.showDetailModal = true
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // 2. MỞ MODAL XÁC NHẬN DUYỆT ĐƠN (ICON TÍCH XANH)
+    async openApproveModal(item) {
+      this.loading = true
+      try {
+        const res = await this.$axios.$get(`/api/registerRetakeCourse/availableExamSessions/${item.id}`, {
+          params: { channel: 'CMS' }
+        })
+        
+        const rawData = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : [])
+        
+        const termsWithClasses = (item.registerStudentTerms || []).map((term, index) => {
+          const matchedApiItem = rawData[index] || rawData.find(d => d.termId === term.termId || (d.term && d.term.id === term.term?.id)) || {}
+          const classList = matchedApiItem.availableExamSessions || matchedApiItem.classes || matchedApiItem.examSessions || (Array.isArray(matchedApiItem) ? matchedApiItem : [])
+
+          const formattedClasses = classList.map(c => {
+            const classCode = c.code || c.retakeClassCode || ''
+            const teacherName = c.nameTeacher || ''
+            const teacherCode = c.codeTeacher || ''
+            
+            let displayText = classCode
+            if (teacherName) {
+              displayText = `${classCode} - ${teacherName}${teacherCode ? ` (${teacherCode})` : ''}`
+            } else if (teacherCode) {
+              displayText = `${classCode} (${teacherCode})`
+            }
+
+            return {
+              text: displayText,
+              value: classCode, // Gán value là mã lớp chuẩn xác
+              ...c
+            }
+          }).filter(c => c.value)
+
+          return {
+            ...term,
+            availableClassOptions: formattedClasses
+          }
+        })
+
+        this.selectedItem = {
+          ...item,
+          registerStudentTerms: termsWithClasses
+        }
+        
+        this.showApproveModal = true
+      } catch (error) {
+        console.error('Không thể lấy danh sách lớp học khả dụng:', error)
+        this.selectedItem = JSON.parse(JSON.stringify(item))
+        this.showApproveModal = true
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // 3. XÁC NHẬN DUYỆT ĐƠN (GỬI LÊN API VÀ CẬP NHẬT GIAO DIỆN TỨC THÌ)
+    async confirmApprove() {
+      const hasUnselectedClass = this.selectedItem?.registerStudentTerms?.some(
+        (term) => !term.retakeClassCode
+      )
+      if (hasUnselectedClass) {
+        if (typeof this.$showWarning === 'function') {
+          this.$showWarning('Chưa chọn lớp học lại cho các học phần trong đơn')
+        } else {
+          alert('Chưa chọn lớp học lại cho các học phần trong đơn')
+        }
+        return
+      }
+
+      try {
+        const formattedTerms = (this.selectedItem.registerStudentTerms || []).map(term => {
+          let cleanClassCode = term.retakeClassCode
+          if (cleanClassCode && cleanClassCode.includes(' - ')) {
+            cleanClassCode = cleanClassCode.split(' - ')[0].trim()
+          }
+          return {
+            ...term,
+            retakeClassCode: cleanClassCode,
+            retakeClassId: term.retakeClassId || term.id
+          }
+        })
+
+        // Tắt modal duyệt ngay lập tức
+        this.showApproveModal = false
+
+        // Cập nhật trạng thái sang CONFIRMED trực tiếp trên bảng để đổi màu xanh ngay
+        const targetItem = this.items.find(i => i.id === this.selectedItem.id)
+        if (targetItem) {
+          targetItem.registerStudentStatus = 'CONFIRMED'
+          targetItem.registerStudentTerms = formattedTerms
+        }
+
+        const res = await this.$axios.$put(
+          `/api/registerRetakeCourse/confirmRegistrationForm/${this.selectedItem.id}`,
+          {
+            status: 'CONFIRMED',
+            terms: formattedTerms,
+          }
+        )
+
+        if (res && typeof this.$showSuccess === 'function') {
+          this.$showSuccess('Xác nhận duyệt đơn thành công')
+        }
+      } catch (error) {
+        console.error('Lỗi duyệt đơn:', error)
+        if (typeof this.$showError === 'function') {
+          this.$showError('Có lỗi xảy ra khi xác nhận duyệt đơn')
+        }
+        this.fetchRegisteredStudents()
+      }
+    },
+
+    // 4. XÁC NHẬN TỪ CHỐI ĐƠN (TỰ ĐỘNG ĐỔI ICON X THÀNH ICON ĐỒNG HỒ)
+    async confirmReject() {
+      try {
+        // Tắt modal từ chối ngay lập tức
+        this.showRejectModal = false
+
+        // Cập nhật trạng thái sang REJECTED trực tiếp để icon X biến thành icon đồng hồ
+        const targetItem = this.items.find(i => i.id === this.selectedItem.id)
+        if (targetItem) {
+          targetItem.registerStudentStatus = 'REJECTED'
+        }
+
+        const res = await this.$axios.$put(
+          `/api/registerRetakeCourse/confirmRegistrationForm/${this.selectedItem.id}`,
+          { 
+            status: 'REJECTED',
+            terms: this.selectedItem?.registerStudentTerms || []
+          }
+        )
+
+        if (res && typeof this.$showSuccess === 'function') {
+          this.$showSuccess('Đã từ chối đơn đăng ký thành công')
+        }
+      } catch (error) {
+        console.error('Lỗi từ chối đơn:', error)
+        if (typeof this.$showError === 'function') {
+          this.$showError('Không thể thực hiện từ chối đơn')
+        }
+        this.fetchRegisteredStudents()
+      }
+    },
+
+    // 5. MỞ MODAL TỪ CHỐI ĐƠN (ICON DẤU X)
+    openRejectModal(item) {
+      this.selectedItem = JSON.parse(JSON.stringify(item))
+      this.showRejectModal = true
+    },
+
+    // 6. MỞ MODAL LỊCH SỬ TRẠNG THÁI (ICON ĐỒNG HỒ)
+    openHistoryModal(item) {
+      this.selectedItem = JSON.parse(JSON.stringify(item))
+      this.showHistoryModal = true
+    },
+
+    // 7. XÁC NHẬN ĐẶT LẠI TRẠNG THÁI (LỊCH SỬ / ĐỒNG HỒ)
+    async confirmResetStatus() {
+      try {
+        const res = await this.$axios.$put(
+          `/api/registerRetakeCourse/confirmRegistrationForm/${this.selectedItem.id}`,
+          { 
+            status: 'AWAITING_CONFIRMATION',
+            terms: this.selectedItem?.registerStudentTerms || []
+          }
+        )
+        if (res) {
+          if (typeof this.$showSuccess === 'function') {
+            this.$showSuccess('Đã chuyển trạng thái đơn thành công')
+          }
+          this.showHistoryModal = false
+          this.fetchRegisteredStudents()
+        }
+      } catch (error) {
+        console.error('Lỗi chuyển trạng thái:', error)
+        if (typeof this.$showError === 'function') {
+          this.$showError('Có lỗi xảy ra khi chuyển trạng thái')
+        }
+      }
+    },
+
+    // 8. CẬP NHẬT (ICON CÂY BÚT)
+    openEditModal(item) {
+      this.selectedItem = JSON.parse(JSON.stringify(item))
+      this.showEditModal = true
+    },
+
+    async handleUpdateCourseRegistration() {
+      try {
+        const res = await this.$axios.$put(
+          `/api/registerRetakeCourse/${this.selectedItem.id}`,
+          this.selectedItem
+        )
+        if (res) {
+          if (typeof this.$showSuccess === 'function') {
+            this.$showSuccess('Bạn đã cập nhật đăng ký học lại thành công!')
+          }
+          this.showEditModal = false
+          this.fetchRegisteredStudents()
+        }
+      } catch (error) {
+        console.error('Lỗi cập nhật:', error)
+        if (typeof this.$showError === 'function') {
+          this.$showError('Cập nhật thất bại')
+        }
+      }
+    },
+
+    // 9. ĐIỀU KIỆN CHỈ HIỆN ICON MẮT
+    isOnlyShowEye(item) {
+      const isApproved = ['CONFIRMED', 'CLASS_APPROVED', 'FINALIZED'].includes(
+        item.registerStudentStatus
+      )
+
+      const isTuitionPaid = ['PAID', 'DA_TRA'].includes(item.tuitionStatus)
+      const isBankAdded = [
+        'ADDED',
+        'DA_LAP',
+        'YES',
+        'LISTED',
+        'LIST_ADDED',
+      ].includes(item.bankStatus)
+      const isEmailSent = [
+        'SENDING',
+        'SENT',
+        'DA_GUI',
+        'COMPLETED',
+      ].includes(item.emailStatus)
+
+      const otherCompletedCount = [
+        isTuitionPaid,
+        isBankAdded,
+        isEmailSent,
+      ].filter(Boolean).length
+
+      return isApproved && otherCompletedCount >= 1
+    },
+
     toggleSelectAll(val) {
       if (val) {
         this.selectedIds = this.items.map((item) => item.id)
@@ -835,17 +1530,18 @@ export default {
     onChangePageSize() {
       this.page = 1
       this.pageInput = '1'
-      this.updatePaginationSlice()
+      this.fetchRegisteredStudents()
     },
     onPageChange(val) {
+      this.page = val
       this.pageInput = String(val)
-      this.updatePaginationSlice()
+      this.fetchRegisteredStudents()
     },
     goToPage() {
       const p = parseInt(this.pageInput)
       if (p && p >= 1 && p <= this.totalPages) {
         this.page = p
-        this.updatePaginationSlice()
+        this.fetchRegisteredStudents()
       } else {
         this.pageInput = String(this.page)
       }
@@ -958,43 +1654,50 @@ export default {
     async fetchRegisteredStudents() {
       this.loading = true
       try {
-        const selectedClassCode = this.filters.retakeClassCode || ''
         const params = {
-          pageIndex: 1,
-          pageSize: 100,
-          search: this.filters.keyword || '',
-          registerStudentStatus: this.filters.approvalStatus || '',
-          retakeCourseStatus: selectedClassCode,
-          retakeCourseCode: selectedClassCode,
-          feePaidStatus: this.filters.tuitionStatus || '',
-          sendMailStatus: this.filters.emailStatus || '',
-          listFinalStatus: this.filters.bankStatus || '',
-          retakeSessionId: this.filters.session || '',
-          subjectCode: this.filters.subjectCode || '',
-          majorId: this.filters.major || '',
-          classId: this.filters.studentClass || '',
+          pageIndex: this.page,
+          pageSize: this.pageSize,
           channel: 'CMS',
         }
+
+        if (this.filters.keyword) params.search = this.filters.keyword
+        if (this.filters.approvalStatus) params.registerStudentStatus = this.filters.approvalStatus
+        if (this.filters.retakeClassCode) {
+          params.retakeCourseStatus = this.filters.retakeClassCode
+          params.retakeCourseCode = this.filters.retakeClassCode
+        }
+        if (this.filters.tuitionStatus) params.feePaidStatus = this.filters.tuitionStatus
+        if (this.filters.emailStatus) params.sendMailStatus = this.filters.emailStatus
+        if (this.filters.bankStatus) params.listFinalStatus = this.filters.bankStatus
+        if (this.filters.session) params.retakeSessionId = this.filters.session
+        if (this.filters.subjectCode) params.subjectCode = this.filters.subjectCode
+        if (this.filters.major) params.majorId = this.filters.major
+        if (this.filters.studentClass) params.classId = this.filters.studentClass
 
         const res = await this.$axios.$get('/api/registerRetakeCourse', {
           params,
         })
         const rawList = Array.isArray(res?.data)
           ? res.data
+          : Array.isArray(res?.data?.items)
+          ? res.data.items
           : Array.isArray(res)
           ? res
           : []
 
         this.items = rawList.map((item, index) => {
           const feePaid = item.feePaidStatus || item.tuitionStatus || 'NOT_PAID'
-          const mailStatus =
-            item.sendMailStatus || item.emailStatus || 'NOT_SENT'
+          const mailStatus = item.sendMailStatus || item.emailStatus || 'NOT_SENT'
 
           let bankState = 'NOT_ADDED'
           const rawListStatus = item.listFinalStatus || ''
           const rawIsListed = item.isListedForBank || ''
 
-          if (rawListStatus === 'LISTED' || rawIsListed === 'YES') {
+          if (
+            rawListStatus === 'LISTED' ||
+            rawIsListed === 'YES' ||
+            rawListStatus === 'ADDED'
+          ) {
             bankState = 'ADDED'
           } else {
             bankState = 'NOT_ADDED'
@@ -1023,22 +1726,13 @@ export default {
           }
         })
 
-        this.totalItems = this.items.length
-        this.page = 1
-        this.pageInput = '1'
-        this.selectedIds = []
-        this.selectAll = false
-        this.updatePaginationSlice()
+        this.totalItems = res?.totalRecords || res?.data?.totalRecords || this.items.length
+        this.appliedItems = this.items
       } catch (error) {
-        console.error(
-          'Không thể lấy danh sách sinh viên đăng ký học lại từ backend:',
-          error
-        )
+        console.error('Lỗi tải danh sách sinh viên:', error)
         this.items = []
         this.appliedItems = []
         this.totalItems = 0
-        this.selectedIds = []
-        this.selectAll = false
       } finally {
         this.loading = false
       }
@@ -1150,13 +1844,10 @@ export default {
     openConfirmRejectEmail() {},
     handleSendEmail() {},
     handleSchedule() {},
-    openDetailModal(item) {},
-    openApproveModal(item) {},
-    openEditModal(item) {},
     handleRegisterSuccess() {
       this.fetchRegisteredStudents()
     },
-  },
+  }
 }
 </script>
 
@@ -1190,7 +1881,8 @@ export default {
   background-color: #ffffff;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden; /* Ẩn thanh cuộn ngang thừa ở đây */
 }
 
 .table-footer {
@@ -1297,7 +1989,7 @@ export default {
 }
 
 .page-size-select {
-  width: 65px !important;
+  width: 83px !important;
 }
 .page-input-field {
   width: 45px !important;
@@ -1311,5 +2003,21 @@ export default {
 }
 .gap-2 {
   gap: 8px;
+}
+.bg-red-title {
+  background-color: #a61c24 !important;
+}
+
+.border-table {
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.bg-light-gray {
+  background-color: #f5f5f5 !important;
+}
+
+.border-top {
+  border-top: 1px solid #e0e0e0;
 }
 </style>

@@ -6,6 +6,11 @@ export default {
     return Api.get('/api/teacher', params)
   },
 
+  // API cập nhật trạng thái giảng viên (Giữ lại duy nhất 1 hàm này)
+  updateTeacherStatus(id, data) {
+    return Api.put(`/api/teacher/${id}`, data)
+  },
+
   // API phụ lấy danh sách đơn vị/khoa trường
   getWorkUnits(params) {
     return Api.get('/api/workUnit/list', params)

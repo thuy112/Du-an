@@ -7,13 +7,29 @@
     :fullscreen="$vuetify.breakpoint.xsOnly"
   >
     <v-card
-      class="rounded-lg-sm-up overflow-hidden d-flex flex-column bg-white"
+      class="rounded-lg-sm-up overflow-hidden d-flex flex-column bg-white position-relative"
     >
+      <!-- ALERT THÔNG BÁO LỖI / THÀNH CÔNG NẰM Ở TRÊN CÙNG -->
+      <v-slide-y-transition>
+        <div v-if="alertMessage" class="px-4 pt-3">
+          <v-alert
+            :type="alertType"
+            dense
+            dismissible
+            class="mb-0 text-body-2"
+            @input="alertMessage = ''"
+          >
+            {{ alertMessage }}
+          </v-alert>
+        </div>
+      </v-slide-y-transition>
+
       <!-- HEADER DIALOG -->
       <v-card-title
         class="bg-red-bk white--text pa-3 px-4 d-flex justify-space-between align-center flex-shrink-0"
+        style="background-color: #A62229 !important;"
       >
-        <span class="text-subtitle-1 font-weight-bold"
+        <span class="text-subtitle-1 font-weight-bold white--text"
           >Thêm sinh viên phải học lại</span
         >
         <v-btn icon dark small class="ma-0" @click="closeModal">
@@ -34,7 +50,7 @@
               class="step-head-item d-flex align-center cursor-pointer mb-2"
               @click="step = 1"
             >
-              <span class="step-icon-circle font-weight-bold">
+              <span class="step-icon-circle font-weight-bold" style="background-color: #A62229;">
                 <v-icon v-if="step > 1" small color="white">mdi-check</v-icon>
                 <span v-else>1</span>
               </span>
@@ -60,6 +76,7 @@
                 :class="
                   step === 2 ? 'step-circle-active' : 'step-circle-pending'
                 "
+                style="background-color: #A62229;"
               >
                 2
               </span>
@@ -77,18 +94,21 @@
             <!-- FORM BƯỚC 1: THÔNG TIN CÁ NHÂN -->
             <v-expand-transition>
               <div v-show="step === 1" class="step-1-form-wrapper w-100">
-                <div class="text-caption font-weight-bold text-red-bold mb-1">
+                <div class="text-caption font-weight-bold text-red-bold mb-1" style="color: #A62229;">
                   Nhập Mã Số Sinh Viên
                 </div>
                 <v-autocomplete
                   v-model="selectedStudent"
                   :items="studentOptions"
+                  :loading="loadingStudents"
+                  :search-input.sync="studentSearchQuery"
                   item-text="displayText"
                   return-object
                   placeholder="Sinh viên"
                   outlined
                   dense
                   clearable
+                  hide-no-data
                   class="rounded-lg mb-2 w-100"
                   @change="onSelectStudent"
                 ></v-autocomplete>
@@ -100,6 +120,7 @@
                 >
                   <h4
                     class="text-subtitle-2 font-weight-bold text-red-bold mb-2"
+                    style="color: #A62229;"
                   >
                     Thông tin cá nhân
                   </h4>
@@ -107,56 +128,55 @@
                   <v-row dense class="text-caption ma-0">
                     <v-col cols="12" sm="6" class="py-1"
                       >Họ tên:
-                      <span class="font-weight-bold text-red-bold">{{
+                      <span class="font-weight-bold text-red-bold" style="color: #A62229;">{{
                         selectedStudentInfo.fullName
                       }}</span></v-col
                     >
                     <v-col cols="12" sm="6" class="py-1"
                       >Mã SV:
-                      <span class="font-weight-bold text-red-bold">{{
-                        selectedStudentInfo.studentCode
+                      <span class="font-weight-bold text-red-bold" style="color: #A62229;">{{
+                        selectedStudentInfo.code
                       }}</span></v-col
                     >
 
                     <v-col cols="12" sm="6" class="py-1"
                       >Giới tính:
-                      <span class="font-weight-bold text-red-bold">{{
+                      <span class="font-weight-bold text-red-bold" style="color: #A62229;">{{
                         selectedStudentInfo.gender || 'Khác'
                       }}</span></v-col
                     >
                     <v-col cols="12" sm="6" class="py-1"
                       >Lớp:
-                      <span class="font-weight-bold text-red-bold">{{
-                        selectedStudentInfo.className
+                      <span class="font-weight-bold text-red-bold" style="color: #A62229;">{{
+                        selectedStudentInfo.classes?.name || '-'
                       }}</span></v-col
                     >
 
                     <v-col cols="12" class="py-1"
                       >Email trường:
-                      <span class="text-red-bold text-break">{{
+                      <span class="text-red-bold text-break" style="color: #A62229;">{{
                         selectedStudentInfo.email ||
-                        selectedStudentInfo.studentCode.toLowerCase() +
-                          '@sis.hust.edu.vn'
+                        (selectedStudentInfo.code ? selectedStudentInfo.code.toLowerCase() + '@sis.hust.edu.vn' : '-')
                       }}</span></v-col
                     >
 
                     <v-col cols="12" sm="6" class="py-1"
                       >Khóa:
-                      <span class="font-weight-bold text-red-bold">{{
-                        selectedStudentInfo.academicYear || 'Khóa 66'
+                      <span class="font-weight-bold text-red-bold" style="color: #A62229;">{{
+                        selectedStudentInfo.course?.name || '-'
                       }}</span></v-col
                     >
                     <v-col cols="12" sm="6" class="py-1"
                       >Loại hình đào tạo:
-                      <span class="text-red-bold">{{
-                        selectedStudentInfo.trainingType || 'Vừa làm vừa học'
+                      <span class="text-red-bold" style="color: #A62229;">{{
+                        selectedStudentInfo.trainingType?.name || 'Vừa làm vừa học'
                       }}</span></v-col
                     >
 
                     <v-col cols="12" class="py-1"
                       >Ngành:
-                      <span class="font-weight-bold text-red-bold">{{
-                        selectedStudentInfo.majorName || 'Quản trị kinh doanh'
+                      <span class="font-weight-bold text-red-bold" style="color: #A62229;">{{
+                        selectedStudentInfo.major?.name || '-'
                       }}</span></v-col
                     >
                   </v-row>
@@ -165,13 +185,14 @@
                 <!-- NÚT TIẾP TỤC DẪN SANG BƯỚC 2 -->
                 <div class="d-flex justify-end mt-2">
                   <v-btn
-                    color="#E0E0E0"
-                    light
+                    color="#A62229"
+                    dark
                     small
                     :disabled="!selectedStudentInfo"
                     class="text-none px-5 rounded-lg btn-next-step"
                     elevation="0"
                     @click="switchToStep2"
+                    style="background-color: #A62229 !important;"
                   >
                     Tiếp tục
                   </v-btn>
@@ -186,18 +207,23 @@
                   <v-col cols="12" sm="6" class="px-0 px-sm-1">
                     <v-select
                       v-model="form.sessionId"
-                      :items="['20261-A-4', '20261-A-5']"
+                      :items="sessionOptions"
+                      item-text="text"
+                      item-value="value"
                       label="Đợt học lại *"
                       outlined
                       dense
                       class="rounded-lg"
+                      @change="onSessionChange"
                     ></v-select>
                   </v-col>
 
                   <v-col cols="12" sm="6" class="px-0 px-sm-1">
                     <v-select
                       v-model="form.termId"
-                      :items="['20261', '20252']"
+                      :items="termOptions"
+                      item-text="text"
+                      item-value="value"
                       label="Học kỳ *"
                       outlined
                       dense
@@ -319,8 +345,10 @@
 
                   <v-col cols="12" sm="6" class="px-0 px-sm-1">
                     <v-select
-                      v-model="form.teacherName"
-                      :items="['Phương Oanh', 'Nguyễn Văn A']"
+                      v-model="form.teacherId"
+                      :items="teacherOptions"
+                      item-text="text"
+                      item-value="value"
                       label="Giảng viên"
                       outlined
                       dense
@@ -329,21 +357,40 @@
                   </v-col>
                 </v-row>
 
-                <!-- BẢNG DANH SÁCH HỌC PHẦN DÀN FULL -->
+                <!-- BẢNG DANH SÁCH HỌC PHẦN DÀN FULL VÀ CUỘN ĐƯỢC -->
                 <div class="mt-2 w-100">
                   <div class="text-caption font-weight-bold mb-1">
-                    Danh sách học phần (0 / 0)
+                    Danh sách học phần ({{ selectedSubjects.length }} / {{ subjectList.length }})
                   </div>
-                  <div
-                    class="border-card rounded-lg pa-4 text-center text-caption text-grey-color mb-3 bg-grey-lighten-5 w-100"
-                  >
-                    <v-checkbox
-                      hide-details
+
+                  <v-card outlined class="rounded-lg mb-3">
+                    <v-data-table
+                      :headers="subjectHeaders"
+                      :items="subjectList"
+                      item-key="id"
                       dense
-                      class="ma-0 pa-0 mb-1 justify-center"
-                    ></v-checkbox>
-                    Không có dữ liệu
-                  </div>
+                      fixed-header
+                      height="250px"
+                      hide-default-footer
+                      class="elevation-0 style-scrollbar"
+                      no-data-text="Không có dữ liệu học phần"
+                    >
+                      <!-- Tùy chỉnh cột checkbox thủ công để chắc chắn nhận diện dữ liệu -->
+                      <template #[`item.data-table-select`]="{ item }">
+                        <v-simple-checkbox
+                          :value="isItemSelected(item)"
+                          @input="toggleSelectItem(item)"
+                        ></v-simple-checkbox>
+                      </template>
+
+                      <template #[`item.creditHours`]="{ item }">
+                        {{ item.creditHours || item.credits || '-' }}
+                      </template>
+                      <template #[`item.creditTraining`]="{ item }">
+                        {{ item.creditTraining || '-' }}
+                      </template>
+                    </v-data-table>
+                  </v-card>
 
                   <v-btn
                     color="#A62229"
@@ -352,6 +399,7 @@
                     class="text-none px-4 rounded-lg"
                     elevation="0"
                     @click="step = 1"
+                    style="background-color: #A62229 !important;"
                   >
                     Quay lại
                   </v-btn>
@@ -373,6 +421,7 @@
           small
           class="text-none btn-close-custom"
           @click="closeModal"
+          style="color: #A62229;"
         >
           Đóng
           <v-icon right small class="ml-1">mdi-close</v-icon>
@@ -385,6 +434,7 @@
           :disabled="!selectedStudentInfo"
           class="text-none btn-save-custom"
           @click="saveStudent"
+          style="background-color: #A62229 !important;"
         >
           Lưu
           <v-icon right small class="ml-1">mdi-content-save-outline</v-icon>
@@ -396,15 +446,11 @@
 
 <script>
 export default {
-  name: 'RetakeCourseAddMustRetakeStudentModal',
+  name: 'DetailMustRetakeStudentModal',
   props: {
     value: {
       type: Boolean,
       default: false,
-    },
-    mustRetakeStudents: {
-      type: Array,
-      default: () => [],
     },
   },
   data() {
@@ -412,62 +458,26 @@ export default {
       step: 1,
       selectedStudent: null,
       selectedStudentInfo: null,
+      studentSearchQuery: '',
+      studentOptions: [],
+      loadingStudents: false,
 
-      mockStudents: [
-        {
-          id: 101,
-          studentCode: '20210452P',
-          fullName: 'Phan Thị Phương',
-          className: 'ĐH-BK-QTKD2.2-K66',
-          gender: 'Nữ',
-        },
-        {
-          id: 102,
-          studentCode: '20210344P',
-          fullName: 'Vũ Phương Linh',
-          className: 'ĐH-BK-QTKD2.2-K66',
-          gender: 'Nữ',
-        },
-        {
-          id: 103,
-          studentCode: '20210377P',
-          fullName: 'Trịnh Thanh Tâm',
-          className: 'ĐH-BK-CNTT1.1-K66',
-          gender: 'Nam',
-        },
-        {
-          id: 104,
-          studentCode: '20210105P',
-          fullName: 'Nguyễn Khánh An',
-          className: 'ĐH-BK-CNTT1.1-K66',
-          gender: 'Nam',
-        },
-        {
-          id: 105,
-          studentCode: '20210108P',
-          fullName: 'Nguyễn Linh Anh',
-          className: 'ĐH-BK-CNTT1.1-K66',
-          gender: 'Nữ',
-        },
-        {
-          id: 106,
-          studentCode: '20210110P',
-          fullName: 'Lê Tuấn Anh',
-          className: 'ĐH-BK-CNTT1.2-K66',
-          gender: 'Nam',
-        },
-        {
-          id: 107,
-          studentCode: '20210112P',
-          fullName: 'Đỗ Tiến Tây Anh',
-          className: 'ĐH-BK-CNTT1.1-K66',
-          gender: 'Nam',
-        },
+      sessionOptions: [],
+      termOptions: [],
+      teacherOptions: [],
+
+      subjectList: [],
+      selectedSubjects: [],
+      subjectHeaders: [
+        { text: 'Mã học phần', value: 'code', sortable: false },
+        { text: 'Tên học phần', value: 'name', sortable: false },
+        { text: 'Số tín chỉ học phí', value: 'creditHours', sortable: false, align: 'center' },
+        { text: 'Số tín chỉ đào tạo', value: 'creditTraining', sortable: false, align: 'center' },
       ],
 
       form: {
-        sessionId: '20261-A-4',
-        termId: '20261',
+        sessionId: '',
+        termId: '',
         classType: '',
         classCode: '',
         note: '',
@@ -479,8 +489,14 @@ export default {
         practiceScore: '',
         practiceScore2: '',
         weight: '',
-        teacherName: '',
+        teacherId: '',
       },
+
+      rawSessionsData: [],
+
+      // Quản lý thông báo alert trong modal
+      alertMessage: '',
+      alertType: 'warning', // 'warning' hoặc 'success'
     }
   },
   computed: {
@@ -492,14 +508,48 @@ export default {
         this.$emit('input', val)
       },
     },
-    studentOptions() {
-      return this.mockStudents.map((s) => ({
-        ...s,
-        displayText: `${s.studentCode} - ${s.fullName}`,
-      }))
+  },
+  watch: {
+    value(val) {
+      if (val) {
+        this.fetchStudents('')
+      } else {
+        this.resetForm()
+      }
+    },
+    studentSearchQuery(val) {
+      if (val !== null && val !== undefined) {
+        this.fetchStudents(val)
+      }
     },
   },
   methods: {
+    async fetchStudents(searchKeyword = '') {
+      this.loadingStudents = true
+      try {
+        const res = await this.$axios.$get('/api/student', {
+          params: {
+            pageIndex: 1,
+            pageSize: 50,
+            search: searchKeyword,
+            gender: '',
+            status: '',
+            channel: 'CMS',
+          },
+        })
+        const list = Array.isArray(res) ? res : res.data || res.content || []
+        this.studentOptions = list.map((s) => ({
+          ...s,
+          displayText: `${s.code} - ${s.fullName}`,
+        }))
+      } catch (error) {
+        console.error('Lỗi tải danh sách sinh viên:', error)
+        this.studentOptions = []
+      } finally {
+        this.loadingStudents = false
+      }
+    },
+
     onSelectStudent(student) {
       if (student) {
         this.selectedStudentInfo = student
@@ -508,8 +558,13 @@ export default {
       }
     },
 
-    switchToStep2() {
+    async switchToStep2() {
       this.step = 2
+      await this.fetchCatalogs()
+      // Nếu đã chọn sẵn đợt học trước đó, tự động tải lại danh sách học phần tương ứng
+      if (this.form.sessionId) {
+        await this.fetchSubjectsForRegister(this.form.sessionId)
+      }
       this.$nextTick(() => {
         if (this.$refs.step2Header) {
           this.$refs.step2Header.scrollIntoView({
@@ -520,31 +575,190 @@ export default {
       })
     },
 
-    saveStudent() {
-      if (!this.selectedStudentInfo) return
+    async fetchCatalogs() {
+      try {
+        const [sessionRes, semesterRes, teacherRes] = await Promise.all([
+          this.$axios.$get('/api/retakeSession/list', {
+            params: { status: 'ACTIVE', channel: 'CMS' },
+          }).catch(() => null),
+          this.$axios.$get('/api/semester/list', {
+            params: { status: 'ACTIVE', channel: 'CMS' },
+          }).catch(() => null),
+          this.$axios.$get('/api/teacher/list', {
+            params: { status: 'ACTIVE', channel: 'CMS' },
+          }).catch(() => null),
+        ])
 
-      const newStudent = {
-        id: Date.now(),
-        fullName: this.selectedStudentInfo.fullName,
-        studentCode: this.selectedStudentInfo.studentCode,
-        className: this.selectedStudentInfo.className,
-        sessionCode: this.form.sessionId,
-        termCode: this.form.termId,
-        subjectCode: 'IT3100',
-        subjectName: 'Lập trình hướng đối tượng',
-        failedScore: '',
-        isRegistered: false,
+        if (sessionRes) {
+          const data = Array.isArray(sessionRes) ? sessionRes : sessionRes.data || sessionRes.content || []
+          this.rawSessionsData = data
+          this.sessionOptions = data.map((item) => ({
+            text: item.code || item.name,
+            value: item.id,
+            semesterId: item.semesterId || item.semester?.id,
+          }))
+        }
+
+        if (semesterRes) {
+          const data = Array.isArray(semesterRes) ? semesterRes : semesterRes.data || semesterRes.content || []
+          this.termOptions = data.map((item) => ({
+            text: item.name || item.code,
+            value: item.id,
+          }))
+        }
+
+        if (teacherRes) {
+          const data = Array.isArray(teacherRes) ? teacherRes : teacherRes.data || teacherRes.content || []
+          this.teacherOptions = data.map((item) => ({
+            text: item.fullName || item.name || item.code,
+            value: item.id,
+          }))
+        }
+      } catch (error) {
+        console.error('Lỗi tải danh mục bước 2:', error)
       }
-
-      this.$emit('success', newStudent)
-      this.closeModal()
     },
 
-    closeModal() {
+    async onSessionChange(sessionId) {
+      const found = this.rawSessionsData.find((s) => s.id === sessionId)
+      if (found) {
+        const semId = found.semesterId || found.semester?.id
+        if (semId) {
+          this.form.termId = semId
+        }
+      }
+      if (sessionId && this.selectedStudentInfo) {
+        await this.fetchSubjectsForRegister(sessionId)
+      } else {
+        this.subjectList = []
+      }
+    },
+
+    async fetchSubjectsForRegister(sessionId) {
+      try {
+        const res = await this.$axios.$get('/api/retakeCourse', {
+          params: {
+            pageIndex: 1,
+            pageSize: 50,
+            search: '',
+            studentId: this.selectedStudentInfo?.id,
+            retakeSessionId: sessionId,
+            channel: 'CMS',
+          },
+        })
+        const rootData = res.data !== undefined ? res.data : res
+        const rawList = Array.isArray(rootData)
+          ? rootData
+          : rootData.data || rootData.content || rootData.items || []
+
+        // Chuẩn hóa cấu trúc để v-data-table nhận diện chính xác id khi tích chọn
+        this.subjectList = rawList.map((item) => {
+          const termObj = item.term || item.subject || item
+          return {
+            ...item,
+            id: termObj.id || item.id,
+            code: termObj.code || item.code || '',
+            name: termObj.name || item.name || '',
+            creditHours: termObj.creditHours || termObj.credits || item.credits || '-',
+            creditTraining: termObj.creditTraining || '-',
+            // Lưu lại đúng termId hoặc id thực tế của học phần để gửi payload
+            realTermId: termObj.id || item.termId || item.id,
+          }
+        })
+      } catch (error) {
+        console.error('Lỗi tải danh sách học phần:', error)
+        this.subjectList = []
+      }
+    },
+
+    async saveStudent() {
+      if (!this.selectedStudentInfo) return
+
+      // Dùng trực tiếp mảng selectedSubjects đã chọn thủ công
+      if (!this.selectedSubjects || this.selectedSubjects.length === 0) {
+        this.alertType = 'warning'
+        this.alertMessage = 'Vui lòng chọn học phần'
+        return
+      }
+
+      this.alertMessage = ''
+
+      try {
+        for (const sub of this.selectedSubjects) {
+          const targetTermId = sub.realTermId || sub.term?.id || sub.id
+
+          const payload = {
+            studentId: this.selectedStudentInfo.id,
+            retakeSessionId: this.form.sessionId,
+            semesterId: this.form.termId,
+            termId: targetTermId,
+            classType: this.form.classType || '',
+            classCode: this.form.classCode || '',
+            note: this.form.note || '',
+            type: this.form.type || 'Học lại',
+            bonusScore: this.form.bonusScore ? Number(this.form.bonusScore) : null,
+            charScore: this.form.charScore || '',
+            attendanceScore: this.form.attendanceScore ? Number(this.form.attendanceScore) : null,
+            processScore: this.form.processScore ? Number(this.form.processScore) : null,
+            practiceScore: this.form.practiceScore ? Number(this.form.practiceScore) : null,
+            practiceScore2: this.form.practiceScore2 ? Number(this.form.practiceScore2) : null,
+            weight: this.form.weight ? Number(this.form.weight) : null,
+            teacherId: this.form.teacherId || null,
+          }
+
+          await this.$axios.$post('/api/retakeCourseAuthList', payload, {
+            params: { channel: 'CMS' },
+          })
+        }
+
+        this.$emit('success')
+        this.closeModal()
+      } catch (error) {
+        console.error('Lỗi khi thêm sinh viên học lại:', error)
+        this.alertType = 'error'
+        this.alertMessage = 'Lỗi hệ thống khi lưu dữ liệu'
+      }
+    },
+
+
+    resetForm() {
       this.step = 1
       this.selectedStudent = null
       this.selectedStudentInfo = null
-      this.internalValue = false
+      this.studentSearchQuery = ''
+      this.subjectList = []
+      this.selectedSubjects = []
+      this.alertMessage = ''
+      this.form = {
+        sessionId: '',
+        termId: '',
+        classType: '',
+        classCode: '',
+        note: '',
+        type: 'Học lại',
+        bonusScore: '',
+        charScore: '',
+        attendanceScore: '',
+        processScore: '',
+        practiceScore: '',
+        practiceScore2: '',
+        weight: '',
+        teacherId: '',
+      }
+    },
+    isItemSelected(item) {
+      return this.selectedSubjects.some((s) => (s.id || s.realTermId) === (item.id || item.realTermId))
+    },
+
+    toggleSelectItem(item) {
+      const index = this.selectedSubjects.findIndex(
+        (s) => (s.id || s.realTermId) === (item.id || item.realTermId)
+      )
+      if (index > -1) {
+        this.selectedSubjects.splice(index, 1)
+      } else {
+        this.selectedSubjects.push(item)
+      }
     },
   },
 }
@@ -601,8 +815,8 @@ export default {
 }
 
 .btn-next-step:not([disabled]) {
-  background-color: #e0e0e0 !important;
-  color: #333333 !important;
+  background-color: #a62229 !important;
+  color: #ffffff !important;
 }
 
 .btn-close-custom {

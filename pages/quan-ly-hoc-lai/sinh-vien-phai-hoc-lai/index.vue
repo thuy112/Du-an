@@ -128,6 +128,7 @@
           </v-btn>
         </v-badge>
 
+        <!-- Nút icon dấu cộng (+) mở modal thêm sinh viên -->
         <v-btn
           color="#A62229"
           dark
@@ -597,10 +598,19 @@
       </v-card>
     </v-dialog>
 
+    <!-- Modal Xem Chi Tiết (Dành cho icon mắt) -->
     <RetakeCourseDetailMustRetakeStudentModal
       v-model="showDetailModal"
       :student-data="selectedStudentDetail"
     />
+
+    <!-- Modal Thêm Sinh Viên (Dành cho icon dấu cộng +) -->
+    <DetailMustRetakeStudentModal
+      v-model="showAddModal"
+      @success="handleAddSuccess"
+    />
+
+    
 
     <!-- TOAST NOTIFICATION -->
     <div class="toast-container">
@@ -644,17 +654,18 @@
 
 <script>
 import * as XLSX from 'xlsx'
-import RetakeCourseDetailMustRetakeStudentModal from '~/components/RetakeCourse/DetailMustRetakeStudentModal.vue'
+import RetakeCourseDetailMustRetakeStudentModal from '~/components/RetakeCourse/RetakeCourseDetailMustRetakeStudentModal.vue'
+import DetailMustRetakeStudentModal from '~/components/RetakeCourse/DetailMustRetakeStudentModal.vue'
 
 export default {
   name: 'MustRetakeStudentPage',
   components: {
     RetakeCourseDetailMustRetakeStudentModal,
+    DetailMustRetakeStudentModal,
   },
   data() {
     return {
       isMobileDevice: false,
-
       filters: {
         keyword: '',
         termId: '',
@@ -662,7 +673,6 @@ export default {
         subjectId: '',
         status: '',
       },
-
       activeFilters: {
         keyword: '',
         termId: '',
@@ -670,31 +680,29 @@ export default {
         subjectId: '',
         status: '',
       },
-
       statusOptions: [
         { text: 'Chưa đăng ký', value: 'NOT_REGISTERED' },
         { text: 'Đã đăng ký', value: 'REGISTERED' },
       ],
-
       termOptions: [],
       sessionOptions: [],
       subjectOptions: [],
-
       selectAll: false,
       selectedItems: [],
 
-      showAddModal: false,
-      toasts: [],
-      deleteDialog: false,
-      showDetailModal: false,
-      itemToDelete: null,
+      // Trạng thái cho 2 modal riêng biệt
+      showAddModal: false,        // Dùng cho nút dấu +
+      showDetailModal: false,     // Dùng cho icon mắt
       selectedStudentDetail: null,
 
+      toasts: [],
+      deleteDialog: false,
+      itemToDelete: null,
       currentPage: 1,
       pageInput: 1,
-      itemsPerPage: 500, // Mặc định 50 bản ghi
+      itemsPerPage: 50,
       studentList: [],
-      totalRecords: 0, // Tổng số bản ghi thực tế từ server (ví dụ: 112)
+      totalRecords: 0,
       loading: false,
     }
   },
@@ -703,9 +711,6 @@ export default {
       return Math.ceil(this.totalRecords / this.itemsPerPage) || 1
     },
     paginatedList() {
-      return this.studentList || []
-    },
-    filteredList() {
       return this.studentList || []
     },
   },
@@ -722,38 +727,44 @@ export default {
   methods: {
     async fetchInitialData() {
       try {
-        const [termRes, sessionRes] = await Promise.all([
-          this.$axios.$get('/api/term/list', {
-            params: {
-              status: 'ACTIVE',
-              channel: 'CMS',
-              transid: '206f7ed9-dfde-4496-91d6-f2d3bf8c2505',
-            },
-          }),
+        const [semesterRes, sessionRes, subjectRes] = await Promise.all([
+          this.$axios.$get('/api/semester/list', {
+            params: { status: 'ACTIVE', channel: 'CMS' },
+          }).catch(() => null),
           this.$axios.$get('/api/retakeSession/list', {
-            params: {
-              channel: 'CMS',
-              transid: '52b8c2c3-d174-4344-97c7-e029729031a1',
-            },
-          }),
+            params: { channel: 'CMS' },
+          }).catch(() => null),
+          this.$axios.$get('/api/term/list', {
+            params: { channel: 'CMS' },
+          }).catch(() => null),
         ])
 
-        // Map lại để lấy chính xác tên và mã hiển thị vào select
-        if (termRes && termRes.data) {
-          const rawTerms = Array.isArray(termRes.data)
-            ? termRes.data
-            : termRes.data.data || termRes.data.content || []
-          this.termOptions = rawTerms.map((item) => ({
+        if (semesterRes) {
+          const rawSemesters = Array.isArray(semesterRes)
+            ? semesterRes
+            : semesterRes.data || semesterRes.content || []
+          this.termOptions = rawSemesters.map((item) => ({
             text: item.name || item.code,
             value: item.id || item.code,
           }))
         }
-        if (sessionRes && sessionRes.data) {
-          const rawSessions = Array.isArray(sessionRes.data)
-            ? sessionRes.data
-            : sessionRes.data.data || sessionRes.data.content || []
+
+        if (sessionRes) {
+          const rawSessions = Array.isArray(sessionRes)
+            ? sessionRes
+            : sessionRes.data || sessionRes.content || []
           this.sessionOptions = rawSessions.map((item) => ({
             text: item.code || item.name,
+            value: item.id || item.code,
+          }))
+        }
+
+        if (subjectRes) {
+          const rawSubjects = Array.isArray(subjectRes)
+            ? subjectRes
+            : subjectRes.data || subjectRes.content || []
+          this.subjectOptions = rawSubjects.map((item) => ({
+            text: item.name ? `${item.code} - ${item.name}` : item.code,
             value: item.id || item.code,
           }))
         }
@@ -774,17 +785,17 @@ export default {
           termId: this.activeFilters.subjectId || '',
           status: this.activeFilters.status || '',
           channel: 'CMS',
-          transid: '78a7c1f2-81d6-403a-95ac-6aa67eb94ab5',
         }
 
         const res = await this.$axios.$get('/api/retakeCourseAuthList', {
           params,
         })
 
-        if (res && res.data) {
-          const rawList = Array.isArray(res.data)
-            ? res.data
-            : res.data.data || res.data.content || []
+        if (res) {
+          const rootData = res.data !== undefined ? res.data : res
+          const rawList = Array.isArray(rootData)
+            ? rootData
+            : rootData.data || rootData.content || rootData.items || []
 
           this.studentList = rawList.map((item) => ({
             ...item,
@@ -802,10 +813,12 @@ export default {
           }))
 
           this.totalRecords =
-            res.data.totalRecords ??
-            res.data.total ??
+            rootData.totalElements ??
+            rootData.totalRecords ??
+            rootData.total ??
+            res.totalElements ??
+            res.totalRecords ??
             res.total ??
-            res.data.totalElements ??
             this.studentList.length
         } else {
           this.studentList = []
@@ -820,6 +833,55 @@ export default {
         this.totalRecords = 0
       } finally {
         this.loading = false
+      }
+    },
+
+    // 1. Hàm gọi khi bấm icon mắt (Xem chi tiết sinh viên)
+    async viewDetail(item) {
+      if (!item || !item.id) return
+      try {
+        const res = await this.$axios.$get(
+          `/api/retakeCourseAuthList/detail/${item.id}`,
+          {
+            params: { channel: 'CMS' },
+          }
+        )
+
+        if (res) {
+          const detailData = res.data !== undefined ? res.data : res
+          this.selectedStudentDetail = detailData
+          this.showDetailModal = true
+        }
+      } catch (error) {
+        console.error('Lỗi tải chi tiết sinh viên:', error)
+        this.selectedStudentDetail = item
+        this.showDetailModal = true
+      }
+    },
+
+    // 2. Hàm gọi khi bấm icon dấu + (Mở modal thêm mới)
+    openAddModal() {
+      this.showAddModal = true
+    },
+
+    handleSelectAll(value) {
+      if (value) {
+        this.selectedItems = this.studentList
+          .filter((item) => !item.isRegistered)
+          .map((item) => item.id)
+      } else {
+        this.selectedItems = []
+      }
+    },
+
+    handleItemSelect() {
+      const availableItems = this.studentList.filter((item) => !item.isRegistered)
+      if (availableItems.length > 0) {
+        this.selectAll = availableItems.every((item) =>
+          this.selectedItems.includes(item.id)
+        )
+      } else {
+        this.selectAll = false
       }
     },
 
@@ -870,17 +932,6 @@ export default {
         status: '',
       }
       this.handleSearch()
-      this.addToast('Làm mới dữ liệu thành công')
-    },
-
-    openAddModal() {
-      this.showAddModal = true
-    },
-
-    onAddSuccess() {
-      this.currentPage = 1
-      this.loadStudents()
-      this.addToast('Thêm danh sách sinh viên học lại thành công')
     },
 
     confirmDelete(item) {
@@ -889,20 +940,26 @@ export default {
       this.deleteDialog = true
     },
 
-    executeDelete() {
+    async executeDelete() {
       if (this.itemToDelete && !this.itemToDelete.isRegistered) {
-        this.loadStudents()
-        this.addToast('Xóa thông tin thành công')
+        const targetId = this.itemToDelete.id
+        try {
+          // Gọi API xóa trên server
+          await this.$axios.$delete(`/api/retakeCourseAuthList/${targetId}`, {
+            params: { channel: 'CMS' },
+          })
+
+          // Tải lại danh sách từ server hoặc lọc bỏ trực tiếp
+          await this.loadStudents()
+          this.addToast('Xóa thông tin thành công')
+        } catch (error) {
+          console.error('Lỗi khi xóa bản ghi:', error)
+          this.addToast('Không thể xóa bản ghi', 3000)
+        }
       }
       this.deleteDialog = false
       this.itemToDelete = null
     },
-
-    openDetailModal(item) {
-      this.selectedStudentDetail = item
-      this.showDetailModal = true
-    },
-
     addToast(message = 'Thao tác thành công', duration = 3000) {
       const id = Date.now() + Math.random()
       this.toasts.unshift({ id, message, duration })
@@ -981,11 +1038,17 @@ export default {
         event.target.value = ''
       }
     },
-
-    viewDetail(item) {
-      this.openDetailModal(item)
-    },
   },
+  handleAddSuccess(newItems) {
+      if (Array.isArray(newItems)) {
+        // Đưa các dòng mới thêm lên đầu danh sách
+        this.studentList = [...newItems, ...this.studentList]
+        this.totalRecords += newItems.length
+      } else {
+        this.loadStudents()
+      }
+      this.addToast('Thêm thành công', 3000)
+    }
 }
 </script>
 

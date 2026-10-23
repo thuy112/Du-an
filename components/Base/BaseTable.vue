@@ -81,10 +81,8 @@ export default {
   .base-table-container {
     flex: 1 1 auto;
     min-height: 0;
-    overflow-x: auto !important; /* Cho phép container ngoài cuộn ngang */
   }
   .custom-table {
-    min-width: 1250px !important; /* Đảm bảo độ rộng để kích hoạt thanh cuộn */
     height: 100%;
   }
   .custom-table >>> .v-data-table__wrapper {

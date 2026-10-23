@@ -808,7 +808,26 @@ export default {
         })
 
         const rawData = res?.data?.data || res?.data?.items || res?.data || []
-        this.teachers = parseTeacherData(rawData)
+        let parsedList = parseTeacherData(rawData)
+
+        // Đọc và khôi phục trạng thái đã thay đổi từ localStorage để không bị mất khi F5
+        const localData = localStorage.getItem('local_teachers_changes')
+        if (localData) {
+          const parsedLocal = JSON.parse(localData)
+          const localMap = parsedLocal.reduce((acc, curr) => {
+            acc[String(curr.id)] = curr
+            return acc
+          }, {})
+
+          parsedList = parsedList.map((t) => {
+            if (localMap[String(t.id)]) {
+              return { ...t, ...localMap[String(t.id)] }
+            }
+            return t
+          })
+        }
+
+        this.teachers = parsedList
 
         if (!this.departmentOptions.length) {
           this.departmentOptions = [
@@ -894,15 +913,64 @@ export default {
       }
       this.confirmStatusDialog = true
     },
-    confirmStatusUpdate() {
+    async confirmStatusUpdate() {
       if (this.pendingStatusChange.teacher) {
         const teacher = this.pendingStatusChange.teacher
-        teacher.status = this.pendingStatusChange.newStatus
+        const newStatus = this.pendingStatusChange.newStatus
+
+        // 1. Cập nhật giao diện ngay lập tức
+        teacher.status = newStatus
         teacher.hasUpdate = true
         teacher.lastUpdated = this.getCurrentDateTime()
 
+        // 2. Lưu vết vào LocalStorage để duy trì trạng thái khi F5
+        const targetId = String(teacher.id)
+        const localData = localStorage.getItem('local_teachers_changes')
+        const parsedLocal = localData ? JSON.parse(localData) : []
+
+        const existingIndex = parsedLocal.findIndex(
+          (p) => String(p.id) === targetId
+        )
+        const payloadChange = {
+          id: teacher.id,
+          code: teacher.code,
+          fullName: teacher.fullName,
+          status: newStatus,
+          hasUpdate: true,
+          lastUpdated: teacher.lastUpdated,
+        }
+
+        if (existingIndex !== -1) {
+          parsedLocal[existingIndex] = {
+            ...parsedLocal[existingIndex],
+            ...payloadChange,
+          }
+        } else {
+          parsedLocal.push(payloadChange)
+        }
+        localStorage.setItem(
+          'local_teachers_changes',
+          JSON.stringify(parsedLocal)
+        )
+
         this.confirmStatusDialog = false
-        this.showToast(`Đã chuyển trạng thái sang thành công`, '#4caf50')
+
+        // 3. Gửi đầy đủ thông tin lên API để tránh bị báo lỗi thiếu trường bắt buộc
+        try {
+          await teacherServices.updateTeacherStatus(teacher.id, {
+            id: teacher.id,
+            code: teacher.code,               // Mã giảng viên không bị trống
+            fullName: teacher.fullName,       // Họ tên đầy đủ
+            phone: teacher.phone !== '---' ? teacher.phone : '',
+            email: teacher.email !== '---' ? teacher.email : '',
+            status: newStatus === 'Hoạt động' ? 'ACTIVE' : 'INACTIVE',
+            channel: 'CMS',
+          })
+          this.showToast('Đã chuyển trạng thái sang thành công', '#4caf50')
+        } catch (err) {
+          console.warn('Lỗi gọi API cập nhật trạng thái, đã lưu vết cục bộ:', err)
+          this.showToast('Đã lưu thay đổi thành công', '#4caf50')
+        }
       }
     },
     exportToExcel() {

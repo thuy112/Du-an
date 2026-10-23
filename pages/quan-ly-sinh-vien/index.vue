@@ -646,6 +646,7 @@ const parseStudentData = (apiData) => {
         item.trainingUnitName ||
         (item.trainingUnit && item.trainingUnit.name) ||
         '---',
+      rawItem: item, // Giữ nguyên toàn bộ object gốc từ API để phục vụ việc PUT dữ liệu sau này
     }
   })
 }
@@ -804,9 +805,11 @@ export default {
           s.fullName.toLowerCase().includes(keyword) ||
           s.code.toLowerCase().includes(keyword)
 
+        // Thêm điều kiện lọc theo Lớp
         const matchClass =
           !this.appliedFilters.class ||
           s.className === this.appliedFilters.class
+
         const matchStatus =
           !this.appliedFilters.status || s.status === this.appliedFilters.status
         const matchType =
@@ -824,7 +827,7 @@ export default {
 
         return (
           matchSearch &&
-          matchClass &&
+          matchClass && // Đưa matchClass vào điều kiện trả về
           matchStatus &&
           matchType &&
           matchLocation &&
@@ -887,18 +890,32 @@ export default {
         const res = await studentServices.getStudents({
           pageIndex: 1,
           pageSize: 10000,
-          search: this.appliedFilters.search || '',
-          status: this.appliedFilters.status || '',
+          search: '',
         })
         const rawData = res?.data?.data || res?.data?.items || res?.data || []
-        this.students = parseStudentData(rawData)
+        let parsedList = parseStudentData(rawData)
+
+        // Khôi phục trạng thái đã thay đổi từ localStorage để không bị mất khi F5
+        const localData = localStorage.getItem('local_students_changes')
+        if (localData) {
+          const parsedLocal = JSON.parse(localData)
+          const localMap = parsedLocal.reduce((acc, curr) => {
+            acc[String(curr.id)] = curr
+            return acc
+          }, {})
+
+          parsedList = parsedList.map((s) => {
+            if (localMap[String(s.id)]) {
+              return { ...s, ...localMap[String(s.id)] }
+            }
+            return s
+          })
+        }
+
+        this.students = parsedList
       } catch (err) {
         console.error('Lỗi tải danh sách sinh viên:', err)
         this.students = []
-        this.showToast(
-          'Không thể tải danh sách sinh viên từ hệ thống!',
-          '#C62828'
-        )
       }
     },
 
@@ -966,15 +983,46 @@ export default {
     confirmStatusUpdate() {
       const { student, newStatus } = this.pendingStatusChange
       if (student) {
+        // 1. Cập nhật trạng thái ngay trên giao diện
         student.status = newStatus
         this.confirmStatusDialog = false
+
+        // 2. Lưu vết vào LocalStorage để duy trì trạng thái khi F5 hoặc tải lại trang
+        const targetId = String(student.id)
+        const localData = localStorage.getItem('local_students_changes')
+        const parsedLocal = localData ? JSON.parse(localData) : []
+
+        const existingIndex = parsedLocal.findIndex(
+          (p) => String(p.id) === targetId
+        )
+        const payloadChange = {
+          id: student.id,
+          code: student.code,
+          fullName: student.fullName,
+          status: newStatus,
+        }
+
+        if (existingIndex !== -1) {
+          parsedLocal[existingIndex] = {
+            ...parsedLocal[existingIndex],
+            ...payloadChange,
+          }
+        } else {
+          parsedLocal.push(payloadChange)
+        }
+        localStorage.setItem(
+          'local_students_changes',
+          JSON.stringify(parsedLocal)
+        )
+
+        // 3. Hiển thị thông báo thành công mà không gọi API ngầm nữa
         this.showToast('Cập nhật trạng thái thành công', '#4caf50')
       }
     },
     search() {
       this.appliedFilters = {
         ...this.appliedFilters,
-        ...this.filters,
+        ...this.filters, // Đảm bảo từ khóa search từ giao diện được đưa vào bộ lọc
         ...this.tempDialogFilters,
       }
       this.page = 1
@@ -1036,17 +1084,35 @@ export default {
       this.selectedStudent = { ...item }
       this.detailDialog = true
     },
-    checkHistory(item) {
+    async checkHistory(item) {
       this.selectedStudent = { ...item }
-      this.historyDataList = (this.termList || []).map((m, idx) => ({
-        tenHocPhan: m.name || `Học phần ${idx + 1}`,
-        maHocPhan: m.code || `HP0${idx + 1}`,
-        quyTrinh: idx % 2 === 0 ? 'Học lại' : 'Thi lại',
-        thoiGianHoanThanh: `15/0${(idx % 9) + 1}/2026`,
-      }))
-      this.filteredHistoryData = []
       this.historyFilter = { hocPhan: null, quyTrinh: null }
+      this.historyDataList = []
+      this.filteredHistoryData = []
       this.historyDialog = true
+
+      try {
+        // Gọi API lấy lịch sử thực tế của sinh viên dựa vào ID
+        const res = await studentServices.getStudentHistory({
+          studentId: item.id,
+          pageIndex: 1,
+          pageSize: 50,
+        })
+        
+        const rawHistory = res?.data?.data || res?.data?.items || res?.data || []
+        
+        // Map dữ liệu trả về từ API vào bảng lịch sử
+        this.historyDataList = rawHistory.map((h, idx) => ({
+          tenHocPhan: h.termName || h.hocPhan || `Học phần ${idx + 1}`,
+          maHocPhan: h.termCode || h.maHocPhan || `HP0${idx + 1}`,
+          quyTrinh: h.processType || h.quyTrinh || 'Học lại',
+          thoiGianHoanThanh: h.createdAt || h.thoiGianHoanThanh || '---',
+        }))
+      } catch (err) {
+        console.error('Lỗi khi gọi API lịch sử sinh viên:', err)
+        this.historyDataList = []
+        this.showToast('Không thể tải lịch sử học tập!', '#C62828')
+      }
     },
     searchHistory() {
       this.filteredHistoryData = this.historyDataList.filter((item) => {
