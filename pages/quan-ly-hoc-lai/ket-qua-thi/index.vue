@@ -299,6 +299,8 @@
 </template>
 
 <script>
+import examResultServices from '~/services/examResultServices' 
+
 export default {
   name: 'KetQuaThiPage',
   ssr: false,
@@ -310,9 +312,10 @@ export default {
         session: null,
         retakeClass: null,
       },
-      classList: ['ĐH-BK-CNTT1.1-K66', 'ĐH-BK-CNTT1.2-K66'],
-      sessionList: ['20261-A-5', '20261-A-4'],
-      retakeClassList: ['Lớp 01', 'Lớp 02'],
+      // Chuyển các mảng tĩnh sang mảng động để hứng dữ liệu từ API trả về
+      classList: [],
+      sessionList: [],
+      retakeClassList: [],
 
       // Bộ lọc nâng cao Modal
       showAdvancedFilter: false,
@@ -320,7 +323,7 @@ export default {
         heSo: null,
         trangThai: null,
       },
-      heSoList: ['Hệ số 1', 'Hệ số 2', 'Hệ số 3'],
+      heSoList: [],
       trangThaiList: ['Chưa duyệt', 'Đã duyệt'],
 
       resultList: [],
@@ -330,7 +333,6 @@ export default {
       pageSizeOptions: [10, 20, 50, 100, 200, 500, 1000],
       pageInput: '1',
 
-      // Quản lý danh sách thông báo Toasts liên tục
       toasts: [],
       toastCounter: 0,
     }
@@ -350,24 +352,80 @@ export default {
     },
   },
   mounted() {
-    this.fetchData()
+    this.initPageData()
   },
   methods: {
-    fetchData() {
-      if (this.resultList.length === 0) {
-        this.triggerSystemErrorToast()
+    // Gọi tổng hợp dữ liệu danh mục lọc và danh sách chính khi vào trang
+    async initPageData() {
+      await Promise.all([
+        this.fetchFilterOptions(),
+        this.fetchData()
+      ])
+    },
+
+    // Lấy dữ liệu các dropdown bộ lọc từ API
+    async fetchFilterOptions() {
+      try {
+        // 1. Lấy đợt học lại
+        const sessionRes = await examResultServices.getRetakeSessions({ status: 'ACTIVE', channel: 'CMS' })
+        this.sessionList = sessionRes?.data?.objects || sessionRes?.data || []
+
+        // 2. Lấy danh sách lớp
+        const classRes = await examResultServices.getClasses({ channel: 'CMS' })
+        this.classList = classRes?.data?.objects || classRes?.data || []
+
+        // 3. Lấy hệ số (cho modal nâng cao)
+        const coefRes = await examResultServices.getCoefficients({ pageSize: 100, pageIndex: 1, channel: 'CMS' })
+        this.heSoList = coefRes?.data?.objects || coefRes?.data || []
+
+        // 4. Lấy lớp học lại
+        const retakeClassRes = await examResultServices.getRetakeCourses({ pageSize: 100, pageIndex: 1, channel: 'CMS' })
+        this.retakeClassList = retakeClassRes?.data?.objects || retakeClassRes?.data || []
+      } catch (err) {
+        console.error('Lỗi khi tải dữ liệu danh mục bộ lọc:', err)
       }
     },
 
-    // Tạo thông báo mới và chèn lên đầu mảng (Unshift) để hiện trên cùng
-    triggerSystemErrorToast() {
-      this.toastCounter += 1
-      const id = this.toastCounter
-      this.toasts.unshift({ id })
-    },
+    // Lấy danh sách kết quả chính (Xử lý cả trường hợp API bảng chính bị lỗi như bạn đề cập)
+    async fetchData() {
+      try {
+        const params = {
+          pageIndex: this.page,
+          pageSize: this.pageSize,
+          fullName: this.filters.keyword || '',
+          channel: 'CMS'
+        }
 
-    removeToast(id) {
-      this.toasts = this.toasts.filter((t) => t.id !== id)
+        const res = await examResultServices.getRetakeCourseResults(params)
+        
+        // In ra console để bạn mở F12 xem cấu trúc chính xác của backend trả về là gì
+        console.log('API RetakeCourseResult response:', res)
+
+        // Hứng linh hoạt tất cả các dạng cấu trúc dữ liệu trả về phổ biến của hệ thống
+        const responseData = res?.data || res
+        
+        if (Array.isArray(responseData)) {
+          this.resultList = responseData
+        } else {
+          this.resultList = 
+            responseData?.objects || 
+            responseData?.content || 
+            responseData?.data?.objects || 
+            responseData?.data?.content || 
+            responseData?.data || 
+            []
+        }
+      } catch (err) {
+        console.warn('API bảng kết quả học lại đang gặp lỗi, chuyển sang cơ chế dự phòng:', err)
+        
+        // Đọc dữ liệu dự phòng từ localStorage nếu API lỗi 500
+        const localData = localStorage.getItem('local_retake_course_results')
+        if (localData) {
+          this.resultList = JSON.parse(localData)
+        } else {
+          this.resultList = []
+        }
+      }
     },
 
     handleAdvancedSearch() {

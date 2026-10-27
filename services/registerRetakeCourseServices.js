@@ -2,27 +2,44 @@
 import Api from '~/api/Api'
 
 export default {
+  // Lấy danh sách đăng ký học lại kèm bộ lọc và phân trang
   getList(params) {
-    return Api.get('/api/v1/register-retake-courses', { params })
+    return Api.get('/api/registerRetakeCourse', { params })
   },
 
-  getDetail(id) {
-    return Api.get(`/api/v1/register-retake-courses/${id}`)
+  // Lấy chi tiết một đơn đăng ký theo ID
+  getDetail(id, params) {
+    return Api.get(`/api/registerRetakeCourse/${id}`, { params })
   },
 
-  create(data) {
-    return Api.post('/api/v1/register-retake-courses', data)
+  // Lấy danh sách lớp học và giáo viên khả dụng cho đơn đăng ký
+  getAvailableExamSessions(id, params) {
+    return Api.get(`/api/registerRetakeCourse/availableExamSessions/${id}`, { params })
   },
 
-  updateStatus(id, statusData) {
-    return Api.put(`/api/v1/register-retake-courses/${id}/status`, statusData)
+  // Xác nhận trạng thái đơn (Duyệt / Từ chối / Đặt lại chờ xác nhận)
+  confirmRegistrationForm(id, data) {
+    return Api.put(`/api/registerRetakeCourse/confirmRegistrationForm/${id}`, data)
   },
 
-  delete(id) {
-    return Api.delete(`/api/v1/register-retake-courses/${id}`)
+  // Cập nhật thông tin đơn đăng ký học lại
+  update(id, data) {
+    return Api.put(`/api/registerRetakeCourse/${id}`, data)
   },
 
-  exportExcel(params) {
-    return Api.getBlob('/api/v1/register-retake-courses/export', { params })
+  // Gửi email thông báo được phép đóng phí học lại
+  sendMailFee(params) {
+    return Api.get('/api/registerRetakeCourse/mailFee', { params })
   },
+  // Gửi email thông báo từ chối đăng ký học lại
+  sendMailRefused(params) {
+    return Api.get('/api/registerRetakeCourse/mailRefused', { params })
+  },
+  // Ví dụ trong file service (hoặc registerRetakeCourseServices.js)
+validatePaymentBatch(params) {
+  return Api.get('/api/payment/retake-course/validate-same-batch', { params })
+},
+sendPaymentFeeList(data) {
+  return Api.post('/api/payment/retake-course/send', data)
+},
 }

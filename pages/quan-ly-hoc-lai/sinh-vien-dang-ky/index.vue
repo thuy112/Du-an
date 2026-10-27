@@ -258,7 +258,7 @@
                           class="action-btn btn-send"
                           :class="{ active: isActionActive }"
                           :disabled="!isActionActive"
-                          @click="handleSendEmail"
+                          @click="handleSchedule"
                         >
                           <v-icon
                             size="18"
@@ -331,7 +331,6 @@
               hide-details
               dense
               class="ma-0 pa-0"
-              @change="onItemSelectChange"
             ></v-checkbox>
           </template>
 
@@ -628,6 +627,135 @@
       :retake-courses-full-list="retakeCoursesList"
       @success="handleRegisterSuccess"
     />
+
+    <!-- MODAL XÁC NHẬN GỬI EMAIL THÔNG BÁO ĐÓNG PHÍ -->
+    <v-dialog v-model="showMailConfirmModal" max-width="450px" persistent>
+      <v-card class="rounded-lg">
+        <v-card-title class="bg-red-title text-white py-3 px-4 d-flex align-center justify-space-between">
+          <span class="text-h6 font-weight-bold">Xác nhận</span>
+          <v-btn icon dark small @click="showMailConfirmModal = false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-4 text-center">
+          <p class="text-body-1 mt-2">
+            Gửi email thông báo được phép đóng phí học lại
+          </p>
+        </v-card-text>
+
+        <v-card-actions class="justify-end pa-3 border-top">
+          <v-btn text @click="showMailConfirmModal = false">Đóng X</v-btn>
+          <v-btn color="#a61c24" dark @click="handleSendEmail">Đồng Ý</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- MODAL XÁC NHẬN GỬI EMAIL TỪ CHỐI ĐĂNG KÝ -->
+    <v-dialog v-model="showRejectMailConfirmModal" max-width="450px" persistent>
+      <v-card class="rounded-lg">
+        <v-card-title class="bg-red-title text-white py-3 px-4 d-flex align-center justify-space-between">
+          <span class="text-h6 font-weight-bold">Xác nhận</span>
+          <v-btn icon dark small @click="showRejectMailConfirmModal = false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-4 text-center">
+          <p class="text-body-1 mt-2">
+            Gửi email thông báo từ chối đăng ký học lại
+          </p>
+        </v-card-text>
+
+        <v-card-actions class="justify-end pa-3 border-top">
+          <v-btn text @click="showRejectMailConfirmModal = false">Đóng X</v-btn>
+          <v-btn color="#a61c24" dark @click="handleSendRejectEmail">Đồng Ý</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- MODAL XÁC NHẬN GIA HẠN HẠN NỘP HỌC PHÍ -->
+    <v-dialog v-model="showScheduleModal" max-width="800px" persistent>
+      <v-card class="rounded-lg">
+        <v-card-title class="bg-red-title text-white py-3 px-4 d-flex align-center justify-space-between">
+          <span class="text-h6 font-weight-bold">Xác nhận gia hạn hạn nộp học phí</span>
+          <v-btn icon dark small @click="showScheduleModal = false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-4">
+          <div class="text-subtitle-2 mb-2 font-weight-bold">
+            Danh sách sinh viên sẽ được gia hạn ({{ selectedCount }}) :
+          </div>
+
+          <!-- Hiển thị thông báo lỗi màu đỏ (nếu có vi phạm điều kiện như ảnh 1 & 2) -->
+          <v-alert
+            v-if="scheduleErrorMessage"
+            type="error"
+            dense
+            outlined
+            class="mb-3"
+          >
+            {{ scheduleErrorMessage }}
+          </v-alert>
+
+          <!-- Hiển thị thông báo thành công màu xanh (nếu hợp lệ như ảnh cuối) -->
+          <v-alert
+            v-else
+            type="success"
+            dense
+            text
+            class="mb-3"
+          >
+            Tất cả đơn đăng ký cùng đợt — Đợt: {{ currentRetakeSessionCode }}
+          </v-alert>
+
+          <!-- Bảng danh sách sinh viên được chọn -->
+          <v-simple-table dense class="border-table mb-3">
+            <thead>
+              <tr class="bg-light-gray">
+                <th>STT</th>
+                <th>Mã SV</th>
+                <th>Họ tên</th>
+                <th>Kỳ đăng ký học lại</th>
+                <th>Học phần đăng ký</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, idx) in selectedStudentsList" :key="item.id">
+                <td>{{ idx + 1 }}</td>
+                <td>{{ item.code }}</td>
+                <td>{{ item.fullName }}</td>
+                <td>{{ item.sessionCode || '---' }}</td>
+                <td>
+                  <div v-for="(termObj, tIdx) in item.registerStudentTerms || []" :key="tIdx">
+                    {{ tIdx + 1 }}. {{ termObj.term?.name }} - {{ termObj.term?.code }}
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </v-simple-table>
+
+          <!-- Input hạn nộp mới -->
+          <v-text-field
+            v-model="newFeeDeadline"
+            label="Hạn nộp mới"
+            placeholder="Nhập hạn nộp mới (ví dụ: 27/10/2026)"
+            outlined
+            dense
+            class="mt-3"
+          ></v-text-field>
+        </v-card-text>
+
+        <v-card-actions class="justify-end pa-3 border-top">
+          <v-btn text @click="showScheduleModal = false">Đóng X</v-btn>
+          <!-- Nút Gia Hạn: Dùng :disabled để làm mờ đi chứ không dùng v-if để làm mất đi -->
+          <v-btn 
+            color="#a61c24" 
+            dark 
+            :disabled="!isScheduleValid"
+            @click="handleConfirmSchedule"
+          >
+            Gia Hạn
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- 1. MODAL CHI TIẾT (ICON MẮT) -->
     <v-dialog v-model="showDetailModal" max-width="900px" scrollable>
@@ -1028,6 +1156,7 @@
 import * as XLSX from 'xlsx'
 import RegisterRetakeCourseModal from '~/components/RetakeCourse/RegisterRetakeCourseModal.vue'
 import BaseTable from '~/components/Base/BaseTable.vue'
+import registerRetakeCourseService from '~/services/registerRetakeCourseServices'
 
 export default {
   name: 'RegisteredStudentsPage',
@@ -1041,9 +1170,16 @@ export default {
       loading: false,
       showAddModal: false,
       selectedIds: [],
-      selectAll: false,
+      // selectAll: false,
+      showMailConfirmModal: false,
+      showRejectMailConfirmModal: false, 
+      showScheduleModal: false,
+      newFeeDeadline: '',
+      scheduleErrorMessage: '',
+      isScheduleValid: true,
+      currentRetakeSessionCode: '',
 
-      page: 1,
+    page: 1,
       pageSize: 50,
       pageInput: '1',
       totalItems: 0,
@@ -1218,7 +1354,26 @@ export default {
     isActionActive() {
       return this.selectedCount > 0
     },
+    // Trạng thái "chọn một phần" (indeterminate) cho header checkbox ở trang hiện tại
+    isIndeterminate() {
+      if (this.items.length === 0) return false
+      const currentPageIds = this.items.map(item => item.id)
+      const selectedOnCurrentPage = currentPageIds.filter(id => this.selectedIds.includes(id))
+      return selectedOnCurrentPage.length > 0 && selectedOnCurrentPage.length < currentPageIds.length
+    },
+    // Ô "Chọn tất cả" sẽ tự động ĐÚNG theo trạng thái của trang hiện tại (chuyển trang sẽ tự động bỏ tích nếu trang mới chưa chọn hết)
+    selectAll: {
+      get() {
+        if (this.items.length === 0) return false
+        const currentPageIds = this.items.map(item => item.id)
+        return currentPageIds.every(id => this.selectedIds.includes(id))
+      },
+      set(val) {
+        this.toggleSelectAll(val)
+      }
+    }
   },
+
   async mounted() {
     if (typeof navigator !== 'undefined') {
       this.isMobileDevice =
@@ -1413,6 +1568,16 @@ export default {
     // 7. XÁC NHẬN ĐẶT LẠI TRẠNG THÁI (LỊCH SỬ / ĐỒNG HỒ)
     async confirmResetStatus() {
       try {
+        // 1. TẮT (ĐÓNG) MODAL LỊCH SỬ NGAY LẬP TỨC
+        this.showHistoryModal = false
+
+        // 2. CẬP NHẬT TRỰC TIẾP TRẠNG THÁI SANG AWAITING_CONFIRMATION TRÊN GIAO DIỆN
+        const targetItem = this.items.find(i => i.id === this.selectedItem.id)
+        if (targetItem) {
+          targetItem.registerStudentStatus = 'AWAITING_CONFIRMATION'
+        }
+
+        // 3. GỌI API NGẦM PHÍA SAU
         const res = await this.$axios.$put(
           `/api/registerRetakeCourse/confirmRegistrationForm/${this.selectedItem.id}`,
           { 
@@ -1420,18 +1585,16 @@ export default {
             terms: this.selectedItem?.registerStudentTerms || []
           }
         )
-        if (res) {
-          if (typeof this.$showSuccess === 'function') {
-            this.$showSuccess('Đã chuyển trạng thái đơn thành công')
-          }
-          this.showHistoryModal = false
-          this.fetchRegisteredStudents()
+
+        if (res && typeof this.$showSuccess === 'function') {
+          this.$showSuccess('Đã chuyển trạng thái đơn thành công')
         }
       } catch (error) {
         console.error('Lỗi chuyển trạng thái:', error)
         if (typeof this.$showError === 'function') {
           this.$showError('Có lỗi xảy ra khi chuyển trạng thái')
         }
+        this.fetchRegisteredStudents()
       }
     },
 
@@ -1492,18 +1655,24 @@ export default {
       return isApproved && otherCompletedCount >= 1
     },
 
+    // Hàm chọn tất cả riêng cho trang hiện tại
     toggleSelectAll(val) {
+      const currentPageIds = this.items.map((item) => item.id)
       if (val) {
-        this.selectedIds = this.items.map((item) => item.id)
+        // Thêm tất cả ID của trang hiện tại vào mảng chọn
+        const newSelected = [...this.selectedIds]
+        currentPageIds.forEach(id => {
+          if (!newSelected.includes(id)) {
+            newSelected.push(id)
+          }
+        })
+        this.selectedIds = newSelected
       } else {
-        this.selectedIds = []
+        // Bỏ chọn tất cả các ID thuộc trang hiện tại này
+        this.selectedIds = this.selectedIds.filter(id => !currentPageIds.includes(id))
       }
     },
-    onItemSelectChange() {
-      this.selectAll =
-        this.items.length > 0 &&
-        this.items.every((item) => this.selectedIds.includes(item.id))
-    },
+
     getStatusConfig(status, mapType) {
       const statusMap = this[mapType]
       if (!statusMap) return null
@@ -1530,22 +1699,25 @@ export default {
     onChangePageSize() {
       this.page = 1
       this.pageInput = '1'
-      this.fetchRegisteredStudents()
+      this.fetchRegisteredStudents() 
     },
+
     onPageChange(val) {
       this.page = val
       this.pageInput = String(val)
-      this.fetchRegisteredStudents()
+      this.fetchRegisteredStudents() 
     },
+
     goToPage() {
       const p = parseInt(this.pageInput)
       if (p && p >= 1 && p <= this.totalPages) {
         this.page = p
-        this.fetchRegisteredStudents()
+        this.fetchRegisteredStudents() 
       } else {
         this.pageInput = String(this.page)
       }
     },
+
     updatePaginationSlice() {
       const start = (this.page - 1) * this.pageSize
       const end = start + this.pageSize
@@ -1840,12 +2012,276 @@ export default {
       }
     },
 
-    openConfirmApproveEmail() {},
-    openConfirmRejectEmail() {},
-    handleSendEmail() {},
-    handleSchedule() {},
+    // Bấm vào nút email màu vàng -> Kiểm tra đã chọn sinh viên chưa rồi mở bảng xác nhận
+    openConfirmApproveEmail() {
+      this.showMailConfirmModal = true
+    },
+
+    // Bấm "Đồng Ý" trên bảng xác nhận -> Gọi API và chỉ hiển thị thông báo màu vàng khi có lỗi
+    async handleSendEmail() {
+      try {
+        this.loading = true
+        
+        // 1. Gọi API gửi email qua service
+        const res = await registerRetakeCourseService.sendMailFee({
+          channel: 'CMS',
+          ids: this.selectedIds.join(','),
+        })
+
+        // 2. Đóng modal xác nhận
+        this.showMailConfirmModal = false
+
+        // 3. Kiểm tra kết quả trả về từ backend
+        const isSuccess = res && (res.code === 200 || res.code === 0 || res.status === 'SUCCESS' || res === true)
+        
+        if (isSuccess) {
+          if (typeof this.$showSuccess === 'function') {
+            this.$showSuccess('Gửi email thông báo thành công!')
+          }
+        } else {
+          const errorMsg = res?.message || res?.error?.message || 'Chưa có đơn đăng ký nào được xuất danh sách'
+          // Dùng $showWarning để hiện thông báo màu vàng
+          if (typeof this.$showWarning === 'function') {
+            this.$showWarning(errorMsg)
+          } else {
+            alert(errorMsg)
+          }
+        }
+      } catch (error) {
+        console.error('Lỗi khi gửi email thu phí:', error)
+        this.showMailConfirmModal = false
+
+        const errorMsg = 
+          error.response?.data?.message || 
+          error.response?.data?.error?.message || 
+          error.message || 
+          'Có lỗi xảy ra khi gửi email!'
+
+        // CHỈ DÙNG $showWarning ĐỂ HIỆN THANH MÀU VÀNG (BỎ $showError MÀU ĐỎ)
+        if (typeof this.$showWarning === 'function') {
+          this.$showWarning(errorMsg)
+        } else {
+          alert(errorMsg)
+        }
+      } finally {
+        this.loading = false
+        this.fetchRegisteredStudents()
+      }
+    },
+
     handleRegisterSuccess() {
       this.fetchRegisteredStudents()
+    },
+
+    // Mở bảng xác nhận khi bấm nút email từ chối (icon màu đỏ)
+    openConfirmRejectEmail() {
+      this.showRejectMailConfirmModal = true
+    },
+
+    // Bấm "Đồng Ý" trên bảng xác nhận từ chối -> Gọi API mailRefused
+    async handleSendRejectEmail() {
+      try {
+        this.loading = true
+        
+        // Gọi API qua service với danh sách ID đã chọn
+        const res = await registerRetakeCourseService.sendMailRefused({
+          channel: 'CMS',
+          ids: this.selectedIds.join(','),
+        })
+
+        this.showRejectMailConfirmModal = false
+
+        const isSuccess = res && (res.code === 200 || res.code === 0 || res.status === 'SUCCESS' || res === true)
+        
+        if (isSuccess) {
+          if (typeof this.$showSuccess === 'function') {
+            this.$showSuccess('Gửi email từ chối thành công!')
+          }
+        } else {
+          const errorMsg = res?.message || res?.error?.message || 'Chưa có đơn đăng ký nào được xuất danh sách'
+          if (typeof this.$showWarning === 'function') {
+            this.$showWarning(errorMsg)
+          } else {
+            alert(errorMsg)
+          }
+        }
+      } catch (error) {
+        console.error('Lỗi khi gửi email từ chối:', error)
+        this.showRejectMailConfirmModal = false
+
+        // Bắt lỗi HTTP và hiển thị thông báo màu vàng tương tự
+        const errorMsg = 
+          error.response?.data?.message || 
+          error.response?.data?.error?.message || 
+          error.message || 
+          'Có lỗi xảy ra khi gửi email!'
+
+        if (typeof this.$showWarning === 'function') {
+          this.$showWarning(errorMsg)
+        } else {
+          alert(errorMsg)
+        }
+      } finally {
+        this.loading = false
+        this.fetchRegisteredStudents()
+      }
+    },
+    // 1. Khi bấm vào nút mũi tên xanh lá cây trên thanh công cụ
+    async openSendFeeModal() {
+      if (this.selectedIds.length === 0) {
+        if (typeof this.$showWarning === 'function') {
+          this.$showWarning('Vui lòng chọn ít nhất một sinh viên để gửi danh sách thu phí!')
+        } else {
+          alert('Vui lòng chọn ít nhất một sinh viên!')
+        }
+        return
+      }
+
+      try {
+        this.loading = true
+        this.errorMessageCed = ''
+
+        // Gọi API validate-same-batch
+        const res = await this.$axios.$get('/api/payment/retake-course/validate-same-batch', {
+          params: {
+            channel: 'CMS',
+            ids: this.selectedIds.join(',')
+          }
+        })
+
+        // Kiểm tra nếu API trả về lỗi token CED
+        if (res && (res.errorTokenCed || res.error || res.code === 400)) {
+          this.isTokenCedValid = false
+          this.errorMessageCed = res.message || res.error?.message || 'Không lấy được token CED (host chính) để kiểm tra dữ liệu master'
+        } else {
+          this.isTokenCedValid = true
+        }
+
+        // Lọc danh sách sinh viên được chọn để hiển thị vào bảng trong modal
+        this.selectedStudentsList = this.items.filter(i => this.selectedIds.includes(i.id))
+        this.showSendFeeModal = true
+
+      } catch (error) {
+        console.error('Lỗi validate payment batch:', error)
+        this.isTokenCedValid = false
+        this.errorMessageCed = error.response?.data?.message || 'Không lấy được token CED (host chính) để kiểm tra dữ liệu master'
+        
+        // Vẫn bật modal lên để hiển thị đúng mẫu giao diện và thông báo lỗi cho người dùng
+        this.selectedStudentsList = this.items.filter(i => this.selectedIds.includes(i.id))
+        this.showSendFeeModal = true
+      } finally {
+        this.loading = false
+      }
+    },
+
+   // Khi bấm vào nút màu xanh biển (Gia hạn nộp học phí)
+    async handleSchedule() {
+      if (this.selectedIds.length === 0) {
+        if (typeof this.$showWarning === 'function') {
+          this.$showWarning('Vui lòng chọn ít nhất một sinh viên để gia hạn!')
+        } else {
+          alert('Vui lòng chọn ít nhất một sinh viên!')
+        }
+        return
+      }
+
+      try {
+        this.loading = true
+        this.scheduleErrorMessage = ''
+
+        // TRUYỀN IDS DƯỚI DẠNG MẢNG (ARRAY) TRONG REQUEST BODY CHO PHƯƠNG THỨC POST
+        const res = await this.$axios.$post('/api/payment/retake-course/validate-extend-same-batch', {
+          channel: 'CMS',
+          ids: this.selectedIds
+        })
+
+        // Lọc danh sách sinh viên được chọn để hiển thị bảng
+        this.selectedStudentsList = this.items.filter(i => this.selectedIds.includes(i.id))
+
+        const apiData = res?.data || res
+
+        // Xử lý hiển thị dựa trên kết quả trả về của API
+        if (apiData && apiData.success === false) {
+          this.isScheduleValid = false
+          this.scheduleErrorMessage = apiData.message || 'Không thể gia hạn các đăng ký này.'
+        } else if (apiData && apiData.success === true) {
+          this.isScheduleValid = true
+          this.currentRetakeSessionCode = apiData.examCode || '20261-A-5'
+        } else {
+          this.isScheduleValid = false
+        }
+
+        this.showScheduleModal = true
+
+      } catch (error) {
+        console.error('Lỗi validate gia hạn:', error)
+        this.isScheduleValid = false
+        this.scheduleErrorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi kiểm tra gia hạn.'
+        
+        this.selectedStudentsList = this.items.filter(i => this.selectedIds.includes(i.id))
+        this.showScheduleModal = true
+      } finally {
+        this.loading = false
+      }
+    },
+
+    // Xác nhận thực hiện gia hạn khi bấm nút "Gia Hạn" trong modal
+    async handleConfirmSchedule() {
+      if (!this.newFeeDeadline) {
+        if (typeof this.$showWarning === 'function') {
+          this.$showWarning('Vui lòng chọn hạn nộp mới!')
+        } else {
+          alert('Vui lòng chọn hạn nộp mới!')
+        }
+        return
+      }
+
+      try {
+        this.loading = true
+
+        let formattedDeadline = this.newFeeDeadline
+
+        // Nếu người dùng chọn/nhập theo định dạng DD/MM/YYYY (ví dụ: 27/10/2026) -> Chuyển thành YYYY-MM-DD
+        if (formattedDeadline.includes('/')) {
+          const parts = formattedDeadline.split('/')
+          if (parts.length === 3) {
+            // parts[0] là ngày, parts[1] là tháng, parts[2] là năm
+            formattedDeadline = `${parts[2]}-${parts[1]}-${parts[0]}`
+          }
+        }
+
+        // Gắn thêm phần giờ chuẩn yyyy-MM-dd'T'HH:mm:ss
+        if (!formattedDeadline.includes('T')) {
+          formattedDeadline = `${formattedDeadline}T23:59:59`
+        }
+
+        // Gọi API extend-deadline với payload chuẩn
+        const res = await this.$axios.$post('/api/payment/retake-course/extend-deadline', {
+          channel: 'CMS',
+          ids: this.selectedIds,
+          deadline: formattedDeadline // Lúc này sẽ có dạng chính xác: "2026-10-27T23:59:59"
+        })
+
+        this.showScheduleModal = false
+
+        if (res) {
+          if (typeof this.$showSuccess === 'function') {
+            this.$showSuccess('Gia hạn hạn nộp học phí thành công!')
+          }
+          // Tải lại bảng dữ liệu sau khi gia hạn thành công
+          this.fetchRegisteredStudents()
+        }
+      } catch (error) {
+        console.error('Lỗi khi thực hiện gia hạn:', error)
+        const errorMsg = error.response?.data?.message || 'Có lỗi xảy ra khi gia hạn!'
+        if (typeof this.$showWarning === 'function') {
+          this.$showWarning(errorMsg)
+        } else {
+          alert(errorMsg)
+        }
+      } finally {
+        this.loading = false
+      }
     },
   }
 }

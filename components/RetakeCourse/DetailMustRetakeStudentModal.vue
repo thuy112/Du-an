@@ -360,7 +360,7 @@
                 <!-- BẢNG DANH SÁCH HỌC PHẦN DÀN FULL VÀ CUỘN ĐƯỢC -->
                 <div class="mt-2 w-100">
                   <div class="text-caption font-weight-bold mb-1">
-                    Danh sách học phần ({{ selectedSubjects.length }} / {{ subjectList.length }})
+                    Danh sách học phần ({{ selectedSubjectIds.length }} / {{ subjectList.length }})
                   </div>
 
                   <v-card outlined class="rounded-lg mb-3">
@@ -371,15 +371,25 @@
                       dense
                       fixed-header
                       height="250px"
+                      :items-per-page="-1"
                       hide-default-footer
                       class="elevation-0 style-scrollbar"
                       no-data-text="Không có dữ liệu học phần"
                     >
-                      <!-- Tùy chỉnh cột checkbox thủ công để chắc chắn nhận diện dữ liệu -->
+                      <!-- Checkbox chọn tất cả ở header -->
+                      <template #[`header.data-table-select`]>
+                        <v-simple-checkbox
+                          :value="selectedSubjectIds.length > 0 && selectedSubjectIds.length === subjectList.length"
+                          :indeterminate="selectedSubjectIds.length > 0 && selectedSubjectIds.length < subjectList.length"
+                          @input="toggleSelectAll"
+                        ></v-simple-checkbox>
+                      </template>
+
+                      <!-- Checkbox từng dòng -->
                       <template #[`item.data-table-select`]="{ item }">
                         <v-simple-checkbox
-                          :value="isItemSelected(item)"
-                          @input="toggleSelectItem(item)"
+                          :value="selectedSubjectIds.includes(item.id)"
+                          @input="toggleSelectSubject(item)"
                         ></v-simple-checkbox>
                       </template>
 
@@ -467,8 +477,9 @@ export default {
       teacherOptions: [],
 
       subjectList: [],
-      selectedSubjects: [],
+      selectedSubjectIds: [], // Quản lý ID các dòng được tích chọn thủ công
       subjectHeaders: [
+        { text: '', value: 'data-table-select', sortable: false, width: '40px' },
         { text: 'Mã học phần', value: 'code', sortable: false },
         { text: 'Tên học phần', value: 'name', sortable: false },
         { text: 'Số tín chỉ học phí', value: 'creditHours', sortable: false, align: 'center' },
@@ -493,10 +504,8 @@ export default {
       },
 
       rawSessionsData: [],
-
-      // Quản lý thông báo alert trong modal
       alertMessage: '',
-      alertType: 'warning', // 'warning' hoặc 'success'
+      alertType: 'warning',
     }
   },
   computed: {
@@ -530,7 +539,7 @@ export default {
         const res = await this.$axios.$get('/api/student', {
           params: {
             pageIndex: 1,
-            pageSize: 50,
+            pageSize: 100000,
             search: searchKeyword,
             gender: '',
             status: '',
@@ -561,7 +570,6 @@ export default {
     async switchToStep2() {
       this.step = 2
       await this.fetchCatalogs()
-      // Nếu đã chọn sẵn đợt học trước đó, tự động tải lại danh sách học phần tương ứng
       if (this.form.sessionId) {
         await this.fetchSubjectsForRegister(this.form.sessionId)
       }
@@ -639,7 +647,7 @@ export default {
         const res = await this.$axios.$get('/api/retakeCourse', {
           params: {
             pageIndex: 1,
-            pageSize: 50,
+            pageSize: 1000,
             search: '',
             studentId: this.selectedStudentInfo?.id,
             retakeSessionId: sessionId,
@@ -651,18 +659,21 @@ export default {
           ? rootData
           : rootData.data || rootData.content || rootData.items || []
 
-        // Chuẩn hóa cấu trúc để v-data-table nhận diện chính xác id khi tích chọn
-        this.subjectList = rawList.map((item) => {
+        this.subjectList = rawList.map((item, index) => {
           const termObj = item.term || item.subject || item
+          const uniqueId = item.id || termObj.id || `sub_${index}`
+          
+          const resultRecordId = item.id || item.resultId || termObj.id
+
           return {
             ...item,
-            id: termObj.id || item.id,
+            id: uniqueId,
             code: termObj.code || item.code || '',
             name: termObj.name || item.name || '',
             creditHours: termObj.creditHours || termObj.credits || item.credits || '-',
             creditTraining: termObj.creditTraining || '-',
-            // Lưu lại đúng termId hoặc id thực tế của học phần để gửi payload
-            realTermId: termObj.id || item.termId || item.id,
+            realTermId: termObj.id || item.termId,
+            resultRecordId,
           }
         })
       } catch (error) {
@@ -671,11 +682,31 @@ export default {
       }
     },
 
-    async saveStudent() {
-      if (!this.selectedStudentInfo) return
+    toggleSelectSubject(item) {
+      const index = this.selectedSubjectIds.indexOf(item.id)
+      if (index > -1) {
+        this.selectedSubjectIds.splice(index, 1)
+      } else {
+        this.selectedSubjectIds.push(item.id)
+      }
+    },
 
-      // Dùng trực tiếp mảng selectedSubjects đã chọn thủ công
-      if (!this.selectedSubjects || this.selectedSubjects.length === 0) {
+    toggleSelectAll(value) {
+      if (value) {
+        this.selectedSubjectIds = this.subjectList.map((s) => s.id)
+      } else {
+        this.selectedSubjectIds = []
+      }
+    },
+
+    async saveStudent() {
+      if (!this.selectedStudentInfo) {
+        this.alertType = 'warning'
+        this.alertMessage = 'Vui lòng chọn thông tin sinh viên'
+        return
+      }
+
+      if (!this.selectedSubjectIds || this.selectedSubjectIds.length === 0) {
         this.alertType = 'warning'
         this.alertMessage = 'Vui lòng chọn học phần'
         return
@@ -684,27 +715,42 @@ export default {
       this.alertMessage = ''
 
       try {
-        for (const sub of this.selectedSubjects) {
-          const targetTermId = sub.realTermId || sub.term?.id || sub.id
+        const selectedItems = this.subjectList.filter((s) =>
+          this.selectedSubjectIds.includes(s.id)
+        )
+
+        for (const sub of selectedItems) {
+          const studentId = this.selectedStudentInfo.id
+          const retakeSessionId = this.form.sessionId
+          const semesterId = this.form.termId
+          const termId = sub.realTermId || sub.term?.id || sub.id
+          
+          // Lấy đúng ID kết quả đã bóc tách
+          const targetResultId = sub.resultRecordId || sub.id
 
           const payload = {
-            studentId: this.selectedStudentInfo.id,
-            retakeSessionId: this.form.sessionId,
-            semesterId: this.form.termId,
-            termId: targetTermId,
+            studentId,
+            retakeSessionId,
+            semesterId,
+            termId,
+            // Thử truyền result dưới dạng ID số/chuỗi trực tiếp vì backend báo "Result is required"
+            result: targetResultId,
+            resultId: targetResultId,
             classType: this.form.classType || '',
             classCode: this.form.classCode || '',
             note: this.form.note || '',
             type: this.form.type || 'Học lại',
-            bonusScore: this.form.bonusScore ? Number(this.form.bonusScore) : null,
+            bonusScore: this.form.bonusScore !== '' && this.form.bonusScore !== null ? Number(this.form.bonusScore) : null,
             charScore: this.form.charScore || '',
-            attendanceScore: this.form.attendanceScore ? Number(this.form.attendanceScore) : null,
-            processScore: this.form.processScore ? Number(this.form.processScore) : null,
-            practiceScore: this.form.practiceScore ? Number(this.form.practiceScore) : null,
-            practiceScore2: this.form.practiceScore2 ? Number(this.form.practiceScore2) : null,
-            weight: this.form.weight ? Number(this.form.weight) : null,
+            attendanceScore: this.form.attendanceScore !== '' && this.form.attendanceScore !== null ? Number(this.form.attendanceScore) : null,
+            processScore: this.form.processScore !== '' && this.form.processScore !== null ? Number(this.form.processScore) : null,
+            practiceScore: this.form.practiceScore !== '' && this.form.practiceScore !== null ? Number(this.form.practiceScore) : null,
+            practiceScore2: this.form.practiceScore2 !== '' && this.form.practiceScore2 !== null ? Number(this.form.practiceScore2) : null,
+            weight: this.form.weight !== '' && this.form.weight !== null ? Number(this.form.weight) : null,
             teacherId: this.form.teacherId || null,
           }
+
+          console.log('Payload gửi lên:', payload)
 
           await this.$axios.$post('/api/retakeCourseAuthList', payload, {
             params: { channel: 'CMS' },
@@ -714,12 +760,18 @@ export default {
         this.$emit('success')
         this.closeModal()
       } catch (error) {
-        console.error('Lỗi khi thêm sinh viên học lại:', error)
+        console.error('Lỗi khi thêm sinh viên học lại:', error.response?.data || error)
         this.alertType = 'error'
-        this.alertMessage = 'Lỗi hệ thống khi lưu dữ liệu'
+        this.alertMessage =
+          error.response?.data?.message ||
+          error.response?.data?.error ||
+          'Lỗi hệ thống khi lưu dữ liệu'
       }
     },
 
+    closeModal() {
+      this.internalValue = false
+    },
 
     resetForm() {
       this.step = 1
@@ -727,7 +779,7 @@ export default {
       this.selectedStudentInfo = null
       this.studentSearchQuery = ''
       this.subjectList = []
-      this.selectedSubjects = []
+      this.selectedSubjectIds = []
       this.alertMessage = ''
       this.form = {
         sessionId: '',
@@ -744,20 +796,6 @@ export default {
         practiceScore2: '',
         weight: '',
         teacherId: '',
-      }
-    },
-    isItemSelected(item) {
-      return this.selectedSubjects.some((s) => (s.id || s.realTermId) === (item.id || item.realTermId))
-    },
-
-    toggleSelectItem(item) {
-      const index = this.selectedSubjects.findIndex(
-        (s) => (s.id || s.realTermId) === (item.id || item.realTermId)
-      )
-      if (index > -1) {
-        this.selectedSubjects.splice(index, 1)
-      } else {
-        this.selectedSubjects.push(item)
       }
     },
   },

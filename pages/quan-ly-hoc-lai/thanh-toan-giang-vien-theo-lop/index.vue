@@ -349,7 +349,7 @@
 <script>
 import BaseTable from '~/components/Base/BaseTable.vue'
 import { MOCK_DATA_THANH_TOAN_GIANG_VIEN_LOP } from '~/consts/thanhtoangvl.js'
-import feeTecherServices from '~/services/feeTecherServices'
+import feeTeacherServices from '~/services/feeTeacherServics' 
 
 // HÀM HELPER CHUYỂN ĐỔI DỮ LIỆU
 export const formatTableData = (item, index) => {
@@ -588,25 +588,25 @@ export default {
     },
 
     async fetchData() {
-      this.loading = true
-      try {
-        if (feeTecherServices && feeTecherServices.getList) {
-          const res = await feeTecherServices.getList({
-            page: this.page,
-            size: this.pageSize,
-            ...this.filters,
-          })
-          if (res?.data) {
-            const raw = res.data.content || res.data
-            this.tableData = getMappedTableData(raw)
-          }
+    this.loading = true
+    try {
+        if (feeTeacherServices && feeTeacherServices.getList) {
+            const res = await feeTeacherServices.getList({
+                page: this.page,
+                size: this.pageSize,
+                ...this.filters,
+            })
+            if (res.success || res.data) {
+                const raw = res.data.content || res.data
+                this.tableData = getMappedTableData(raw)
+            }
         }
-      } catch (err) {
+    } catch (err) {
         console.error('Lỗi khi tải danh sách thanh toán:', err)
-      } finally {
+    } finally {
         this.loading = false
-      }
-    },
+    }
+},
 
     resetFilters() {
       this.filters = {

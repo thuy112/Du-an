@@ -607,7 +607,7 @@
     <!-- Modal Thêm Sinh Viên (Dành cho icon dấu cộng +) -->
     <DetailMustRetakeStudentModal
       v-model="showAddModal"
-      @success="handleAddSuccess"
+      @success="onAddStudentSuccess"
     />
 
     
@@ -1048,7 +1048,13 @@ export default {
         this.loadStudents()
       }
       this.addToast('Thêm thành công', 3000)
-    }
+    },
+    onAddStudentSuccess(newItems) {
+    // Gọi hàm xử lý thêm hiệu ứng / toast cũ của bạn
+    this.handleAddSuccess(newItems)
+    // Gọi thêm hàm tải lại danh sách từ server
+    this.loadStudents()
+  },
 }
 </script>
 

@@ -7,7 +7,7 @@
         <span class="red--text">({{ filteredList.length }})</span>
       </div>
       <div class="d-flex align-center gap-2">
-        <!-- Bộ lọc loại lớp -->
+        <!-- Bộ lọc loại lớp (Không gọi API khi thay đổi, chỉ lưu state) -->
         <v-select
           v-model="filters.classType"
           :items="classTypeList"
@@ -17,28 +17,28 @@
           clearable
           hide-details
           style="width: 150px"
-          @change="handleSearch"
         ></v-select>
 
-        <!-- Bộ lọc hình thức đào tạo -->
+        <!-- Bộ lọc hình thức đào tạo (Không gọi API khi thay đổi, chỉ lưu state) -->
         <v-select
           v-model="filters.trainingType"
           :items="trainingTypeList"
+          item-text="text"
+          item-value="value"
           label="Hình thức đào tạo"
           outlined
           dense
           clearable
           hide-details
           style="width: 170px"
-          @change="handleSearch"
         ></v-select>
 
-        <!-- Nút Refresh -->
-        <v-btn icon small class="border-btn" @click="fetchData">
-          <v-icon small color="#A62229">mdi-refresh</v-icon>
+        <!-- Nút Refresh: Reset bộ lọc và tải lại ban đầu -->
+        <v-btn icon small @click="resetAndRefresh">
+          <v-icon size="24" color="#A62229">mdi-refresh</v-icon>
         </v-btn>
 
-        <!-- Nút Tìm kiếm -->
+        <!-- Nút Tìm kiếm: Bấm vào mới gọi API tìm kiếm -->
         <v-btn
           color="#A62229"
           dark
@@ -47,7 +47,7 @@
           elevation="0"
           @click="handleSearch"
         >
-          <v-icon small>mdi-magnify</v-icon>
+          <v-icon size="24">mdi-magnify</v-icon>
         </v-btn>
 
         <!-- Nút Thêm mới -->
@@ -59,7 +59,7 @@
           elevation="0"
           @click="openAddModal"
         >
-          <v-icon small>mdi-plus</v-icon>
+          <v-icon size="24">mdi-plus</v-icon>
         </v-btn>
       </div>
     </div>
@@ -106,7 +106,7 @@
         </template>
       </v-data-table>
 
-      <!-- Phân trang chuẩn giao diện mẫu -->
+      <!-- Phân trang -->
       <div class="d-flex align-center justify-end pa-3 border-t bg-white gap-3">
         <div class="d-flex align-center gap-1 text-caption">
           <span class="grey--text">Bản ghi</span>
@@ -116,7 +116,7 @@
             dense
             outlined
             hide-details
-            style="width: 70px"
+            style="width: 83px"
             @change="handleSearch"
           ></v-select>
         </div>
@@ -193,15 +193,22 @@
               class="mb-3"
             ></v-select>
 
-            <v-select
-              v-model="formModel.trainingType"
-              :items="trainingTypeList"
-              label="Hình thức đào tạo *"
-              outlined
-              dense
-              :rules="[(v) => !!v || 'Vui lòng chọn hình thức đào tạo']"
-              class="mb-3"
-            ></v-select>
+            <!-- Ô lọc Hình thức đào tạo -->
+            <v-col cols="12" sm="3" md="2">
+              <v-select
+                v-model="filters.trainingType"
+                :items="trainingTypeOptions"
+                item-text="text"
+                item-value="value"
+                label="Hình thức đào tạo"
+                outlined
+                dense
+                clearable
+                hide-details
+                class="text-caption"
+                @change="fetchRegisteredStudents"
+              ></v-select>
+            </v-col>
 
             <v-text-field
               v-model="formattedPrice"
@@ -248,6 +255,8 @@
 </template>
 
 <script>
+import feeTeacherServices from '~/services/feeTeacherServics.js'
+
 export default {
   name: 'DinhMucPhiPage',
   layout: 'default',
@@ -263,7 +272,7 @@ export default {
         search: '',
       },
       classTypeList: ['Đồ án môn học', 'Lớp ghép', 'Lớp mở'],
-      trainingTypeList: ['Chính quy', 'Vừa làm vừa học', 'Ngắn hạn'],
+      trainingTypeList: [],
 
       rawList: [],
       filteredList: [],
@@ -301,8 +310,8 @@ export default {
       formModel: {
         id: null,
         classType: null,
-        trainingType: null,
-        price: null,
+        trainingMethodId: null,
+        fee: null,
       },
     }
   },
@@ -321,9 +330,29 @@ export default {
     this.saveToasts.forEach((toast) => clearTimeout(toast.timer))
   },
   mounted() {
-    this.fetchData()
+    this.initPage()
   },
   methods: {
+    async initPage() {
+      await Promise.all([
+        this.fetchTrainingMethods(),
+        this.fetchData(),
+      ])
+    },
+
+    async fetchTrainingMethods() {
+      try {
+        const res = await feeTeacherServices.getTrainingMethods({ status: 'ACTIVE', channel: 'CMS' })
+        const list = res?.data?.objects || res?.data || []
+        this.trainingTypeList = list.map((item) => ({
+          text: item.name,
+          value: item.id,
+        }))
+      } catch (error) {
+        console.error('Lỗi khi tải hình thức đào tạo:', error)
+      }
+    },
+
     async fetchData() {
       this.loading = true
       try {
@@ -331,20 +360,20 @@ export default {
           pageIndex: this.page,
           pageSize: this.pageSize,
           search: this.filters.search || '',
+          classType: this.filters.classType ? this.mapClassTypeToCode(this.filters.classType) : undefined,
           channel: 'CMS',
         }
-        const res = await this.$axios.$get('/api/feeTeacher', { params })
-        const responseWrapper = res?.data || {}
+        const res = await feeTeacherServices.getFeeTeachers(params)
+        const responseWrapper = res?.data || res
         const items = Array.isArray(responseWrapper.data)
           ? responseWrapper.data
+          : Array.isArray(responseWrapper?.objects)
+          ? responseWrapper.objects
           : Array.isArray(responseWrapper)
           ? responseWrapper
-          : Array.isArray(res)
-          ? res
           : []
 
         this.rawList = items.map((item, index) => {
-          // 1. Ánh xạ loại lớp từ code sang tiếng Việt
           const rawClass = (item.classType || '').trim()
           let mappedClassType = rawClass
           if (rawClass === 'PROJECT_BASED_CLASS') {
@@ -355,7 +384,6 @@ export default {
             mappedClassType = 'Lớp mở'
           }
 
-          // 2. Lấy tên hình thức đào tạo trực tiếp từ object trainingMethod.name và .trim() để sạch ký tự \t
           const trainingMethodObj = item.trainingMethod || {}
           const mappedTrainingType = (
             trainingMethodObj.name ||
@@ -367,7 +395,6 @@ export default {
             id: item.id || index + 1,
             classType: mappedClassType,
             trainingType: mappedTrainingType,
-            // Lấy chuẩn giá tiền từ trường "fee"
             price: Number(
               item.fee !== undefined && item.fee !== null ? item.fee : 0
             ),
@@ -383,18 +410,25 @@ export default {
       }
     },
 
+    mapClassTypeToCode(typeName) {
+      if (typeName === 'Đồ án môn học') return 'PROJECT_BASED_CLASS'
+      if (typeName === 'Lớp ghép') return 'COMBINE_CLASS'
+      if (typeName === 'Lớp mở') return 'OPEN_CLASS'
+      return typeName
+    },
+
     onPriceInput(val) {
       if (!val) {
-        this.formModel.price = null
+        this.formModel.fee = null
         this.formattedPrice = ''
         return
       }
       const cleanNumber = String(val).replace(/\D/g, '')
       if (cleanNumber) {
-        this.formModel.price = parseInt(cleanNumber, 10)
-        this.formattedPrice = this.formModel.price.toLocaleString('en-US')
+        this.formModel.fee = parseInt(cleanNumber, 10)
+        this.formattedPrice = this.formModel.fee.toLocaleString('en-US')
       } else {
-        this.formModel.price = null
+        this.formModel.fee = null
         this.formattedPrice = ''
       }
     },
@@ -404,8 +438,8 @@ export default {
       this.formModel = {
         id: null,
         classType: null,
-        trainingType: null,
-        price: null,
+        trainingMethodId: null,
+        fee: null,
       }
       this.formattedPrice = ''
       this.dialogVisible = true
@@ -418,25 +452,46 @@ export default {
       this.dialogVisible = false
     },
 
+    async fetchRegisteredStudents() {
+      try {
+        this.loading = true
+        const params = {
+          pageIndex: this.page,
+          pageSize: this.itemsPerPage,
+          channel: 'CMS',
+          trainingType: this.filters.trainingType || undefined, // Thêm lọc hình thức đào tạo nếu có
+          search: this.filters.search || undefined,
+        }
+
+        // Gọi qua service thay vì gọi trực tiếp this.$axios.$get
+        const res = await feeTeacherServices.getRegisteredStudents(this.$axios, params)
+        
+        this.items = res?.data?.items || res?.items || []
+        this.totalItems = res?.data?.total || res?.total || 0
+      } catch (err) {
+        console.error('Lỗi tải danh sách sinh viên:', err)
+        this.items = []
+      } finally {
+        this.loading = false
+      }
+    },
+
     async saveData() {
       if (this.$refs.form && !this.$refs.form.validate()) return
 
       this.submitting = true
       try {
         const payload = {
-          classType: this.formModel.classType,
-          trainingType: this.formModel.trainingType,
-          fee: this.formModel.price,
+          classType: this.mapClassTypeToCode(this.formModel.classType),
+          trainingMethodId: this.formModel.trainingMethodId,
+          fee: this.formModel.fee,
           channel: 'CMS',
         }
 
         if (this.isEdit) {
-          await this.$axios.$put(
-            `/api/feeTeacher/${this.formModel.id}`,
-            payload
-          )
+          await feeTeacherServices.updateFeeTeacher(this.formModel.id, payload)
         } else {
-          await this.$axios.$post('/api/feeTeacher', payload)
+          await feeTeacherServices.createFeeTeacher(payload)
         }
 
         this.showSaveToast(
@@ -483,19 +538,32 @@ export default {
       })
     },
 
+    // Bấm nút Tìm kiếm (kính lúp)
     handleSearch() {
       this.page = 1
       this.pageInput = '1'
-      this.applyFilter()
+      this.fetchData()
+    },
+
+    // Nút Load lại / Reset: Xóa bộ lọc và tải lại từ đầu
+    resetAndRefresh() {
+      this.filters.classType = null
+      this.filters.trainingType = null
+      this.filters.search = ''
+      this.page = 1
+      this.pageInput = '1'
+      this.fetchData()
     },
 
     handleGo() {
       const p = parseInt(this.pageInput, 10)
       if (p >= 1 && p <= this.totalPages) {
         this.page = p
+        this.fetchData()
       } else {
         this.page = 1
         this.pageInput = '1'
+        this.fetchData()
       }
     },
 
@@ -506,7 +574,13 @@ export default {
 
     editItem(item) {
       this.isEdit = true
-      this.formModel = { ...item }
+      const orig = item.original || item
+      this.formModel = {
+        id: orig.id || item.id,
+        classType: item.classType,
+        trainingMethodId: orig.trainingMethod?.id || orig.trainingMethodId || null,
+        fee: item.price,
+      }
       this.formattedPrice = item.price ? item.price.toLocaleString('en-US') : ''
       this.dialogVisible = true
       this.$nextTick(() => {
@@ -518,6 +592,7 @@ export default {
       if (this.page > 1) {
         this.page--
         this.pageInput = String(this.page)
+        this.fetchData()
       }
     },
 
@@ -525,6 +600,7 @@ export default {
       if (this.page < this.totalPages) {
         this.page++
         this.pageInput = String(this.page)
+        this.fetchData()
       }
     },
   },
@@ -534,12 +610,6 @@ export default {
 <style scoped>
 .bg-red-bk {
   background-color: #a62229 !important;
-}
-.border {
-  border: 1px solid #e0e0e0 !important;
-}
-.border-btn {
-  border: 1px solid #bdbdbd !important;
 }
 .toast-container {
   position: fixed;
