@@ -768,7 +768,9 @@ export default {
     },
     visiblePages() {
       const pages = []
-      for (let i = 1; i <= this.totalPages; i++) pages.push(i)
+      for (let i = 1; i <= this.totalPages; i++) {
+        pages.push(i)
+      }
       return pages
     },
   },
@@ -801,16 +803,18 @@ export default {
         const res = await teacherServices.getTeachers({
           pageIndex: this.page,
           pageSize: this.itemsPerPage,
-          search: this.appliedFilters.search || '',
-          status: this.appliedFilters.status || '',
-          gender: this.appliedFilters.gender || '',
-          lecturerStatus: this.appliedFilters.teacherType || '',
+          search: this.appliedFilters.search || undefined,
+          // Đảm bảo truyền đúng tên trường theo API backend yêu cầu
+          gender: this.appliedFilters.gender === 'Nam' ? 'MALE' : (this.appliedFilters.gender === 'Nữ' ? 'FEMALE' : undefined),
+          lecturerStatus: this.appliedFilters.teacherType === 'Đương chức' ? 'FULL_TIME' : (this.appliedFilters.teacherType === 'Mời giảng' ? 'VISITING' : undefined),
+          status: this.appliedFilters.status === 'Hoạt động' ? 'ACTIVE' : (this.appliedFilters.status === 'Nghỉ hưu' ? 'INACTIVE' : undefined),
+          channel: 'CMS',
         })
 
         const rawData = res?.data?.data || res?.data?.items || res?.data || []
         let parsedList = parseTeacherData(rawData)
 
-        // Đọc và khôi phục trạng thái đã thay đổi từ localStorage để không bị mất khi F5
+        // Khôi phục trạng thái đã thay đổi từ localStorage để không bị mất khi F5
         const localData = localStorage.getItem('local_teachers_changes')
         if (localData) {
           const parsedLocal = JSON.parse(localData)
@@ -828,16 +832,6 @@ export default {
         }
 
         this.teachers = parsedList
-
-        if (!this.departmentOptions.length) {
-          this.departmentOptions = [
-            ...new Set(
-              this.teachers
-                .map((t) => t.department)
-                .filter((v) => v && v !== '---')
-            ),
-          ].sort()
-        }
       } catch (err) {
         console.error('Lỗi khi gọi API danh sách giảng viên:', err)
         this.teachers = []
@@ -893,6 +887,10 @@ export default {
     onItemsPerPageChange() {
       this.page = 1
       this.pageInput = 1
+      // Kiểm tra nếu trang hiện tại vượt quá tổng số trang mới thì reset về 1
+      if (this.page > this.totalPages) {
+        this.page = 1
+      }
       this.fetchTeachers()
     },
     viewDetail(item) {
@@ -923,7 +921,7 @@ export default {
         teacher.hasUpdate = true
         teacher.lastUpdated = this.getCurrentDateTime()
 
-        // 2. Lưu vết vào LocalStorage để duy trì trạng thái khi F5
+        // 2. Lưu vết vào LocalStorage
         const targetId = String(teacher.id)
         const localData = localStorage.getItem('local_teachers_changes')
         const parsedLocal = localData ? JSON.parse(localData) : []
@@ -955,18 +953,19 @@ export default {
 
         this.confirmStatusDialog = false
 
-        // 3. Gửi đầy đủ thông tin lên API để tránh bị báo lỗi thiếu trường bắt buộc
+        // 3. Gửi đầy đủ thông tin lên API
         try {
           await teacherServices.updateTeacherStatus(teacher.id, {
             id: teacher.id,
-            code: teacher.code,               // Mã giảng viên không bị trống
-            fullName: teacher.fullName,       // Họ tên đầy đủ
+            code: teacher.code,
+            fullName: teacher.fullName,
             phone: teacher.phone !== '---' ? teacher.phone : '',
             email: teacher.email !== '---' ? teacher.email : '',
             status: newStatus === 'Hoạt động' ? 'ACTIVE' : 'INACTIVE',
+            lecturerStatus: teacher.teacherType === 'Đương chức' ? 'FULL_TIME' : 'VISITING',
             channel: 'CMS',
           })
-          this.showToast('Đã chuyển trạng thái sang thành công', '#4caf50')
+          this.showToast('Đã chuyển trạng thái thành công', '#4caf50')
         } catch (err) {
           console.warn('Lỗi gọi API cập nhật trạng thái, đã lưu vết cục bộ:', err)
           this.showToast('Đã lưu thay đổi thành công', '#4caf50')

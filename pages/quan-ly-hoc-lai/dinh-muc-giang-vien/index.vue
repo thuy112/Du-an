@@ -7,7 +7,7 @@
         <span class="red--text">({{ filteredList.length }})</span>
       </div>
       <div class="d-flex align-center gap-2">
-        <!-- Bộ lọc loại lớp (Không gọi API khi thay đổi, chỉ lưu state) -->
+        <!-- Bộ lọc loại lớp -->
         <v-select
           v-model="filters.classType"
           :items="classTypeList"
@@ -19,12 +19,12 @@
           style="width: 150px"
         ></v-select>
 
-        <!-- Bộ lọc hình thức đào tạo (Không gọi API khi thay đổi, chỉ lưu state) -->
+        <!-- Bộ lọc hình thức đào tạo -->
         <v-select
           v-model="filters.trainingType"
           :items="trainingTypeList"
           item-text="text"
-          item-value="value"
+          item-value="text"
           label="Hình thức đào tạo"
           outlined
           dense
@@ -33,12 +33,12 @@
           style="width: 170px"
         ></v-select>
 
-        <!-- Nút Refresh: Reset bộ lọc và tải lại ban đầu -->
+        <!-- Nút Refresh -->
         <v-btn icon small @click="resetAndRefresh">
           <v-icon size="24" color="#A62229">mdi-refresh</v-icon>
         </v-btn>
 
-        <!-- Nút Tìm kiếm: Bấm vào mới gọi API tìm kiếm -->
+        <!-- Nút Tìm kiếm -->
         <v-btn
           color="#A62229"
           dark
@@ -95,6 +95,7 @@
         </template>
 
         <template #[`item.actions`]="{ item }">
+          <!-- Nút sửa (Cây bút) mở popup cập nhật đúng bản ghi -->
           <v-btn
             icon
             x-small
@@ -183,33 +184,33 @@
 
         <v-card-text class="pa-5">
           <v-form ref="form" v-model="isFormValid">
+            <!-- Loại lớp: Khóa khi sửa -->
             <v-select
               v-model="formModel.classType"
               :items="classTypeList"
               label="Loại lớp *"
               outlined
               dense
+              :disabled="isEdit"
               :rules="[(v) => !!v || 'Vui lòng chọn loại lớp']"
               class="mb-3"
             ></v-select>
 
-            <!-- Ô lọc Hình thức đào tạo -->
-            <v-col cols="12" sm="3" md="2">
-              <v-select
-                v-model="filters.trainingType"
-                :items="trainingTypeOptions"
-                item-text="text"
-                item-value="value"
-                label="Hình thức đào tạo"
-                outlined
-                dense
-                clearable
-                hide-details
-                class="text-caption"
-                @change="fetchRegisteredStudents"
-              ></v-select>
-            </v-col>
+            <!-- Hình thức đào tạo: Khóa khi sửa -->
+            <v-select
+              v-model="formModel.trainingMethodId"
+              :items="trainingTypeList"
+              item-text="text"
+              item-value="value"
+              label="Hình thức đào tạo *"
+              outlined
+              dense
+              :disabled="isEdit"
+              :rules="[(v) => !!v || 'Vui lòng chọn hình thức đào tạo']"
+              class="mb-3"
+            ></v-select>
 
+            <!-- Giá tiền -->
             <v-text-field
               v-model="formattedPrice"
               label="Giá tiền (VNĐ) *"
@@ -238,19 +239,22 @@
       </v-card>
     </v-dialog>
 
-    <!-- Toasts thông báo -->
-    <div class="toast-container">
-      <v-alert
-        v-for="toast in saveToasts"
-        :key="toast.id"
-        :type="toast.isError ? 'error' : 'success'"
-        dense
-        text
-        class="mb-2 shadow-sm"
-      >
-        {{ toast.message }}
-      </v-alert>
-    </div>
+    <!-- Snackbar thông báo ẩn/hiện chuẩn xác, không bị lỗi nền đen -->
+    <v-snackbar
+      v-model="snackbar.show"
+      :color="snackbar.isError ? 'error' : 'success'"
+      top
+      right
+      timeout="3000"
+      elevation="4"
+    >
+      <div class="d-flex align-center justify-space-between w-100">
+        <span>{{ snackbar.message }}</span>
+        <v-btn text icon x-small dark @click="snackbar.show = false">
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
+      </div>
+    </v-snackbar>
   </v-container>
 </template>
 
@@ -304,14 +308,19 @@ export default {
       dialogVisible: false,
       isEdit: false,
       isFormValid: true,
-      saveToasts: [],
-      saveToastCounter: 0,
       formattedPrice: '',
+      
       formModel: {
         id: null,
         classType: null,
         trainingMethodId: null,
         fee: null,
+      },
+
+      snackbar: {
+        show: false,
+        message: '',
+        isError: false,
       },
     }
   },
@@ -325,9 +334,6 @@ export default {
       const end = start + this.pageSize
       return this.filteredList.slice(start, end)
     },
-  },
-  beforeDestroy() {
-    this.saveToasts.forEach((toast) => clearTimeout(toast.timer))
   },
   mounted() {
     this.initPage()
@@ -395,10 +401,11 @@ export default {
             id: item.id || index + 1,
             classType: mappedClassType,
             trainingType: mappedTrainingType,
+            // Đảm bảo lấy chuẩn xác trường fee từ API gán vào price để hiển thị lên bảng
             price: Number(
               item.fee !== undefined && item.fee !== null ? item.fee : 0
             ),
-            original: item,
+            original: item, // Lưu lại object gốc để dùng cho hàm editItem
           }
         })
       } catch (error) {
@@ -423,9 +430,10 @@ export default {
         this.formattedPrice = ''
         return
       }
+      // Lọc bỏ mọi ký tự không phải số
       const cleanNumber = String(val).replace(/\D/g, '')
       if (cleanNumber) {
-        this.formModel.fee = parseInt(cleanNumber, 10)
+        this.formModel.fee = Number(cleanNumber) // Gán trực tiếp giá trị số nguyên vào fee
         this.formattedPrice = this.formModel.fee.toLocaleString('en-US')
       } else {
         this.formModel.fee = null
@@ -452,79 +460,54 @@ export default {
       this.dialogVisible = false
     },
 
-    async fetchRegisteredStudents() {
-      try {
-        this.loading = true
-        const params = {
-          pageIndex: this.page,
-          pageSize: this.itemsPerPage,
-          channel: 'CMS',
-          trainingType: this.filters.trainingType || undefined, // Thêm lọc hình thức đào tạo nếu có
-          search: this.filters.search || undefined,
-        }
-
-        // Gọi qua service thay vì gọi trực tiếp this.$axios.$get
-        const res = await feeTeacherServices.getRegisteredStudents(this.$axios, params)
-        
-        this.items = res?.data?.items || res?.items || []
-        this.totalItems = res?.data?.total || res?.total || 0
-      } catch (err) {
-        console.error('Lỗi tải danh sách sinh viên:', err)
-        this.items = []
-      } finally {
-        this.loading = false
-      }
-    },
-
     async saveData() {
       if (this.$refs.form && !this.$refs.form.validate()) return
 
       this.submitting = true
       try {
-        const payload = {
-          classType: this.mapClassTypeToCode(this.formModel.classType),
-          trainingMethodId: this.formModel.trainingMethodId,
-          fee: this.formModel.fee,
-          channel: 'CMS',
-        }
-
         if (this.isEdit) {
-          await feeTeacherServices.updateFeeTeacher(this.formModel.id, payload)
+          // Payload cập nhật theo đúng chuẩn dự án
+          const updatePayload = {
+            id: this.formModel.id,
+            classType: this.mapClassTypeToCode(this.formModel.classType),
+            trainingMethodId: this.formModel.trainingMethodId,
+            fee: Number(this.formModel.fee), // Đảm bảo ép kiểu số nguyên
+            note: this.formModel.note,
+            isDelete: 0,
+            channel: 'CMS',
+          }
+
+          await feeTeacherServices.updateFeeTeacher(this.formModel.id, updatePayload)
+          this.showSnackbar('Cập nhật thành công')
         } else {
-          await feeTeacherServices.createFeeTeacher(payload)
+          // Payload thêm mới giữ nguyên
+          const createPayload = {
+            classType: this.mapClassTypeToCode(this.formModel.classType),
+            trainingMethodId: this.formModel.trainingMethodId,
+            fee: Number(this.formModel.fee),
+            channel: 'CMS',
+          }
+
+          await feeTeacherServices.createFeeTeacher(createPayload)
+          this.showSnackbar('Thêm mới định mức thành công')
         }
 
-        this.showSaveToast(
-          this.isEdit ? 'Cập nhật thành công' : 'Thêm mới định mức thành công'
-        )
         this.closeDialog()
         this.fetchData()
       } catch (error) {
         console.error('Lỗi khi lưu dữ liệu:', error)
-        this.showSaveToast('Lưu định mức thất bại', true)
+        this.showSnackbar('Lưu định mức thất bại', true)
       } finally {
         this.submitting = false
       }
     },
 
-    showSaveToast(message, isError = false) {
-      const toast = {
-        id: ++this.saveToastCounter,
+    showSnackbar(message, isError = false) {
+      this.snackbar = {
+        show: true,
         message,
         isError,
-        duration: 4000,
-        timer: null,
       }
-      this.saveToasts.unshift(toast)
-      toast.timer = setTimeout(() => {
-        this.removeSaveToast(toast.id)
-      }, toast.duration)
-    },
-
-    removeSaveToast(id) {
-      const toast = this.saveToasts.find((item) => item.id === id)
-      if (toast) clearTimeout(toast.timer)
-      this.saveToasts = this.saveToasts.filter((item) => item.id !== id)
     },
 
     applyFilter() {
@@ -538,14 +521,12 @@ export default {
       })
     },
 
-    // Bấm nút Tìm kiếm (kính lúp)
     handleSearch() {
       this.page = 1
       this.pageInput = '1'
       this.fetchData()
     },
 
-    // Nút Load lại / Reset: Xóa bộ lọc và tải lại từ đầu
     resetAndRefresh() {
       this.filters.classType = null
       this.filters.trainingType = null
@@ -575,14 +556,23 @@ export default {
     editItem(item) {
       this.isEdit = true
       const orig = item.original || item
+      
+      // Lấy trực tiếp giá từ thuộc tính price trên hàng hoặc fee trong dữ liệu gốc
+      const currentPrice = orig.fee !== undefined ? orig.fee : item.price
+
       this.formModel = {
         id: orig.id || item.id,
         classType: item.classType,
         trainingMethodId: orig.trainingMethod?.id || orig.trainingMethodId || null,
-        fee: item.price,
+        fee: currentPrice,
+        note: orig.note || null,
+        isDelete: 0,
       }
-      this.formattedPrice = item.price ? item.price.toLocaleString('en-US') : ''
+      
+      // Đổ giá trị cũ vào ô input để người dùng thấy và sửa
+      this.formattedPrice = currentPrice ? Number(currentPrice).toLocaleString('en-US') : ''
       this.dialogVisible = true
+      
       this.$nextTick(() => {
         if (this.$refs.form) this.$refs.form.resetValidation()
       })
@@ -610,13 +600,6 @@ export default {
 <style scoped>
 .bg-red-bk {
   background-color: #a62229 !important;
-}
-.toast-container {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 9999;
-  max-width: 300px;
 }
 .gap-1 {
   gap: 4px;

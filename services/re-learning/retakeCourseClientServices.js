@@ -1,24 +1,20 @@
-// Phục vụ các nghiệp vụ tra cứu, đăng ký phía client/sinh viên.
-import Api from '~/api/Api'
+import Api from '~/api/Api.js'
 
-export default {
-  getAvailableCourses(params) {
-    // Danh sách lớp học lại có thể đăng ký của sinh viên.
-    return Api.get('/api/v1/client/retake-courses', { params })
-  },
+class RetakeCourseClientsServices {
+    // Lấy danh sách học phần / học lại theo phân trang hoặc bộ lọc
+    async getList(params) {
+        return await Api.get('/retakeCourse', params);
+    }
 
-  registerCourse(data) {
-    // Đăng ký học lại của sinh viên.
-    return Api.post('/api/v1/client/retake-courses/register', data)
-  },
+    // Lấy chi tiết thông tin học lại theo id
+    async getDetail(id) {
+        return await Api.get(`/retakeCourse/${id}`);
+    }
 
-  cancelRegistration(id) {
-    // Hủy đăng ký học lại của sinh viên.
-    return Api.delete(`/api/v1/client/retake-courses/register/${id}`)
-  },
-
-  getStudentHistory(params) {
-    // Lịch sử đăng ký học lại của sinh viên.
-    return Api.get('/api/v1/client/retake-courses/history', { params })
-  },
+    // Lấy danh sách học phần nợ của sinh viên cần đăng ký học lại
+    async getListForRegister(params) {
+        return await Api.get('/registerRetakeCourse/listForRegister', params);
+    }
 }
+
+export default new RetakeCourseClientsServices();

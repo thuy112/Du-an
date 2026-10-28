@@ -1,33 +1,89 @@
 import Api from '~/api/Api.js'
 
 export default {
-  // API chính để hiển thị danh sách giảng viên lên giao diện
   getTeachers(params) {
     return Api.get('/api/teacher', params)
   },
 
-  // API cập nhật trạng thái giảng viên (Giữ lại duy nhất 1 hàm này)
   updateTeacherStatus(id, data) {
     return Api.put(`/api/teacher/${id}`, data)
   },
 
-  // API phụ lấy danh sách đơn vị/khoa trường
   getWorkUnits(params) {
     return Api.get('/api/workUnit/list', params)
   },
 
-  // API kiểm tra quyền trang
   getPageRole(params) {
     return Api.get('/api/auth/getPageRole', params)
   },
 
-  // API lấy thông tin người dùng đang đăng nhập
   getUserInfo(params) {
     return Api.get('/api/user/info', params)
   },
 
-  // Bổ sung hàm gán/cập nhật giảng viên cho lớp học lại
   assignTeacher(classId, data) {
     return Api.put(`/api/retakeSession/${classId}`, data)
+  },
+
+  getList(params) {
+    return Api.get('/api/teacher', params)
+  },
+
+  addNew(params) {
+    return Api.post('/api/teacher', params)
+  },
+
+  getAll(status) {
+    return Api.get('/api/teacher/list', status)
+  },
+
+  getDetail(id) {
+    return Api.get(`/api/teacher/${id}`)
+  },
+
+  update(params) {
+    return Api.put(`/api/teacher/${params.id}`, params)
+  },
+
+  changeStatus(params) {
+    return Api.put(`/api/teacher/changeStatus/${params.id}`, params)
+  },
+
+  delete(id) {
+    return Api.delete(`/api/teacher/${id}`)
+  },
+
+  deleteMulti(ids) {
+    return Api.post('/api/teacher/deleteTeachers', ids)
+  },
+
+  confirmImport(teachers) {
+    return Api.post('/api/teacher/importExcel', teachers)
+  },
+
+  checkImport(file) {
+    const form = new FormData()
+    form.append('file', file)
+    // Kiểm tra nếu Api hỗ trợ postMultipart, ngược lại dùng Api.post
+    if (typeof Api.postMultipart === 'function') {
+      return Api.postMultipart('/api/teacher/checkImport', form)
+    }
+    return Api.post('/api/teacher/checkImport', form)
+  },
+
+  getTemplate() {
+    return Api.get('/api/teacher/templateImport')
+  },
+
+  getTeacherChangeHistories(teacherId) {
+    return Api.get(`/api/teacher/teacherChangeHistories/${teacherId}`)
+  },
+
+  export(params) {
+    return Api.get('/api/teacher/exportExcel', params)
+  },
+
+  getListTeacherByClass(ids) {
+    return Api.get(`/api/teacher/rc/listByClass?ids=${ids}`)
   },
 }

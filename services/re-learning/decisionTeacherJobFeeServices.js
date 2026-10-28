@@ -1,31 +1,39 @@
-// Quản lý quyết định chi trả thù lao giảng dạy/coi thi cho giảng viên
-import Api from '~/api/Api'
+import Api from "~/api/Api.js";
 
-export default {
-  getList(params) {
-    return Api.get('/api/v1/re-learning/decision-teacher-job-fees', { params })
-  },
+class DecisionTeacherJobFeeServices {
+    async getListExam(params) {
+        return await Api.get("/decisionTeacherJobFee/byExam", params);
+    }
 
-  getDetail(id) {
-    return Api.get(`/api/v1/re-learning/decision-teacher-job-fees/${id}`)
-  },
+    async getDetailExam(id) {
+        return await Api.get(`/decisionTeacherJobFee/byExam/${id}`);
+    }
 
-  create(data) {
-    return Api.post('/api/v1/re-learning/decision-teacher-job-fees', data)
-  },
+    async addExam(params) {
+        return await Api.post("/decisionTeacherJobFee/byExam", params);
+    }
 
-  update(id, data) {
-    return Api.put(`/api/v1/re-learning/decision-teacher-job-fees/${id}`, data)
-  },
+    async updateExam(params) {
+        return await Api.put(`/decisionTeacherJobFee/byExam/${params.id}`, params);
+    }
 
-  delete(id) {
-    return Api.delete(`/api/v1/re-learning/decision-teacher-job-fees/${id}`)
-  },
+    async changeStatusExam(id, paymentFeeStatus) {
+        return await Api.put(`/decisionTeacherJobFee/byExam/${id}/status`, {
+            paymentFeeStatus,
+        });
+    }
 
-  exportDecisionReport(id) {
-    // Xuất báo cáo quyết định chi trả thù lao giảng dạy/coi thi cho giảng viên
-    return Api.getBlob(
-      `/api/v1/re-learning/decision-teacher-job-fees/${id}/export`
-    )
-  },
+    async deleteExam(id) {
+        return await Api.delete(`/decisionTeacherJobFee/byExam/${id}`);
+    }
+
+    async getListTeacherClass(params) {
+        return await Api.get("/decisionTeacherJobFee/teacher-class", params);
+    }
+
+    async getListClassByTeacher() {
+        return await Api.get("/decisionTeacherJobFee/rc/teacher-class");
+    }
 }
+
+export default new DecisionTeacherJobFeeServices();

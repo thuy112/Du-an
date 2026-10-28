@@ -1000,155 +1000,6 @@
       </v-card>
     </v-dialog>
 
-    <!-- 2. MODAL XÁC NHẬN DUYỆT ĐƠN (ICON TÍCH XANH) -->
-    <v-dialog v-model="showApproveModal" max-width="600px" persistent>
-      <v-card class="rounded-lg">
-        <v-card-title class="bg-red-title text-white py-3 px-4 d-flex align-center justify-space-between">
-          <span class="text-h6 font-weight-bold">Xác nhận duyệt đơn</span>
-          <v-btn icon dark small @click="showApproveModal = false"><v-icon>mdi-close</v-icon></v-btn>
-        </v-card-title>
-
-        <v-card-text class="pa-4">
-          <p class="text-body-2 mb-3">
-            Bạn có chắc chắn muốn chuyển từ trạng thái 
-            <strong class="red--text">Chờ xác nhận</strong> sang trạng thái <strong class="green--text">Đã xác nhận</strong> không?
-          </p>
-
-          <v-simple-table dense class="border-table mb-3">
-            <thead>
-              <tr class="bg-light-gray">
-                <th>STT</th>
-                <th>Mã học phần</th>
-                <th>Tên học phần</th>
-                <th>Lớp học</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(term, idx) in selectedItem?.registerStudentTerms || []" :key="idx">
-                <td>{{ idx + 1 }}</td>
-                <td>{{ term.term?.code }}</td>
-                <td>{{ term.term?.name }}</td>
-                <td>
-                  <v-select
-                    v-model="term.retakeClassCode"
-                    :items="term.availableClassOptions || []"
-                    item-text="text"
-                    item-value="value"
-                    placeholder="Chọn lớp học"
-                    no-data-text="Không có lớp"
-                    dense
-                    outlined
-                    hide-details
-                  ></v-select>
-                </td>
-              </tr>
-            </tbody>
-          </v-simple-table>
-        </v-card-text>
-
-        <v-card-actions class="justify-end pa-3 border-top">
-          <v-btn text @click="showApproveModal = false">Đóng X</v-btn>
-          <v-btn color="#a61c24" dark @click="confirmApprove">Xác nhận <v-icon right small>mdi-content-save</v-icon></v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- 3. MODAL TỪ CHỐI ĐƠN (ICON DẤU X) -->
-    <v-dialog v-model="showRejectModal" max-width="450px" persistent>
-      <v-card class="rounded-lg">
-        <v-card-title class="bg-red-title text-white py-3 px-4 d-flex align-center justify-space-between">
-          <span class="text-h6 font-weight-bold">Xác nhận</span>
-          <v-btn icon dark small @click="showRejectModal = false"><v-icon>mdi-close</v-icon></v-btn>
-        </v-card-title>
-
-        <v-card-text class="pa-4 text-center">
-          <p class="text-body-1 mt-2">
-            Bạn có chắc chắn muốn chuyển từ trạng thái <strong>Chờ xác nhận</strong> sang trạng thái <strong class="red--text">Từ chối</strong> không?
-          </p>
-        </v-card-text>
-
-        <v-card-actions class="justify-end pa-3 border-top">
-          <v-btn text @click="showRejectModal = false">Đóng X</v-btn>
-          <v-btn color="#a61c24" dark @click="confirmReject">Từ Chối</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- 4. MODAL LỊCH SỬ / ĐỒNG HỒ (ICON ĐỒNG HỒ) -->
-    <v-dialog v-model="showHistoryModal" max-width="450px" persistent>
-      <v-card class="rounded-lg">
-        <v-card-title class="bg-red-title text-white py-3 px-4 d-flex align-center justify-space-between">
-          <span class="text-h6 font-weight-bold">Xác nhận</span>
-          <v-btn icon dark small @click="showHistoryModal = false"><v-icon>mdi-close</v-icon></v-btn>
-        </v-card-title>
-
-        <v-card-text class="pa-4 text-center">
-          <p class="text-body-1 mt-2">
-            Bạn có chắc chắn muốn chuyển từ trạng thái <strong>Từ chối</strong> sang trạng thái <strong>Chờ xác nhận</strong> không?
-          </p>
-        </v-card-text>
-
-        <v-card-actions class="justify-end pa-3 border-top">
-          <v-btn text @click="showHistoryModal = false">Đóng X</v-btn>
-          <v-btn color="#a61c24" dark @click="confirmResetStatus">Xác Nhận</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- 5. MODAL CẬP NHẬT ĐĂNG KÝ (ICON CÂY BÚT) -->
-    <v-dialog v-model="showEditModal" max-width="800px" persistent>
-      <v-card class="rounded-lg">
-        <v-card-title class="bg-red-title text-white py-3 px-4 d-flex align-center justify-space-between">
-          <span class="text-h6 font-weight-bold">Cập nhật đăng ký học lại</span>
-          <v-btn icon dark small @click="showEditModal = false"><v-icon>mdi-close</v-icon></v-btn>
-        </v-card-title>
-
-        <v-card-text class="pa-4">
-          <v-select
-            v-model="selectedItem.retakeSessionId"
-            :items="sessionOptions"
-            label="Đợt học lại"
-            outlined
-            dense
-            class="mb-3"
-          ></v-select>
-
-          <div class="text-subtitle-2 font-weight-bold mb-2">
-            Danh sách học phần ({{ selectedItem?.registerStudentTerms?.length || 0 }})
-          </div>
-
-          <v-simple-table dense class="border-table">
-            <thead>
-              <tr class="bg-light-gray">
-                <th><v-checkbox hide-details dense></v-checkbox></th>
-                <th>STT</th>
-                <th>Mã học phần</th>
-                <th>Tên học phần</th>
-                <th>Mã giảng viên</th>
-                <th>Tên giảng viên</th>
-                <th>Định mức</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(term, idx) in selectedItem?.registerStudentTerms || []" :key="idx">
-                <td><v-checkbox v-model="term.selected" hide-details dense></v-checkbox></td>
-                <td>{{ idx + 1 }}</td>
-                <td>{{ term.term?.code }}</td>
-                <td>{{ term.term?.name }}</td>
-                <td>{{ term.teacherCode || '-' }}</td>
-                <td>{{ term.teacherName || '-' }}</td>
-                <td>{{ formatCurrency(term.price || 350000) }} đ</td>
-              </tr>
-            </tbody>
-          </v-simple-table>
-        </v-card-text>
-
-        <v-card-actions class="justify-end pa-3 border-top">
-          <v-btn text @click="showEditModal = false">Đóng X</v-btn>
-          <v-btn color="#a61c24" dark @click="handleUpdateCourseRegistration">Lưu <v-icon right small>mdi-content-save</v-icon></v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
   </div>
 </template>
 
@@ -1967,27 +1818,103 @@ export default {
       }
     },
 
-    exportRequiredFeeResult() {
-      const data = this.items.filter((item) => Number(item.totalFeeOfExam) > 0)
-      this.exportToExcel(data, 'Ket_Qua_Can_Thu')
+  async exportRequiredFeeResult() {
+    try {
+      this.loading = true
+      const response = await this.$axios.$get('/api/registerRetakeCourse/export', {
+        params: {
+          pageIndex: 1,
+          pageSize: 50,
+          registerStudentStatus: '',
+          retakeCourseStatus: '',
+          search: this.filters?.search || '',
+          studentId: '',
+          channel: 'CMS'
+        },
+        responseType: 'blob'
+      })
+      this.downloadFileBlob(response, 'ket_qua_can_thu.xlsx')
+    } catch (err) {
+      console.error('Lỗi xuất file kết quả cần thu:', err)
+      if (typeof this.$showWarning === 'function') {
+        this.$showWarning('Không có dữ liệu để xuất dữ liệu')
+      }
+    } finally {
+      this.loading = false
+    }
+  },
+
+    // 2. Xuất file danh sách chưa trả học phí
+    async exportUnpaidList() {
+      try {
+        this.loading = true
+        const response = await this.$axios.$get('/api/registerRetakeCourse/export-not-paid', {
+          params: {
+            pageIndex: 1,
+            pageSize: 50,
+            registerStudentStatus: '',
+            retakeCourseStatus: '',
+            search: this.filters?.search || '',
+            studentId: '',
+            channel: 'CMS'
+          },
+          responseType: 'blob'
+        })
+        
+        const now = new Date()
+        const dateStr = `${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`
+        const fileName = `${dateStr}_chitiet_dssv_chua_dong_hoc_phi.xlsx`
+
+        this.downloadFileBlob(response, fileName)
+      } catch (err) {
+        console.error('Lỗi xuất file chưa trả học phí:', err)
+      } finally {
+        this.loading = false
+      }
     },
 
-    exportUnpaidList() {
-      const data = this.items.filter(
-        (item) =>
-          this.getStatusLabel(item.tuitionStatus, 'feePaidStatusMap') ===
-          'Chưa trả học phí'
-      )
-      this.exportToExcel(data, 'Danh_Sach_Chua_Tra_Hoc_Phi')
-    },
+    // 4. Xuất file rà soát học phí
+  async exportAuditList() {
+    try {
+      this.loading = true
+      const response = await this.$axios.$get('/api/registerRetakeCourse/export-fee-preview', {
+        params: {
+          pageIndex: 1,
+          pageSize: 50,
+          registerStudentStatus: '',
+          retakeCourseStatus: '',
+          search: this.filters?.search || '',
+          studentId: '',
+          channel: 'CMS'
+        },
+        responseType: 'blob'
+      })
 
-    exportAuditList() {
-      this.exportToExcel(this.items, 'Danh_Sach_Ra_Soat_Hoc_Phi')
-    },
+      const now = new Date()
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}_${String(now.getDate()).padStart(2, '0')}-${String(now.getMonth() + 1).padStart(2, '0')}-${now.getFullYear()}`
+      const fileName = `${timeStr}_ra_soat_thu_phi_hoc_lai.xlsx`
+
+      this.downloadFileBlob(response, fileName)
+    } catch (err) {
+      console.error('Lỗi xuất file rà soát học phí:', err)
+    } finally {
+      this.loading = false
+    }
+  },
 
     triggerImportFile() {
       this.$refs.fileImportInput.click()
     },
+
+    // Hàm hỗ trợ tải file Blob chung
+  downloadFileBlob(data, filename) {
+    const blob = new Blob([data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const link = document.createElement('a')
+    link.href = window.URL.createObjectURL(blob)
+    link.download = filename
+    link.click()
+    window.URL.revokeObjectURL(link.href)
+  },
 
     async handleImportExcel(event) {
       const file = event.target.files && event.target.files[0]
