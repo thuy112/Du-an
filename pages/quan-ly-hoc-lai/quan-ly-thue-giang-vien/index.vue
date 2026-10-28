@@ -770,23 +770,29 @@ export default {
     },
 
     async updateData() {
+      // 1. Kiểm tra validate form
       if (this.$refs.editForm && !this.$refs.editForm.validate()) return
 
-      if (!this.editFormModel.id) {
-        this.showSnackbar('Lỗi: Không tìm thấy ID của bản ghi!', true)
-        return
-      }
-
+      // 2. Kiểm tra bắt buộc chọn học kỳ
       const semesterIds = this.selectedEditSemesters.map(s => Number(s.id))
       if (semesterIds.length === 0) {
         this.showSnackbar('Vui lòng chọn ít nhất 1 học kỳ', true)
         return
       }
 
+      // 3. Lấy ID an toàn từ nhiều nguồn
+      const recordId = this.editFormModel.id || this.editFormModel.original?.id
+      if (!recordId) {
+        this.showSnackbar('Lỗi: Không tìm thấy ID bản ghi!', true)
+        return
+      }
+
       this.submitting = true
       try {
-        const payload = {
-          id: Number(this.editFormModel.id),
+        // Đóng gói payload chuẩn xác theo đúng logic của đoạn code mẫu
+        const params = {
+          id: Number(recordId),
+          teacherTaxId: Number(recordId), // Thêm trường này để tương thích hoàn toàn với backend
           name: this.editFormModel.name.trim(),
           tax: Number(this.editFormModel.taxRate) || 0,
           status: this.editFormModel.status,
@@ -794,34 +800,28 @@ export default {
           channel: 'CMS',
         }
 
-        console.log('🚀 [DEBUG] Payload gửi lên update-tax:', payload)
+        console.log('🚀 Payload chuẩn giống mẫu:', params)
 
-        // Gọi API cập nhật
-        await teacherTaxServices.updateTeacherTax(payload)
-        
-        this.showSnackbar('Cập nhật thành công')
-        this.editDialogVisible = false
+        // Gọi service update (dùng đúng endpoint update-tax mà bạn thích)
+        const res = await teacherTaxServices.updateTeacherTax(params)
 
-        // Cập nhật lại giao diện mảng local ngay lập tức
-        const targetId = Number(payload.id)
-        const foundItem = this.rawList.find(item => Number(item.original?.id || item.id) === targetId)
-        
-        if (foundItem) {
-          foundItem.name = payload.name
-          foundItem.status = payload.status
-          foundItem.taxRate = payload.tax
-          if (foundItem.original) {
-            foundItem.original.name = payload.name
-            foundItem.original.status = payload.status
-            foundItem.original.tax = payload.tax
-            foundItem.original.semesters = this.selectedEditSemesters
+        // Kiểm tra kết quả trả về tương tự đoạn mẫu
+        if (res && (res.success || res.status === 200 || !res.error)) {
+          this.showSnackbar('Cập nhật thành công')
+          this.editDialogVisible = false
+          
+          // Emit sự kiện hoặc load lại data để bảng cập nhật ngay lập tức
+          this.$emit('success')
+          if (typeof this.fetchData === 'function') {
+            await this.fetchData()
           }
+        } else {
+          this.showSnackbar(res?.message || 'Có lỗi xảy ra khi cập nhật', true)
         }
-        this.applyFilter()
 
       } catch (error) {
-        console.error('Lỗi khi cập nhật cấu hình thuế:', error)
-        this.showSnackbar('Cập nhật thất bại', true)
+        console.error('Error updating teacher tax:', error)
+        this.showSnackbar('Có lỗi xảy ra', true)
       } finally {
         this.submitting = false
       }

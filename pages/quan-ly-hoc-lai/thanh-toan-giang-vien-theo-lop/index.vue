@@ -241,8 +241,8 @@ export default {
 
         // @@@ Danh sách thanh toán chính
         async getList() {
+            this.isLoading = true; // Bật trạng thái tải
             try {
-                this.isLoading = true;
                 const params = {
                     pageIndex: this.pageInfo.pageIndex || 1,
                     pageSize: this.pageInfo.pageSize || 50,
@@ -254,23 +254,25 @@ export default {
                 };
 
                 const res = await feeTeacherByClassService.getByClassList(params);
-                console.log("Dữ liệu API bảng byClass:", res);
+                console.log("Dữ liệu trả về từ byClass:", res);
 
-                if (res && ((res.error && res.error.code === 0) || res.success)) {
-                    const responseData = res.data;
+                if (res) {
+                    // Lọc bóc tách tầng dữ liệu an toàn
+                    const responseData = res.data !== undefined ? res.data : res;
                     const rawList = responseData?.data || responseData?.content || responseData?.items || (Array.isArray(responseData) ? responseData : []);
 
-                    this.list = rawList;
-                    this.totalRecord = responseData?.totalRecords || responseData?.totalElements || responseData?.total || rawList.length;
+                    this.list = Array.isArray(rawList) ? rawList : [];
+                    this.totalRecord = responseData?.totalRecords || responseData?.totalElements || responseData?.total || this.list.length;
                     this.totalPage = responseData?.totalPages || Math.ceil(this.totalRecord / this.pageInfo.pageSize) || 1;
                 } else {
                     this.list = [];
                 }
             } catch (e) {
-                console.error("Lỗi khi tải danh sách bảng:", e);
+                console.error("Lỗi khi tải danh sách:", e);
                 this.list = [];
             } finally {
-                this.isLoading = false;
+                // Đảm bảo luôn tắt loading dù thành công hay lỗi để hết mờ màn hình
+                this.isLoading = false; 
             }
         },
 

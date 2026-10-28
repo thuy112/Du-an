@@ -13,8 +13,8 @@ const teacherTaxServices = {
   async getSemesters(params) {
     return await Api.get('/api/semester/list', params)
   },
-  async updateTeacherTax(id) {
-    return await Api.put("/api/teacher-tax/update-tax", id);
+  async updateTeacherTax(params) {
+    return await Api.put("/api/teacher-tax/update-tax", params);
   },
 }
 
