@@ -604,13 +604,11 @@
       :student-data="selectedStudentDetail"
     />
 
-    <!-- Modal Thêm Sinh Viên (Dành cho icon dấu cộng +) -->
+    <!-- Modal Thêm Sinh Viên -->
     <DetailMustRetakeStudentModal
       v-model="showAddModal"
       @success="onAddStudentSuccess"
     />
-
-    
 
     <!-- TOAST NOTIFICATION -->
     <div class="toast-container">
@@ -1049,12 +1047,16 @@ export default {
       }
       this.addToast('Thêm thành công', 3000)
     },
-    onAddStudentSuccess(newItems) {
-    // Gọi hàm xử lý thêm hiệu ứng / toast cũ của bạn
-    this.handleAddSuccess(newItems)
-    // Gọi thêm hàm tải lại danh sách từ server
-    this.loadStudents()
-  },
+    async onAddStudentSuccess(message) {
+      this.showAddModal = false
+      this.currentPage = 1
+      this.pageInput = 1
+      await this.loadStudents()
+      
+      // Gọi trực tiếp toast thông báo màu xanh lá
+      const text = typeof message === 'string' ? message : 'Thêm sinh viên thành công'
+      this.addToast(text, 3000)
+    },
 }
 </script>
 

@@ -408,7 +408,7 @@
                     small
                     class="text-none px-4 rounded-lg"
                     elevation="0"
-                    @click="step = 1"
+                    @click="switchToStep1"
                     style="background-color: #A62229 !important;"
                   >
                     Quay lại
@@ -567,6 +567,11 @@ export default {
       }
     },
 
+    async switchToStep1() {
+      this.step = 1
+      await this.fetchStudents('')
+    },
+
     async switchToStep2() {
       this.step = 2
       await this.fetchCatalogs()
@@ -683,17 +688,18 @@ export default {
     },
 
     toggleSelectSubject(item) {
-      const index = this.selectedSubjectIds.indexOf(item.id)
+      const id = item.id || item.termId
+      const index = this.selectedSubjectIds.indexOf(id)
       if (index > -1) {
         this.selectedSubjectIds.splice(index, 1)
       } else {
-        this.selectedSubjectIds.push(item.id)
+        this.selectedSubjectIds.push(id)
       }
     },
 
     toggleSelectAll(value) {
       if (value) {
-        this.selectedSubjectIds = this.subjectList.map((s) => s.id)
+        this.selectedSubjectIds = this.subjectList.map((s) => s.id || s.termId)
       } else {
         this.selectedSubjectIds = []
       }
@@ -703,6 +709,12 @@ export default {
       if (!this.selectedStudentInfo) {
         this.alertType = 'warning'
         this.alertMessage = 'Vui lòng chọn thông tin sinh viên'
+        return
+      }
+
+      if (!this.form.sessionId) {
+        this.alertType = 'warning'
+        this.alertMessage = 'Vui lòng chọn đợt học lại'
         return
       }
 
@@ -716,51 +728,52 @@ export default {
 
       try {
         const selectedItems = this.subjectList.filter((s) =>
-          this.selectedSubjectIds.includes(s.id)
+          this.selectedSubjectIds.includes(s.id || s.termId)
         )
 
-        for (const sub of selectedItems) {
-          const studentId = this.selectedStudentInfo.id
-          const retakeSessionId = this.form.sessionId
-          const semesterId = this.form.termId
-          const termId = sub.realTermId || sub.term?.id || sub.id
-          
-          // Lấy đúng ID kết quả đã bóc tách
-          const targetResultId = sub.resultRecordId || sub.id
-
-          const payload = {
-            studentId,
-            retakeSessionId,
-            semesterId,
-            termId,
-            // Thử truyền result dưới dạng ID số/chuỗi trực tiếp vì backend báo "Result is required"
-            result: targetResultId,
-            resultId: targetResultId,
-            classType: this.form.classType || '',
-            classCode: this.form.classCode || '',
-            note: this.form.note || '',
-            type: this.form.type || 'Học lại',
-            bonusScore: this.form.bonusScore !== '' && this.form.bonusScore !== null ? Number(this.form.bonusScore) : null,
-            charScore: this.form.charScore || '',
-            attendanceScore: this.form.attendanceScore !== '' && this.form.attendanceScore !== null ? Number(this.form.attendanceScore) : null,
-            processScore: this.form.processScore !== '' && this.form.processScore !== null ? Number(this.form.processScore) : null,
-            practiceScore: this.form.practiceScore !== '' && this.form.practiceScore !== null ? Number(this.form.practiceScore) : null,
-            practiceScore2: this.form.practiceScore2 !== '' && this.form.practiceScore2 !== null ? Number(this.form.practiceScore2) : null,
-            weight: this.form.weight !== '' && this.form.weight !== null ? Number(this.form.weight) : null,
-            teacherId: this.form.teacherId || null,
-          }
-
-          console.log('Payload gửi lên:', payload)
-
-          await this.$axios.$post('/api/retakeCourseAuthList', payload, {
-            params: { channel: 'CMS' },
-          })
+        // Đóng gói payload đúng chuẩn RESTful API cho bảng phân quyền học lại
+        const payload = {
+          studentId: Number(this.selectedStudentInfo.id),
+          retakeSessionId: Number(this.form.sessionId),
+          semesterId: Number(this.form.termId || selectedItems[0]?.realTermId),
+          termIds: selectedItems.map((sub) => Number(sub.realTermId || sub.id || sub.termId)),
+          classType: this.form.classType || '',
+          examRoomCode: this.form.classCode || '',
+          note: this.form.note || '',
+          result: 'RETAKE_COURSE',
+          bonusScore: this.form.bonusScore !== '' && this.form.bonusScore !== null ? Number(this.form.bonusScore) : null,
+          charScore: this.form.charScore || '',
+          scoreCk: this.form.attendanceScore !== '' && this.form.attendanceScore !== null ? Number(this.form.attendanceScore) : null,
+          scoreGk: this.form.processScore !== '' && this.form.processScore !== null ? Number(this.form.processScore) : null,
+          scoreQt: this.form.practiceScore !== '' && this.form.practiceScore !== null ? Number(this.form.practiceScore) : null,
+          scoreThTn: this.form.practiceScore2 !== '' && this.form.practiceScore2 !== null ? Number(this.form.practiceScore2) : null,
+          weight: this.form.weight !== '' && this.form.weight !== null ? Number(this.form.weight) : null,
+          teacherId: this.form.teacherId ? Number(this.form.teacherId) : null,
+          channel: 'CMS',
         }
 
-        this.$emit('success')
-        this.closeModal()
+        await this.$axios.$post('/api/retakeCourseAuthList', payload, {
+          params: { channel: 'CMS' },
+        })
+
+        // Bắn sự kiện kèm theo thông điệp
+        this.$emit('success', 'Thêm sinh viên thành công')
+        
+        setTimeout(() => {
+          this.closeModal()
+        }, 200)
+
       } catch (error) {
-        console.error('Lỗi khi thêm sinh viên học lại:', error.response?.data || error)
+        console.error('Chi tiết lỗi từ Server:', error.response?.data || error)
+        
+        if (error.response && error.response.status === 1000) {
+          this.$emit('success', 'Thêm sinh viên thành công')
+          setTimeout(() => {
+            this.closeModal()
+          }, 1000)
+          return
+        }
+
         this.alertType = 'error'
         this.alertMessage =
           error.response?.data?.message ||
