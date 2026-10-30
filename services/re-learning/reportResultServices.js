@@ -1,21 +1,10 @@
-import Api from '~/api/Api.js'
+import Api from '~/api/Api'
 
-class ReportResultServices {
-  async getReportResult(params) {
-    return await Api.get('/report/result', { params })
-  }
-
-  async getExamList(params) {
-    return await Api.get('/retakeSession/exam-list', { params })
-  }
-
-  async getUserInfo(params) {
-    return await Api.get('/user/info', { params })
-  }
-
-  async getPageRole(params) {
-    return await Api.get('/auth/getPageRole', { params })
+export default {
+  getReportResult(params) {
+    return Api.get('/api/report/result',params)
+  },
+  getExamList(params) {
+    return Api.get('/api/retakeSession/exam-list',params)
   }
 }
-
-export default new ReportResultServices()

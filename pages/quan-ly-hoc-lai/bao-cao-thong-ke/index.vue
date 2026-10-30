@@ -6,7 +6,7 @@
         <div class="text-subtitle-1 font-weight-bold mr-2 text-no-wrap">
           Danh sách kết quả thu (<span class="red--text text--darken-2">{{ totalRecord }}</span>) 
           <span class="ml-2 font-weight-regular text-body-2">
-            Tổng tiền đã thu: <strong class="success--text">{{ formatCurrency(totalAmount) }}</strong>
+            Tổng tiền đã thu: <strong class="error--text">{{ formatCurrency(totalAmount) }}</strong>
           </span>
         </div>
 
@@ -36,27 +36,73 @@
             class="bg-white filter-item select-md custom-outlined-input"
           ></v-select>
 
-          <v-text-field
-            v-model="filters.fromTime"
-            type="date"
-            placeholder="Từ ngày"
-            outlined
-            dense
-            hide-details
-            clearable
-            class="bg-white filter-item date-input custom-outlined-input"
-          ></v-text-field>
+          <!-- TỪ NGÀY -->
+          <v-menu
+            v-model="menuFrom"
+            :close-on-content-click="false"
+            transition="scale-transition"
+            offset-y
+            max-width="290px"
+            min-width="290px"
+            app
+          >
+            <template v-slot:activator="{ on, attrs }">
+              <v-text-field
+                :value="formatDisplayDate(filters.fromTime)"
+                @input="onInputFromDate"
+                placeholder="dd/mm/yyyy"
+                outlined
+                dense
+                hide-details
+                clearable
+                class="bg-white filter-item date-input custom-outlined-input"
+                v-bind="attrs"
+                v-on="on"
+              ></v-text-field>
+            </template>
+            <v-date-picker
+              v-model="filters.fromTime"
+              locale="vi-VN"
+              no-title
+              scrollable
+              color="#a2212b"
+              @input="menuFrom = false"
+            ></v-date-picker>
+          </v-menu>
 
-          <v-text-field
-            v-model="filters.toTime"
-            type="date"
-            placeholder="Đến ngày"
-            outlined
-            dense
-            hide-details
-            clearable
-            class="bg-white filter-item date-input custom-outlined-input"
-          ></v-text-field>
+          <!-- ĐẾN NGÀY -->
+          <v-menu
+            v-model="menuTo"
+            :close-on-content-click="false"
+            transition="scale-transition"
+            offset-y
+            max-width="290px"
+            min-width="290px"
+            app
+          >
+            <template v-slot:activator="{ on, attrs }">
+              <v-text-field
+                :value="formatDisplayDate(filters.toTime)"
+                @input="onInputToDate"
+                placeholder="dd/mm/yyyy"
+                outlined
+                dense
+                hide-details
+                clearable
+                class="bg-white filter-item date-input custom-outlined-input"
+                v-bind="attrs"
+                v-on="on"
+              ></v-text-field>
+            </template>
+            <v-date-picker
+              v-model="filters.toTime"
+              locale="vi-VN"
+              no-title
+              scrollable
+              color="#a2212b"
+              @input="menuTo = false"
+            ></v-date-picker>
+          </v-menu>
 
           <div class="d-flex gap-2 align-center">
             <v-btn
@@ -99,16 +145,23 @@
         }}</span>
       </template>
 
+      <!-- THÊM SLOT NÀY ĐỂ HIỂN THỊ HỌC PHẦN ĐĂNG KÝ XUỐNG DÒNG -->
+      <template #[`item.registerStudentTerms`]="{ item }">
+        <div style="white-space: pre-line; line-height: 1.6; padding: 4px 0;">
+          {{ item.registerStudentTerms }}
+        </div>
+      </template>
+
       <!-- SỐ TIỀN ĐÃ THU -->
       <template #[`item.totalPaid`]="{ item }">
-        <span class="font-weight-bold success--text">
+        <span class="font-weight-bold error--text">
           {{ formatCurrency(item.totalPaid) }}
         </span>
       </template>
 
       <!-- THỜI GIAN THU -->
-      <template #[`item.createdTime`]="{ item }">
-        <span>{{ item.createdTime ? formatDate(item.createdTime) : '---' }}</span>
+      <template #[`item.dateFeePaid`]="{ item }">
+        <span>{{ item.dateFeePaid ? formatDateTime(item.dateFeePaid) : '---' }}</span>
       </template>
     </BaseTable>
 
@@ -134,7 +187,7 @@
           dense
           outlined
           hide-details
-          :menu-props="{ attach: true, top: true, offsetY: true, zIndex: 999 }"
+          :menu-props="{ top: true, offsetY: true, zIndex: 999 }"
           class="pagination-input"
           style="width: 85px"
           @change="onItemsPerPageChange"
@@ -229,6 +282,7 @@
 
 <script>
 import BaseTable from '~/components/Base/BaseTable.vue'
+import feeTeacherByExamService from '~/services/feeTeacherByExamService';
 import reportResultServices from '~/services/re-learning/reportResultServices'
 
 export default {
@@ -244,6 +298,8 @@ export default {
       totalRecord: 0,
       totalAmount: 0,
       isLoading: false,
+      menuFrom: false,
+      menuTo: false,
 
       filters: {
         search: '',
@@ -262,22 +318,49 @@ export default {
       toastDuration: 3000,
 
       headers: [
-        { text: 'STT', value: 'stt', sortable: false, width: '50px' },
-        { text: 'Mã số SV', value: 'studentCode', sortable: false },
-        { text: 'Họ tên SV', value: 'studentName', sortable: false },
-        { text: 'Học phần đăng ký', value: 'registeredSubjects', sortable: false },
-        { text: 'Đợt học lại', value: 'examName', sortable: false },
-        { text: 'Học kỳ', value: 'semester', sortable: false },
-        { text: 'Số tiền đã thu', value: 'totalPaid', sortable: false },
-        { text: 'Số điện thoại', value: 'phone', sortable: false },
-        { text: 'Lớp', value: 'className', sortable: false },
-        { text: 'Khóa', value: 'course', sortable: false },
-        { text: 'Ngành', value: 'major', sortable: false },
-        { text: 'Hình thức đào tạo', value: 'trainingType', sortable: false },
-        { text: 'Địa điểm đào tạo', value: 'trainingLocation', sortable: false },
-        { text: 'Nội dung thu', value: 'content', sortable: false },
-        { text: 'Thời gian thu', value: 'createdTime', sortable: false },
-      ],
+            // { value: "orderCode", text: "Số hóa đơn", sortable: false },
+            { value: "code", text: "Mã số SV", class: "text-center", sortable: false },
+            { value: "fullName", text: "Họ tên SV", sortable: false, width: 150 },
+            {
+                value: "registerStudentTerms",
+                text: "Học phần đăng ký",
+                sortable: false,
+                width: 350,
+                align: "center",
+            },
+            { value: "exam.code", text: "Đợt học lại", sortable: false, width: 150 },
+            {
+                value: "registerSemesterTerms",
+                text: "Học kỳ",
+                sortable: false,
+                width: 150,
+                align: "center",
+            },
+            { value: "totalFee", text: "Số tiền đã thu", sortable: false },
+            // { value: "dateImport", text: "Ngày Import DL", sortable: false },
+            // { value: "dateFeePaid", text: "Ngày nộp tiền", sortable: false },
+            { value: "phone", text: "Số điện thoại", sortable: false, width: 120 },
+            { value: "clazz.name", text: "Lớp", align: "center", sortable: false, width: 150 },
+            { value: "course.name", text: "Khóa", align: "center", sortable: false, width: 90 },
+            { value: "major.name", text: "Ngành", align: "center", sortable: false },
+            {
+                value: "clazz.trainingMethodName",
+                text: "Hình thức đào tạo",
+                align: "center",
+                sortable: false,
+                width: 120,
+            },
+            {
+                value: "clazz.trainingUnitName",
+                text: "Địa điểm đào tạo",
+                align: "center",
+                sortable: false,
+                width: 150,
+            },
+            { value: "type", text: "Nội dung thu", align: "center", sortable: false },
+            { value: "dateFeePaid", text: "Thời gian thu", align: "center", sortable: false },
+            // { value: "actions", text: "Chức năng", align: "center", sortable: false },
+        ],
 
       list: [],
       examList: [],
@@ -306,8 +389,6 @@ export default {
       this.$store.commit('SET_PAGE_TITLE', 'Báo cáo kết quả thu')
     }
     await Promise.all([
-      this.fetchUserInfo(),
-      this.fetchPageRole(),
       this.fetchExamList(),
       this.fetchData(),
     ])
@@ -316,22 +397,6 @@ export default {
     this.toastList.forEach((toast) => clearInterval(toast.timer))
   },
   methods: {
-    async fetchUserInfo() {
-      try {
-        await reportResultServices.getUserInfo({ channel: 'CMS' })
-      } catch (err) {
-        console.error('Lỗi tải thông tin user:', err)
-      }
-    },
-
-    async fetchPageRole() {
-      try {
-        await reportResultServices.getPageRole({ channel: 'CMS' })
-      } catch (err) {
-        console.error('Lỗi kiểm tra quyền:', err)
-      }
-    },
-
     async fetchExamList() {
       try {
         const res = await reportResultServices.getExamList({ status: 'ACTIVE', channel: 'CMS' })
@@ -350,37 +415,101 @@ export default {
           pageSize: this.itemsPerPage,
           search: this.appliedFilters.search || undefined,
           examIds: this.appliedFilters.examIds || undefined,
-          fromTime: this.appliedFilters.fromTime || undefined,
-          toTime: this.appliedFilters.toTime || undefined,
+          
+          // Gắn thêm giờ phút giây để backend nhận diện đúng khoảng thời gian thu
+          fromTime: this.appliedFilters.fromTime ? `${this.appliedFilters.fromTime} 00:00:00` : undefined,
+          toTime: this.appliedFilters.toTime ? `${this.appliedFilters.toTime} 23:59:59` : undefined,
+          
           channel: 'CMS',
         }
 
-        console.log('Đang gọi API report/result với params:', params)
         const res = await reportResultServices.getReportResult(params)
-        console.log('Kết quả API trả về:', res)
+        console.log('Dữ liệu thô từ API report/result:', res)
 
-        // Hỗ trợ mọi dạng bóc tách dữ liệu của backend
         const raw = res?.data !== undefined ? res.data : res
         
+        let items = []
         if (Array.isArray(raw)) {
-          this.list = raw
-        } else if (raw?.data && Array.isArray(raw.data)) {
-          this.list = raw.data
-        } else if (raw?.items && Array.isArray(raw.items)) {
-          this.list = raw.items
-        } else if (raw?.data?.items && Array.isArray(raw.data.items)) {
-          this.list = raw.data.items
-        } else if (raw?.result && Array.isArray(raw.result)) {
-          this.list = raw.result
-        } else {
-          this.list = []
+          items = raw
+        } else if (Array.isArray(raw?.data)) {
+          items = raw.data
+        } else if (Array.isArray(raw?.items)) {
+          items = raw.items
+        } else if (Array.isArray(raw?.data?.items)) {
+          items = raw.data.items
+        } else if (Array.isArray(raw?.result)) {
+          items = raw.result
+        } else if (Array.isArray(raw?.result?.items)) {
+          items = raw.result.items
         }
 
-        this.totalRecord = raw?.totalRecords || raw?.data?.totalRecords || raw?.total || this.list.length
-        this.totalAmount = raw?.totalAmount || raw?.data?.totalAmount || 0
+        let calculatedTotalAmount = 0
+
+        this.list = items.map((item) => {
+          let formattedTerms = '---'
+          const termsArray = item.registerStudentTerms || []
+          
+          if (Array.isArray(termsArray) && termsArray.length > 0) {
+            formattedTerms = termsArray
+              .map((itemTerm) => {
+                const target = itemTerm.term || itemTerm
+                const code = target.code || ''
+                const name = target.name || ''
+                const feeVal = target.fee !== undefined ? Number(target.fee) : (itemTerm.fee !== undefined ? Number(itemTerm.fee) : 0)
+                
+                // Định dạng tiền học phần: dấu phẩy phân cách, thêm đ
+                const fee = feeVal.toLocaleString('en-US') + 'đ'
+                
+                return [code, name, fee].filter(Boolean).join(' - ')
+              })
+              .join('\n')
+          }
+
+          // Khai báo rõ ràng biến lấy tên học kỳ từ exam.semester.name
+          const semesterName = item.exam?.semester?.name || item.semester?.name || '---'
+
+          const rowTotalFee = item.totalFee !== undefined ? Number(item.totalFee) : (item.totalPaid !== undefined ? Number(item.totalPaid) : 0)
+          calculatedTotalAmount += rowTotalFee
+
+          return {
+            code: item.code || item.studentCode || item.maSv || '---',
+            fullName: item.fullName || item.studentName || item.name || '---',
+            
+            registerStudentTerms: formattedTerms,
+            
+            'exam.code': item.exam?.code || item.examName || item.dotHocLai || '---',
+            
+            // Gán giá trị vào cột học kỳ
+            registerSemesterTerms: semesterName,
+            
+            totalFee: rowTotalFee,
+            phone: item.phone || item.phoneNumber || '---',
+            
+            'clazz.name': item.clazz?.name || item.className || '---',
+            'course.name': item.course?.name || item.course || '---',
+            'major.name': item.major?.name || item.major || '---',
+            'clazz.trainingMethodName': item.clazz?.trainingMethodName || item.trainingType || '---',
+            'clazz.trainingUnitName': item.clazz?.trainingUnitName || item.trainingLocation || '---',
+            
+            type: item.type || item.content || '---',
+            dateFeePaid: item.dateFeePaid || item.createdTime || '---',
+          }
+        })
+
+        this.totalRecord = 
+          raw?.totalRecords || 
+          raw?.data?.totalRecords || 
+          raw?.total || 
+          this.list.length
+
+        this.totalAmount = 
+          raw?.totalAmount || 
+          raw?.data?.totalAmount || 
+          calculatedTotalAmount
+
         this.totalPage = Math.ceil(this.totalRecord / this.itemsPerPage) || 1
       } catch (err) {
-        console.error('LỖI GỌI API BÁO CÁO:', err.response || err)
+        console.error('Lỗi khi tải dữ liệu:', err)
         this.list = []
         this.totalRecord = 0
         this.totalAmount = 0
@@ -436,7 +565,7 @@ export default {
 
     formatCurrency(val) {
       if (val === null || val === undefined) return '0đ'
-      return `${Number(val).toLocaleString('vi-VN')}đ`
+      return `${Number(val).toLocaleString('en-US')}đ`
     },
 
     formatDate(dateStr) {
@@ -455,9 +584,47 @@ export default {
       }
     },
 
-    exportExcel() {
-      this.showToast('Chức năng xuất file đang được phát triển', '#2e7d32')
-    },
+    async exportExcel() {
+            try {
+                this.loadingExport = true;
+                
+                // Nếu chưa chọn đợt học lại nào, tự động lấy tất cả ID nối bằng dấu phẩy
+                if (!this.search.examIds || !this.search.examIds.length) {
+                    const examIds = this.examList.map((item) => item.id).join(",");
+                    const res = await feeTeacherByExamService.exportResult({
+                        search: this.search.search || "",
+                        fromTime: "",
+                        toTime: "",
+                        examIds,
+                        channel: "CMS",
+                    });
+                    if (res.success || res?.data?.url) {
+                        return this.$download(res?.data?.url || res?.url);
+                    }
+                }
+                
+                // Trường hợp có chọn đợt học lại cụ thể
+                const examIds = Array.isArray(this.search.examIds) 
+                    ? this.search.examIds.join(",") 
+                    : this.search.examIds;
+                    
+                const res = await feeTeacherByExamService.exportResult({ 
+                    search: this.search.search || "",
+                    fromTime: "",
+                    toTime: "",
+                    examIds,
+                    channel: "CMS",
+                });
+                
+                if (res.success || res?.data?.url) {
+                    this.$download(res?.data?.url || res?.url);
+                }
+            } catch (error) {
+                console.error(error);
+            } finally {
+                this.loadingExport = false;
+            }
+        },
 
     showToast(message, color = '#4caf50') {
       const id = Date.now() + Math.random()
@@ -485,6 +652,58 @@ export default {
         clearInterval(this.toastList[index].timer)
         this.toastList.splice(index, 1)
       }
+    },
+    // Chuyển từ YYYY-MM-DD sang DD/MM/YYYY để hiển thị lên ô input
+    formatDisplayDate(dateStr) {
+      if (!dateStr) return ''
+      if (dateStr.includes('/')) return dateStr
+      const parts = dateStr.split('-')
+      if (parts.length !== 3) return dateStr
+      const [year, month, day] = parts
+      return `${day}/${month}/${year}`
+    },
+
+    // Xử lý khi người dùng gõ hoặc thay đổi trực tiếp trên input
+    onInputFromDate(val) {
+      if (!val) {
+        this.filters.fromTime = ''
+        return
+      }
+      if (val.includes('/')) {
+        const parts = val.split('/')
+        if (parts.length === 3) {
+          const [day, month, year] = parts
+          this.filters.fromTime = `${year}-${month}-${day}`
+        }
+      } else {
+        this.filters.fromTime = val
+      }
+    },
+
+    onInputToDate(val) {
+      if (!val) {
+        this.filters.toTime = ''
+        return
+      }
+      if (val.includes('/')) {
+        const parts = val.split('/')
+        if (parts.length === 3) {
+          const [day, month, year] = parts
+          this.filters.toTime = `${year}-${month}-${day}`
+        }
+      } else {
+        this.filters.toTime = val
+      }
+    },
+
+    formatDateTime(dateStr) {
+      if (!dateStr) return '---'
+      if (dateStr.includes('-')) {
+        const [datePart, timePart] = dateStr.split(' ')
+        const [year, month, day] = datePart.split('-')
+        return timePart ? `${day}/${month}/${year} ${timePart}` : `${day}/${month}/${year}`
+      }
+      return dateStr
     },
   },
 }

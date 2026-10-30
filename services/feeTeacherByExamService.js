@@ -1,26 +1,45 @@
+import Api from '~/api/Api'
+
 export default {
-  getList(params, $axios) {
-    return $axios.$get('/api/decisionTeacherJobFee/byExam', { params })
+  getList(params) {
+    return Api.get('/api/decisionTeacherJobFee/byExam', params)
   },
-  getRetakeCourses(params, $axios) {
-    return $axios.$get('/api/retakeCourse', { params })
+  getDetail(id) {
+    return Api.get(`/api/decisionTeacherJobFee/byExam/${id}`)
   },
-  getTeachers(params, $axios) {
-    return $axios.$get('/api/teacher/list', { params })
+  // Bổ sung hàm lấy danh sách giảng viên cho ô lọc (API số 3)
+  getTeachers(params) {
+    return Api.get('/api/teacher/list', params)
   },
-  getTeacherClass(params, $axios) {
-    return $axios.$get('/api/decisionTeacherJobFee/rc/teacher-class', { params })
+  // Bổ sung hàm lấy danh sách đợt học lại cho ô lọc (API số 2)
+  getRetakeCourses(params) {
+    return Api.get('/api/retakeCourse', params)
   },
-  getPageRole(params, $axios) {
-    return $axios.$get('/api/auth/getPageRole', { params })
+  exportExcelSummary(id) {
+    return Api.get('/api/decisionTeacherJobFee/export-excel/summary', { id }, { responseType: 'blob' })
   },
-  getUserInfo(params, $axios) {
-    return $axios.$get('/api/user/info', { params })
+  exportExcelDetail(id) {
+    return Api.get('/api/decisionTeacherJobFee/export-excel/detail', { id }, { responseType: 'blob' })
   },
-  getTeacherListByClass(params, $axios) {
-    return $axios.$get('/api/teacher/rc/listByClass', { params })
+  exportExcelCompact(id) {
+    return Api.get('/api/decisionTeacherJobFee/export-excel/shorten', { id }, { responseType: 'blob' })
   },
-  createDecision(data, $axios) {
-    return $axios.$post('/api/decisionTeacherJobFee/byExamV2', data)
+  exportExcelShorten(id) {
+    return Api.get('/api/decisionTeacherJobFee/export-excel/shorten', { id }, { responseType: 'blob' })
   },
+  getTeacherClass(params) {
+    return Api.get('/api/decisionTeacherJobFee/rc/teacher-class', params)
+  },
+  getListByClass(params) {
+    return Api.get('/api/teacher/rc/listByClass', params)
+  },
+  deleteItem(id) {
+    return Api.delete(`/api/decisionTeacherJobFee/byExam/${id}`)
+  },
+  sendEmailNotification(id) {
+    return Api.post(`/api/decisionTeacherJobFee/send-mail/${id}`)
+  }, 
+  exportResult(params) {
+    return Api.get("/api/report/exportResult", params);
+  }
 }

@@ -1,282 +1,633 @@
-<script>
-import BasePagination from "~/components/Base/Pagination.vue";
-import BaseSelect from "~/components/Base/Select.vue";
-import BaseBtnExel from "~/components/Base/BtnExcel.vue";
-import BaseTable from "~/components/Base/BaseTable.vue";
-import reportSyntheticService from "~/services/reportSyntheticService.js";
-
-const INIT_PAGE_INFO = {
-    pageIndex: 1,
-    pageSize: 50,
-};
-
-const INIT_SEARCH = {
-    search: "",
-    fromTime: "",
-    toTime: "",
-    examIds: null,
-};
-
-export default {
-    name: "ReportSyntheticManagement",
-    components: {
-        BaseBtnExel,
-        BasePagination,
-        BaseSelect,
-        BaseTable,
-    },
-    data() {
-        return {
-            headers: [
-                { value: "stt", text: "STT", sortable: false },
-                { value: "studentCode", text: "Mã số SV", sortable: false },
-                { value: "studentName", text: "Họ tên SV", sortable: false },
-                { value: "courses", text: "Học phần đăng ký", sortable: false },
-                { value: "examName", text: "Đợt học lại", sortable: false },
-                { value: "semester", text: "Học kỳ", sortable: false },
-                { value: "totalAmount", text: "Số tiền cần thu", sortable: false },
-                { value: "phone", text: "Số điện thoại", sortable: false },
-                { value: "className", text: "Lớp", sortable: false },
-                { value: "contentType", text: "Nội dung thu", sortable: false },
-                { value: "createdAt", text: "Thời gian đăng ký", sortable: false },
-            ],
-            tableData: [],
-            pagination: { ...INIT_PAGE_INFO },
-            totalPages: 0,
-            totalRecords: 0,
-            totalMoney: 0,
-            loading: false,
-            filter: { ...INIT_SEARCH },
-            examList: [],
-        };
-    },
-    created() {
-        this.fetchUserInfo();
-        this.fetchPageRole();
-        this.fetchExams();
-        this.fetchTableData();
-    },
-    methods: {
-        async fetchUserInfo() {
-            try {
-                await reportSyntheticService.getUserInfo({ channel: "CMS" });
-            } catch (e) {
-                console.error("Lỗi lấy thông tin user:", e);
-            }
-        },
-
-        async fetchPageRole() {
-            try {
-                await reportSyntheticService.getPageRole({ channel: "CMS" });
-            } catch (e) {
-                console.error("Lỗi phân quyền:", e);
-            }
-        },
-
-        async fetchExams() {
-            try {
-                const res = await reportSyntheticService.getExamList({ status: "ACTIVE", channel: "CMS" });
-                const list = res?.data || (Array.isArray(res) ? res : []);
-                this.examList = list.map((item) => ({
-                    id: item.id,
-                    code: item.code || item.name || item.examClass
-                }));
-            } catch (e) {
-                console.error("Lỗi tải danh sách đợt học lại:", e);
-                this.examList = [];
-            }
-        },
-
-        async fetchTableData() {
-            this.loading = true;
-            try {
-                const queryParams = {
-                    pageIndex: this.pagination.pageIndex,
-                    pageSize: this.pagination.pageSize,
-                    search: this.filter.search || "",
-                    fromTime: this.filter.fromTime || "",
-                    toTime: this.filter.toTime || "",
-                    examIds: this.filter.examIds || "",
-                    channel: "CMS",
-                };
-
-                const response = await reportSyntheticService.getSyntheticReport(queryParams);
-                const responseData = response?.data !== undefined ? response.data : response;
-                const rawItems = responseData?.data || responseData?.content || responseData?.items || (Array.isArray(responseData) ? responseData : []);
-
-                this.tableData = Array.isArray(rawItems) ? rawItems : [];
-                this.totalRecords = responseData?.totalRecords || responseData?.totalElements || responseData?.total || this.tableData.length;
-                this.totalPages = responseData?.totalPages || Math.ceil(this.totalRecords / this.pagination.pageSize) || 1;
-                this.totalMoney = responseData?.totalMoney || responseData?.sumAmount || 0;
-            } catch (error) {
-                console.error("Lỗi khi tải bảng dữ liệu tổng hợp:", error);
-                this.tableData = [];
-            } finally {
-                this.loading = false;
-            }
-        },
-
-        onPageChange(page) {
-            this.pagination.pageIndex = page;
-            this.fetchTableData();
-        },
-
-        onPageSizeChange(size) {
-            this.pagination.pageIndex = 1;
-            this.pagination.pageSize = size;
-            this.fetchTableData();
-        },
-
-        onSearch() {
-            this.pagination.pageIndex = 1;
-            this.fetchTableData();
-        },
-
-        onResetFilter() {
-            this.filter = { ...INIT_SEARCH };
-            this.pagination.pageIndex = 1;
-            this.fetchTableData();
-        }
-    }
-};
-</script>
-
 <template>
-    <div>
-        <BaseTable
-            :headers="headers"
-            :items="tableData"
-            :items-per-page="pagination.pageSize"
-            :loading="loading"
-            fixed-header
-            hide-default-footer
-            item-key="id"
-            loading-text="Đang tải dữ liệu..."
-            no-data-text="Không có dữ liệu"
-        >
-            <template #top>
-                <v-row class="mb-3 align-center">
-                    <v-col class="fs-17 fw-500" cols="12" md="auto">
-                        Danh sách tổng hợp <span class="primary--text">({{ totalRecords }})</span>
-                        <span class="ml-4 font-weight-bold text-danger" v-if="totalMoney">
-                            Tổng tiền: {{ $formatNumber(totalMoney) }}đ
-                        </span>
-                    </v-col>
-
-                    <v-row dense justify="end">
-                        <v-col cols="12" sm="6" md="3">
-                            <v-text-field
-                                v-model="filter.search"
-                                hide-details
-                                label="Sinh viên"
-                                placeholder="Tìm kiếm sinh viên..."
-                                outlined
-                                dense
-                                clearable
-                            ></v-text-field>
-                        </v-col>
-                        <v-col cols="12" sm="6" md="3">
-                            <base-select
-                                v-model="filter.examIds"
-                                hide-details
-                                item-text="code"
-                                item-value="id"
-                                :items="examList"
-                                label="Đợt học lại"
-                                placeholder="Đợt học lại"
-                            ></base-select>
-                        </v-col>
-                        <v-col cols="12" sm="6" md="2">
-                            <v-text-field
-                                v-model="filter.fromTime"
-                                hide-details
-                                label="Từ ngày"
-                                type="date"
-                                outlined
-                                dense
-                            ></v-text-field>
-                        </v-col>
-                        <v-col cols="12" sm="6" md="2">
-                            <v-text-field
-                                v-model="filter.toTime"
-                                hide-details
-                                label="Đến ngày"
-                                type="date"
-                                outlined
-                                dense
-                            ></v-text-field>
-                        </v-col>
-
-                        <v-col class="d-flex align-center gap-8" cols="auto">
-                            <v-tooltip bottom>
-                                <template #activator="{ on, attrs }">
-                                    <v-icon
-                                        color="primary"
-                                        v-bind="attrs"
-                                        @click="onResetFilter"
-                                        v-on="on"
-                                    >
-                                        mdi-refresh
-                                    </v-icon>
-                                </template>
-                                <span>Reset bộ lọc</span>
-                            </v-tooltip>
-
-                            <v-tooltip bottom>
-                                <template #activator="{ on, attrs }">
-                                    <v-btn
-                                        color="primary"
-                                        elevation="0"
-                                        v-bind="attrs"
-                                        @click="onSearch"
-                                        v-on="on"
-                                    >
-                                        <v-icon>mdi-magnify</v-icon>
-                                    </v-btn>
-                                </template>
-                                <span>Tìm kiếm</span>
-                            </v-tooltip>
-                        </v-col>
-                    </v-row>
-                </v-row>
-            </template>
-
-            <template #[`item.stt`]="{ index }">
-                <span>{{ $getStt(index, pagination) }}</span>
-            </template>
-
-            <template #[`item.totalAmount`]="{ item }"> 
-                {{ $formatNumber(item.totalAmount) }}đ 
-            </template>
-
-            <template #[`item.courses`]="{ item }">
-                <div v-for="(course, idx) in item.courses" :key="idx">
-                    {{ course.name }} ({{ $formatNumber(course.fee) }}đ)
-                </div>
-            </template>
-        </BaseTable>
-
-        <div class="d-flex flex-column flex-sm-row justify-space-between align-center mt-3 gap-3">
-            <div class="d-flex gap-8">
-                <base-btn-exel
-                    icon="mdi-export"
-                    text="Xuất file báo cáo"
-                />
-            </div>
-
-            <BasePagination
-                :page="pagination.pageIndex"
-                :page-count="totalPages"
-                :page-size="pagination.pageSize"
-                @changePage="onPageChange"
-                @changePageSize="onPageSizeChange"
-            />
+  <div class="student-page d-flex flex-column pa-2 pa-sm-4 bg-white">
+    <!-- 1. THANH TÌM KIẾM CỐ ĐỊNH PHÍA TRÊN -->
+    <div class="top-filter-bar bg-white py-3 px-1">
+      <div class="d-flex align-center justify-space-between flex-wrap gap-2 width-100">
+        <div class="text-subtitle-1 font-weight-bold mr-2 text-no-wrap">
+          Danh sách tổng hợp (<span class="red--text text--darken-2">{{ totalRecord }}</span>) 
+          <span class="ml-2 font-weight-regular text-body-2">
+            Tổng tiền: <strong class="error--text">{{ formatCurrency(totalAmount) }}</strong>
+          </span>
         </div>
+
+        <div class="d-flex align-center gap-2 flex-wrap flex-grow-1 justify-end">
+          <v-text-field
+            v-model="filters.search"
+            placeholder="Sinh viên (Mã SV, Họ tên, SĐT...)"
+            outlined
+            dense
+            hide-details
+            clearable
+            class="bg-white filter-item search-input custom-outlined-input"
+            @keyup.enter="search"
+          ></v-text-field>
+
+          <v-select
+            v-model="filters.examIds"
+            :items="examOptions"
+            item-text="text"
+            item-value="value"
+            placeholder="Đợt học lại"
+            outlined
+            dense
+            hide-details
+            clearable
+            :menu-props="{ attach: true, offsetY: true, zIndex: 999 }"
+            class="bg-white filter-item select-md custom-outlined-input"
+          ></v-select>
+
+          <!-- TỪ NGÀY -->
+          <v-menu
+            v-model="menuFrom"
+            :close-on-content-click="false"
+            transition="scale-transition"
+            offset-y
+            max-width="290px"
+            min-width="290px"
+            app
+          >
+            <template v-slot:activator="{ on, attrs }">
+              <v-text-field
+                :value="formatDisplayDate(filters.fromTime)"
+                @input="onInputFromDate"
+                placeholder="dd/mm/yyyy"
+                outlined
+                dense
+                hide-details
+                clearable
+                class="bg-white filter-item date-input custom-outlined-input"
+                v-bind="attrs"
+                v-on="on"
+              ></v-text-field>
+            </template>
+            <v-date-picker
+              v-model="filters.fromTime"
+              locale="vi-VN"
+              no-title
+              scrollable
+              color="#a2212b"
+              @input="menuFrom = false"
+            ></v-date-picker>
+          </v-menu>
+
+          <!-- ĐẾN NGÀY -->
+          <v-menu
+            v-model="menuTo"
+            :close-on-content-click="false"
+            transition="scale-transition"
+            offset-y
+            max-width="290px"
+            min-width="290px"
+            app
+          >
+            <template v-slot:activator="{ on, attrs }">
+              <v-text-field
+                :value="formatDisplayDate(filters.toTime)"
+                @input="onInputToDate"
+                placeholder="dd/mm/yyyy"
+                outlined
+                dense
+                hide-details
+                clearable
+                class="bg-white filter-item date-input custom-outlined-input"
+                v-bind="attrs"
+                v-on="on"
+              ></v-text-field>
+            </template>
+            <v-date-picker
+              v-model="filters.toTime"
+              locale="vi-VN"
+              no-title
+              scrollable
+              color="#a2212b"
+              @input="menuTo = false"
+            ></v-date-picker>
+          </v-menu>
+
+          <div class="d-flex gap-2 align-center">
+            <v-btn
+              icon
+              color="#a2212b"
+              class="rounded-sm action-btn"
+              @click="resetFilters"
+            >
+              <v-icon color="#a2212b" size="24">mdi-refresh</v-icon>
+            </v-btn>
+
+            <v-btn
+              color="#a2212b"
+              dark
+              elevation="0"
+              class="min-w-0 px-3 rounded-sm action-btn"
+              style="height: 40px;"
+              @click="search"
+            >
+              <v-icon size="24">mdi-magnify</v-icon>
+            </v-btn>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- 2. BẢNG DỮ LIỆU DÙNG BASETABLE CÓ THANH CUỘN NGANG -->
+    <div class="table-scroll-container flex-grow-1">
+      <BaseTable
+        :headers="headers"
+        :items="list"
+        hide-default-footer
+        disable-pagination
+        :loading="isLoading"
+        loading-text="Đang tải dữ liệu..."
+        no-data-text="Không có dữ liệu"
+      >
+        <template #[`item.stt`]="{ index }">
+          <span class="font-weight-medium">{{ (page - 1) * itemsPerPage + index + 1 }}</span>
+        </template>
+
+        <!-- HỌC PHẦN ĐĂNG KÝ XUỐNG DÒNG -->
+        <template #[`item.registerStudentTerms`]="{ item }">
+          <div style="white-space: pre-line; line-height: 1.6; padding: 4px 0;">
+            {{ item.registerStudentTerms }}
+          </div>
+        </template>
+
+        <!-- HỌC KỲ XUỐNG DÒNG -->
+        <template #[`item.registerSemesterTerms`]="{ item }">
+          <div style="white-space: pre-line; line-height: 1.6; padding: 4px 0;">
+            {{ item.registerSemesterTerms }}
+          </div>
+        </template>
+
+        <!-- SỐ TIỀN CẦN THU (ĐÃ ĐỔI VỀ MÀU BÌNH THƯỜNG) -->
+        <template #[`item.totalFee`]="{ item }">
+          <span class="font-weight-medium">
+            {{ formatCurrency(item.totalFee) }}
+          </span>
+        </template>
+
+        <!-- NỘI DUNG THU HIỂN THỊ CHIP -->
+        <template #[`item.type`]="{ item }">
+          <v-chip small dark color="#1976d2" class="font-weight-medium text-caption">
+            {{ item.type }}
+          </v-chip>
+        </template>
+
+        <!-- THỜI GIAN ĐĂNG KÝ -->
+        <template #[`item.dateFeePaid`]="{ item }">
+          <span>{{ item.dateFeePaid && item.dateFeePaid !== '---' ? formatDateTime(item.dateFeePaid) : '---' }}</span>
+        </template>
+      </BaseTable>
+    </div>
+
+    <!-- 3. THANH PHÂN TRANG & XUẤT FILE BÁO CÁO -->
+    <div
+      class="bottom-bar d-flex align-center justify-space-between flex-nowrap py-2 px-3 mt-auto bg-white border-top"
+    >
+      <v-btn
+        color="#2e7d32"
+        dark
+        elevation="0"
+        class="text-capitalize rounded px-4 font-weight-bold"
+        @click="exportExcel"
+      >
+        <v-icon left small>mdi-microsoft-excel</v-icon> XUẤT FILE BÁO CÁO
+      </v-btn>
+
+      <div class="d-flex align-center gap-2 flex-nowrap">
+        <v-select
+          v-model="itemsPerPage"
+          :items="[10, 20, 50, 100]"
+          label="Bản ghi"
+          dense
+          outlined
+          hide-details
+          :menu-props="{ top: true, offsetY: true, zIndex: 999 }"
+          class="pagination-input"
+          style="width: 85px"
+          @change="onItemsPerPageChange"
+        ></v-select>
+
+        <v-text-field
+          v-model.number="pageInput"
+          label="Trang"
+          dense
+          outlined
+          hide-details
+          class="pagination-input text-center"
+          style="width: 65px"
+          @keyup.enter="goToPage"
+        ></v-text-field>
+
+        <v-btn
+          color="#a2212b"
+          dark
+          small
+          class="text-capitalize px-3 rounded-sm elevation-0"
+          style="height: 36px"
+          @click="goToPage"
+          >Đi</v-btn
+        >
+
+        <div class="d-flex align-center gap-1">
+          <v-btn icon small :disabled="page <= 1" @click="changePage(page - 1)"
+            ><v-icon>mdi-chevron-left</v-icon></v-btn
+          >
+          <template v-for="p in visiblePages">
+            <v-btn
+              v-if="
+                p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)
+              "
+              :key="p"
+              small
+              :color="page === p ? '#a2212b' : ''"
+              :dark="page === p"
+              :outlined="page !== p"
+              class="min-w-0 pa-0 rounded-sm elevation-0 mx-1"
+              style="width: 28px; height: 28px"
+              @click="changePage(p)"
+            >
+              {{ p }}
+            </v-btn>
+            <span
+              v-else-if="p === page - 2 || p === page + 2"
+              :key="'dots-' + p"
+              >...</span
+            >
+          </template>
+          <v-btn
+            icon
+            small
+            :disabled="page >= totalPages"
+            @click="changePage(page + 1)"
+            ><v-icon>mdi-chevron-right</v-icon></v-btn
+          >
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
+<script>
+import BaseTable from '~/components/Base/BaseTable.vue'
+import reportSyntheticServices from '~/services/re-learning/reportSyntheticServices'
+
+export default {
+  name: 'ReportSyntheticView',
+  components: { BaseTable },
+  middleware: 'authenticated',
+  data() {
+    return {
+      page: 1,
+      pageInput: 1,
+      itemsPerPage: 50,
+      totalRecord: 0,
+      totalAmount: 0,
+      isLoading: false,
+      menuFrom: false,
+      menuTo: false,
+
+      filters: {
+        search: '',
+        examIds: null,
+        fromTime: '',
+        toTime: '',
+      },
+      appliedFilters: {
+        search: '',
+        examIds: null,
+        fromTime: '',
+        toTime: '',
+      },
+
+      headers: [
+        { value: "stt", text: "STT", align: "center", sortable: false, width: "60px" },
+        { value: "code", text: "Mã số SV", align: "center", sortable: false, width: "130px" },
+        { value: "fullName", text: "Họ tên SV", sortable: false, width: "160px" },
+        { value: "registerStudentTerms", text: "Học phần đăng ký", sortable: false, width: "350px", align: "left" },
+        { value: "exam.code", text: "Đợt học lại", sortable: false, width: "140px" },
+        { value: "registerSemesterTerms", text: "Học kỳ", sortable: false, width: "110px", align: "center" },
+        { value: "totalFee", text: "Số tiền cần thu", sortable: false, width: "140px" },
+        { value: "phone", text: "Số điện thoại", sortable: false, width: "130px" },
+        { value: "clazz.name", text: "Lớp", align: "center", sortable: false, width: "150px" },
+        { value: "course.name", text: "Khóa", align: "center", sortable: false, width: "100px" },
+        { value: "major.name", text: "Ngành", align: "center", sortable: false, width: "150px" },
+        { value: "clazz.trainingMethodName", text: "Hình thức đào tạo", align: "center", sortable: false, width: "140px" },
+        { value: "clazz.trainingUnitName", text: "Địa điểm đào tạo", align: "center", sortable: false, width: "150px" },
+        { value: "type", text: "Nội dung thu", align: "center", sortable: false, width: "120px" },
+        { value: "dateFeePaid", text: "Thời gian đăng ký", align: "center", sortable: false, width: "160px" },
+      ],
+
+      list: [],
+      examList: [],
+    }
+  },
+  computed: {
+    examOptions() {
+      const items = Array.isArray(this.examList) ? this.examList : []
+      return items.map((item) => ({
+        text: item.name || item.code,
+        value: item.id || item.code,
+      }))
+    },
+    totalPages() {
+      const total = Math.ceil(this.totalRecord / this.itemsPerPage)
+      return total > 0 ? total : 1
+    },
+    visiblePages() {
+      const pages = []
+      for (let i = 1; i <= this.totalPages; i++) pages.push(i)
+      return pages
+    },
+  },
+  async mounted() {
+    if (this.$store) {
+      this.$store.commit('SET_PAGE_TITLE', 'Danh sách tổng hợp')
+    }
+    await Promise.all([
+      this.fetchExamList(),
+      this.fetchData(),
+    ])
+  },
+  methods: {
+    async fetchExamList() {
+      try {
+        const res = await reportSyntheticServices.getExamList({ status: 'ACTIVE', channel: 'CMS' })
+        const data = res?.data !== undefined ? res.data : res
+        this.examList = data?.data || data?.items || (Array.isArray(data) ? data : [])
+      } catch (err) {
+        console.error('Lỗi tải đợt học lại:', err)
+      }
+    },
+
+    async fetchData() {
+      try {
+        this.isLoading = true
+
+        const params = {
+          pageIndex: this.page,
+          pageSize: this.itemsPerPage,
+          search: this.appliedFilters.search || undefined,
+          examIds: this.appliedFilters.examIds || undefined,
+          
+          // Sử dụng định dạng chuẩn ISO có chữ 'T' ở giữa thay vì dấu cách
+          fromTime: this.appliedFilters.fromTime ? `${this.appliedFilters.fromTime}T00:00:00` : undefined,
+          toTime: this.appliedFilters.toTime ? `${this.appliedFilters.toTime}T23:59:59` : undefined,
+          
+          channel: 'CMS',
+        }
+
+        const res = await reportSyntheticServices.getReportSynthetic(params)
+        const raw = res?.data !== undefined ? res.data : res
+        
+        let items = []
+        if (Array.isArray(raw)) {
+          items = raw
+        } else if (Array.isArray(raw?.data)) {
+          items = raw.data
+        } else if (Array.isArray(raw?.items)) {
+          items = raw.items
+        } else if (Array.isArray(raw?.data?.items)) {
+          items = raw.data.items
+        } else if (Array.isArray(raw?.result)) {
+          items = raw.result
+        } else if (Array.isArray(raw?.result?.items)) {
+          items = raw.result.items
+        }
+
+        let calculatedTotalAmount = 0
+
+        this.list = items.map((item) => {
+          let formattedTerms = '---'
+          let formattedSemesters = '---'
+          const termsArray = item.registerStudentTerms || []
+          
+          if (Array.isArray(termsArray) && termsArray.length > 0) {
+            formattedTerms = termsArray
+              .map((itemTerm) => {
+                const target = itemTerm.term || itemTerm
+                const code = target.code || ''
+                const name = target.name || ''
+                const feeVal = target.fee !== undefined ? Number(target.fee) : (itemTerm.fee !== undefined ? Number(itemTerm.fee) : 0)
+                const feeStr = feeVal.toLocaleString('en-US') + 'đ'
+                return [code, name, `(${feeStr})`].filter(Boolean).join(' - ')
+              })
+              .join('\n')
+
+            formattedSemesters = termsArray
+              .map((itemTerm) => {
+                return itemTerm.semester?.code || itemTerm.semester?.name || item.exam?.semester?.name || '20261'
+              })
+              .join('\n')
+          } else {
+            formattedSemesters = item.exam?.semester?.name || item.semester?.name || '---'
+          }
+
+          const rowTotalFee = item.totalFee !== undefined ? Number(item.totalFee) : (item.totalPaid !== undefined ? Number(item.totalPaid) : 0)
+          calculatedTotalAmount += rowTotalFee
+
+          return {
+            code: item.code || item.studentCode || item.maSv || '---',
+            fullName: item.fullName || item.studentName || item.name || '---',
+            registerStudentTerms: formattedTerms,
+            'exam.code': item.exam?.code || item.examName || '---',
+            registerSemesterTerms: formattedSemesters,
+            totalFee: rowTotalFee,
+            phone: item.phone || item.phoneNumber || '---',
+            'clazz.name': item.clazz?.name || item.className || '---',
+            'course.name': item.course?.name || item.course || '---',
+            'major.name': item.major?.name || item.major || '---',
+            'clazz.trainingMethodName': item.clazz?.trainingMethodName || item.trainingType || '---',
+            'clazz.trainingUnitName': item.clazz?.trainingUnitName || item.trainingLocation || '---',
+            
+            // Chuyển đổi nội dung thu sang tiếng Việt
+            type: item.type === 'RETAKE_COURSES' ? 'Học lại' : (item.type || item.content || 'Học lại'),
+            
+            dateFeePaid: item.createTime || item.dateFeePaid || '---',
+          }
+        })
+
+        this.totalRecord = 
+          raw?.totalRecords || 
+          raw?.data?.totalRecords || 
+          raw?.total || 
+          this.list.length
+
+        this.totalAmount = 
+          raw?.totalAmount || 
+          raw?.data?.totalAmount || 
+          calculatedTotalAmount
+
+        this.totalPage = Math.ceil(this.totalRecord / this.itemsPerPage) || 1
+      } catch (err) {
+        console.error('Lỗi khi tải dữ liệu tổng hợp:', err)
+        this.list = []
+        this.totalRecord = 0
+        this.totalAmount = 0
+      } finally {
+        this.isLoading = false
+      }
+    },
+
+    search() {
+      this.appliedFilters = { ...this.filters }
+      this.page = 1
+      this.pageInput = 1
+      this.fetchData()
+    },
+
+    resetFilters() {
+      this.filters = {
+        search: '',
+        examIds: null,
+        fromTime: '',
+        toTime: '',
+      }
+      this.appliedFilters = { ...this.filters }
+      this.page = 1
+      this.pageInput = 1
+      this.fetchData()
+    },
+
+    changePage(p) {
+      if (p >= 1 && p <= this.totalPages) {
+        this.page = p
+        this.pageInput = p
+        this.fetchData()
+      }
+    },
+
+    goToPage() {
+      let target = parseInt(this.pageInput, 10)
+      if (isNaN(target) || target < 1) target = 1
+      if (target > this.totalPages) target = this.totalPages
+      this.page = target
+      this.pageInput = target
+      this.fetchData()
+    },
+
+    onItemsPerPageChange(val) {
+      this.itemsPerPage = Number(val) || 50
+      this.page = 1
+      this.pageInput = 1
+      this.fetchData()
+    },
+
+    formatCurrency(val) {
+      if (val === null || val === undefined) return '0đ'
+      return `${Number(val).toLocaleString('en-US')}đ`
+    },
+
+    formatDisplayDate(dateStr) {
+      if (!dateStr) return ''
+      if (dateStr.includes('/')) return dateStr
+      const parts = dateStr.split('-')
+      if (parts.length !== 3) return dateStr
+      const [year, month, day] = parts
+      return `${day}/${month}/${year}`
+    },
+
+    onInputFromDate(val) {
+      if (!val) {
+        this.filters.fromTime = ''
+        return
+      }
+      if (val.includes('/')) {
+        const parts = val.split('/')
+        if (parts.length === 3) {
+          const [day, month, year] = parts
+          this.filters.fromTime = `${year}-${month}-${day}`
+        }
+      } else {
+        this.filters.fromTime = val
+      }
+    },
+
+    onInputToDate(val) {
+      if (!val) {
+        this.filters.toTime = ''
+        return
+      }
+      if (val.includes('/')) {
+        const parts = val.split('/')
+        if (parts.length === 3) {
+          const [day, month, year] = parts
+          this.filters.toTime = `${year}-${month}-${day}`
+        }
+      } else {
+        this.filters.toTime = val
+      }
+    },
+
+    formatDateTime(dateStr) {
+      if (!dateStr) return '---'
+      if (dateStr.includes('-')) {
+        const [datePart, timePart] = dateStr.split(' ')
+        const [year, month, day] = datePart.split('-')
+        return timePart ? `${day}/${month}/${year} ${timePart}` : `${day}/${month}/${year}`
+      }
+      return dateStr
+    },
+
+    async exportExcel() {
+      try {
+        const params = {
+          search: this.appliedFilters.search || undefined,
+          examIds: this.appliedFilters.examIds || undefined,
+          fromTime: this.appliedFilters.fromTime ? `${this.appliedFilters.fromTime} 00:00:00` : undefined,
+          toTime: this.appliedFilters.toTime ? `${this.appliedFilters.toTime} 23:59:59` : undefined,
+          channel: 'CMS',
+        }
+
+        const response = await reportSyntheticServices.exportSynthetic(params)
+        
+        const blob = new Blob([response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+        const link = document.createElement('a')
+        link.href = window.URL.createObjectURL(blob)
+        
+        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '_')
+        link.download = `danh-sach-tong-hop_${dateStr}.xlsx`
+        
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      } catch (error) {
+        console.error('Lỗi xuất file excel:', error)
+      }
+    },
+  },
+}
+</script>
+
 <style scoped>
-:deep(.v-data-table__wrapper) {
-    max-height: calc(100vh - 250px);
+.gap-1 { gap: 4px; }
+.gap-2 { gap: 8px; }
+.top-filter-bar { flex-shrink: 0; }
+.filter-item { flex-grow: 1; flex-shrink: 1; }
+.search-input { min-width: 180px; max-width: 240px; }
+.select-md { min-width: 150px; max-width: 190px; }
+.date-input { min-width: 140px; max-width: 170px; }
+.action-btn { height: 40px !important; min-height: 40px !important; }
+.custom-outlined-input >>> .v-input__control { min-height: 38px !important; }
+.custom-outlined-input >>> fieldset { border-color: #ccc !important; border-radius: 4px !important; }
+.border-top { border-top: 1px solid #e0e0e0; }
+.bottom-bar { flex-shrink: 0; background-color: #ffffff; overflow-x: auto; }
+.pagination-input >>> .v-input__control { min-height: 36px !important; }
+
+.table-scroll-container {
+  overflow-x: auto;
+  width: 100%;
+}
+.table-scroll-container >>> th {
+  position: sticky !important;
+  top: 0;
+  z-index: 2;
+  background-color: #f5f5f5 !important;
+}
+
+@media (max-width: 599px) {
+  .student-page { height: auto; min-height: 100vh; overflow: visible; }
+}
+@media (min-width: 600px) {
+  .student-page { height: calc(100vh - 64px); overflow: hidden; display: flex; flex-direction: column; }
 }
 </style>

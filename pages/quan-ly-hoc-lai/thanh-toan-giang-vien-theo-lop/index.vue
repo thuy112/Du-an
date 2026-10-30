@@ -230,7 +230,7 @@
     </div>
 
     <!-- THANH BOTTOM ACTIONS & PHÂN TRANG CỐ ĐỊNH PHÍA DƯỚI -->
-    <div class="pagination-bottom-container mt-4 pt-3 d-flex align-center justify-space-between flex-wrap gap-3 sticky-bottom-bar border-top">
+    <div class="pagination-bottom-container mt-4 pt-3 d-flex align-center justify-space-between flex-wrap gap-3.sticky-bottom-bar border-top">
       <div class="d-flex align-center" style="gap: 8px;">
         <!-- Nút xuất giấy xác nhận màu xám, không bấm được, bo góc nhỏ -->
         <v-btn disabled color="grey lighten-3" class="text-dark text-none font-weight-medium rounded-sm text-nowrap px-2" height="28" width="286" elevation="0" style="font-size: 12px; border-radius: 4px !important;">
@@ -566,35 +566,40 @@ export default {
     async loadData() {
       this.loading = true
       try {
-        const selectedStatus = this.activeFilters.status || ''
-        const params = {
+        const baseParams = {
           pageIndex: this.currentPage,
           pageSize: this.itemsPerPage,
-          teacherId: this.activeFilters.teacherId || '',
-          examId: this.activeFilters.examId || '',             
-          classCode: this.activeFilters.retakeSessionId || '', 
-          status: selectedStatus,             
-          paymentFeeStatus: selectedStatus,   
           channel: 'CMS',
         }
 
-        const res = await feeService.getList(params, this.$axios)
+        // Đưa các tham số lọc vào baseParams nếu có giá trị
+        if (this.activeFilters.teacherId) {
+          baseParams.teacherId = this.activeFilters.teacherId
+        }
+        if (this.activeFilters.examId) {
+          baseParams.examId = this.activeFilters.examId
+        }
+        if (this.activeFilters.retakeSessionId) {
+          baseParams.retakeSessionId = this.activeFilters.retakeSessionId
+          baseParams.examSessionId = this.activeFilters.retakeSessionId // Dự phòng tên key khác
+        }
+        if (this.activeFilters.status) {
+          baseParams.status = this.activeFilters.status
+          baseParams.paymentFeeStatus = this.activeFilters.status // Dự phòng tên key khác
+        }
+
+        console.log('Payload params gửi lên API getList:', baseParams)
+
+        const res = await feeService.getList(baseParams)
         if (res) {
           const rootData = res.data !== undefined ? res.data : res
+          const allItems = Array.isArray(rootData) ? rootData : rootData.data || rootData.content || rootData.items || []
           
-          // Lấy danh sách item
-          this.itemList = Array.isArray(rootData) ? rootData : rootData.data || rootData.content || rootData.items || []
-          
-          // Lấy chuẩn xác tổng số bản ghi từ mọi cấu trúc API có thể trả về
-          this.totalRecords = rootData.totalElements ?? rootData.totalRecords ?? rootData.total ?? (res.totalElements || res.totalRecords || res.total || this.itemList.length)
-          
-          // Tính tổng số trang chính xác tuyệt đối
-          this.totalPages = Math.max(1, Math.ceil(this.totalRecords / this.itemsPerPage))
-          
-          if (this.currentPage > this.totalPages) {
-            this.currentPage = this.totalPages
-            this.pageInput = this.totalPages
-          }
+          const rawTotal = rootData.totalElements ?? rootData.totalRecords ?? rootData.total ?? (res.totalElements || res.totalRecords || res.total)
+          this.totalRecords = rawTotal !== undefined ? rawTotal : allItems.length
+
+          this.itemList = allItems
+          this.totalPages = Math.ceil(this.totalRecords / this.itemsPerPage) || 1
         }
       } catch (error) {
         console.error('Lỗi tải danh sách thanh toán:', error)
@@ -642,14 +647,25 @@ export default {
     },
 
     handleSearch() {
-      this.activeFilters = { ...this.filters }
+      // Xử lý làm sạch bộ lọc trước khi tìm kiếm
+      this.activeFilters = {
+        teacherId: this.filters.teacherId?.value !== undefined ? this.filters.teacherId.value : this.filters.teacherId,
+        examId: this.filters.examId?.value !== undefined ? this.filters.examId.value : this.filters.examId,
+        retakeSessionId: this.filters.retakeSessionId?.value !== undefined ? this.filters.retakeSessionId.value : this.filters.retakeSessionId,
+        status: this.filters.status?.value !== undefined ? this.filters.status.value : this.filters.status,
+      }
       this.currentPage = 1
       this.pageInput = 1
       this.loadData()
     },
 
     refreshData() {
-      this.filters = { teacherId: '', examId: '', retakeSessionId: '', status: '' }
+      this.filters = {
+        teacherId: '',
+        examId: '',          
+        retakeSessionId: '', 
+        status: '',          
+      }
       this.handleSearch()
     },
 
@@ -694,98 +710,90 @@ export default {
     async handleStatusChange(item, selectedItem) {
       try {
         const newStatusValue = selectedItem.value || selectedItem
-        
-        // Gọi API cập nhật trạng thái
         await feeService.changeStatus(item.id, newStatusValue)
-        
-        // Gán đồng thời vào tất cả các tên trường có thể có của bảng
         item.status = newStatusValue
         item.paymentFeeStatus = newStatusValue
-        item.feeStatus = newStatusValue
-        
-        // Gọi lại hàm load dữ liệu
         await this.loadData()
       } catch (error) {
         console.error('Lỗi khi đổi trạng thái:', error)
       }
     },
 
-    // 1. Mở modal chi tiết và gọi API
     async viewDetail(item) {
-        try {
-        const transid = '1ed759dd-a84c-4a40-9fb2-5a41a60b4ebd';
-        const response = await feeService.getDetail(item.id, { transid });
+      try {
+        console.log("Đang lấy chi tiết cho item có ID:", item.id)
         
-        this.detailData = response.data || response;
-        this.detailDialog = true;
-        } catch (error) {
-        console.error('Lỗi khi lấy chi tiết:', error);
-        }
+        // Gọi API lấy chi tiết (thử bỏ hoặc giữ transid tùy theo service của ông)
+        const response = await feeService.getDetail(item.id)
+        
+        console.log("Dữ liệu API chi tiết trả về nguyên bản:", response)
+
+        // Bóc tách dữ liệu linh hoạt tránh việc bịundefined
+        const rawData = response.data !== undefined ? response.data : response
+        this.detailData = rawData.data || rawData.result || rawData
+
+        console.log("Dữ liệu sau khi gán cho detailData:", this.detailData)
+        
+        this.detailDialog = true
+      } catch (error) {
+        console.error('Lỗi khi lấy chi tiết:', error)
+        alert('Không thể tải thông tin chi tiết!')
+      }
     },
 
-    // Mở modal cập nhật file
     openUpdateFileDialog(item) {
-      this.selectedItemForFile = item; // Lưu lại dòng đang được chọn để cập nhật file
-      this.newFile = null;             // Reset file mới về trống
-      this.updateFileDialog = true;    // Bật modal cập nhật file lên
+      this.selectedItemForFile = item
+      this.newFile = null
+      this.updateFileDialog = true
     },
 
-    // Tải file về máy
     downloadFile(filePath) {
-        if (!filePath) return;
-        const link = document.createElement('a');
-        link.href = filePath;
-        link.setAttribute('download', '');
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      if (!filePath) return
+      const link = document.createElement('a')
+      link.href = filePath
+      link.setAttribute('download', '')
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
     },
 
-    // Đổi từ saveUploadedFile thành updateFile để khớp với template nút Lưu
     async updateFile() {
-        if (!this.newFile) {
-        alert('Vui lòng chọn file mới!');
-        return;
-        }
-        try {
-        const formData = new FormData();
-        formData.append('file', this.newFile);
-        formData.append('channel', 'CMS');
+      if (!this.newFile) {
+        alert('Vui lòng chọn file mới!')
+        return
+      }
+      try {
+        const formData = new FormData()
+        formData.append('file', this.newFile)
+        formData.append('channel', 'CMS')
 
-        await feeService.updateFile(this.selectedItemForFile.id, formData);
-
-        alert('Cập nhật file thành công!');
-        this.updateFileDialog = false;
-        this.loadData();
-        } catch (error) {
-        console.error('Lỗi khi cập nhật file:', error);
-        alert('Cập nhật file thất bại!');
-        }
+        await feeService.updateFile(this.selectedItemForFile.id, formData)
+        alert('Cập nhật file thành công!')
+        this.updateFileDialog = false
+        this.loadData()
+      } catch (error) {
+        console.error('Lỗi khi cập nhật file:', error)
+        alert('Cập nhật file thất bại!')
+      }
     },
+
     async exportExcel() {
       try {
-        const selectedStatus = this.activeFilters.status || ''
         const params = {
           teacherId: this.activeFilters.teacherId || '',
           examId: this.activeFilters.examId || '',             
-          classCode: this.activeFilters.retakeSessionId || '', 
-          status: selectedStatus,             
-          paymentFeeStatus: selectedStatus,   
+          examSessionId: this.activeFilters.retakeSessionId || '', 
+          status: this.activeFilters.status || '',             
+          paymentFeeStatus: this.activeFilters.status || '',   
           channel: 'CMS',
         }
 
-        // Gọi API export trả về dạng blob
         const response = await feeService.exportExcel(params, this.$axios)
-        
-        // Tạo đường dẫn tạm thời để tải file xuống trình duyệt
         const blob = new Blob([response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
         const link = document.createElement('a')
         link.href = window.URL.createObjectURL(blob)
-        
-        // Đặt tên file tải về kèm thời gian hiện tại
         const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '_')
         link.download = `danh-sach-thanh-toan-giang-vien_${dateStr}.xlsx`
-        
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
@@ -793,7 +801,7 @@ export default {
         console.error('Lỗi xuất file excel:', error)
       }
     },
-  },
+  }
 }
 </script>
 
@@ -827,18 +835,12 @@ export default {
 
 /* Cố định thanh bottom action & phân trang phía dưới */
 .sticky-bottom-bar {
-  position: sticky;
-  bottom: 0;
-  z-index: 5;
   background-color: #ffffff;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
 }
 
-/* Khung cuộn bảng, cố định tiêu đề màu xám */
+/* Chỉnh lại để trang cuộn tự nhiên */
 .table-scroll-container {
-  max-height: calc(100vh - 220px);
-  overflow-y: auto;
-  position: relative;
+  overflow-x: auto;
 }
 
 .table-scroll-container >>> th {

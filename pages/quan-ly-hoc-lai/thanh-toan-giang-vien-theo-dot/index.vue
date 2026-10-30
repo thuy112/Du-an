@@ -237,11 +237,20 @@
                 <v-list-item-title>Xuất Excel file chi tiết (Rút gọn)</v-list-item-title>
               </v-list-item>
 
-              <v-list-item @click="updateRecord(item)">
+              <!-- Nếu là Chờ thanh toán: Hiện nút Cập nhật -->
+              <v-list-item v-if="item.paymentFeeStatus === 'WAIT_PAID'" @click="updateRecord(item)">
                 <v-list-item-icon class="mr-2">
                   <v-icon small color="#ffae1f">mdi-pencil-outline</v-icon>
                 </v-list-item-icon>
                 <v-list-item-title>Cập nhật</v-list-item-title>
+              </v-list-item>
+
+              <!-- Nếu là Đã thanh toán: Đổi thành Gửi mail thông báo (Ảnh 3) -->
+              <v-list-item v-if="item.paymentFeeStatus === 'COMPLETE_PAID'" @click="sendEmailNotification(item)">
+                <v-list-item-icon class="mr-2">
+                  <v-icon small color="#9c27b0">mdi-email-outline</v-icon>
+                </v-list-item-icon>
+                <v-list-item-title>Gửi mail thông báo</v-list-item-title>
               </v-list-item>
 
               <v-list-item @click="deleteRecord(item)">
@@ -446,6 +455,295 @@
         </v-card>
       </v-form>
     </v-dialog>
+
+    <!-- ================= 1. MODAL XEM CHI TIẾT ================= -->
+    <v-dialog v-model="dialogDetail" max-width="900px" persistent>
+      <v-card class="pa-0 rounded-lg overflow-hidden">
+        <!-- Header màu đỏ Bách khoa -->
+        <div class="px-4 py-3 d-flex align-center justify-space-between" style="background-color: #A2212B; color: white;">
+          <div class="text-subtitle-1 font-weight-bold">Chi tiết đợt thanh toán GV theo lớp học lại</div>
+          <v-btn icon dark small @click="dialogDetail = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+
+        <div class="pa-4">
+          <div class="mb-4">
+            <div class="text-subtitle-2 font-weight-bold mb-3 text-red-bold">Thông tin đợt thanh toán</div>
+            <v-row class="body-2">
+              <v-col cols="6">
+                <strong>Tên đợt thanh toán:</strong> 
+                <span class="text-red-bold ml-1">{{ selectedItem.name || selectedItem.examName || selectedItem.code || '-' }}</span>
+              </v-col>
+              <v-col cols="6">
+                <strong>Mã đợt thanh toán:</strong> 
+                <span class="text-red-bold ml-1">{{ selectedItem.code || '-' }}</span>
+              </v-col>
+              <v-col cols="6">
+                <strong>Ngày thanh toán:</strong> 
+                <span class="text-red-bold ml-1">{{ formatDate(selectedItem.paymentDate) }}</span>
+              </v-col>
+              <v-col cols="6">
+                <strong>Trạng thái:</strong> 
+                <span class="text-red-bold ml-1">{{ getStatusText(selectedItem.paymentFeeStatus) }}</span>
+              </v-col>
+              
+              <!-- File thanh toán theo đúng yêu cầu -->
+              <v-col cols="12" class="d-flex align-center pt-2">
+                <strong class="mr-2">File thanh toán:</strong>
+                <v-btn
+                  v-if="selectedItem.fileName || selectedItem.fileUrl"
+                  icon
+                  small
+                  color="#A62229"
+                  :href="selectedItem.fileUrl || selectedItem.fileName"
+                  target="_blank"
+                  title="Tải xuống file thanh toán"
+                >
+                  <v-icon size="26">mdi-file-upload-outline</v-icon>
+                </v-btn>
+                <v-btn
+                  v-else
+                  icon
+                  small
+                  disabled
+                  color="grey"
+                  title="Chưa có file thanh toán"
+                >
+                  <v-icon size="26">mdi-file-upload-outline</v-icon>
+                </v-btn>
+              </v-col>
+            </v-row>
+          </div>
+
+          <v-divider class="my-3"></v-divider>
+
+          <!-- Danh sách giảng viên -->
+          <div class="text-subtitle-2 font-weight-bold mb-2">
+            Danh sách giảng viên (<span class="text-red-bold">{{ detailTeacherList.length }}</span>)
+          </div>
+
+          <v-data-table
+            :headers="detailHeaders"
+            :items="detailTeacherList"
+            dense
+            hide-default-footer
+            class="elevation-1"
+            no-data-text="Không có dữ liệu giảng viên"
+          >
+            <template #[`item.stt`]="{ index }">
+              <span>{{ index + 1 }}</span>
+            </template>
+            <template #[`item.unitPrice`]="{ item }">
+              <span>{{ formatMoney(item.unitPrice) }}</span>
+            </template>
+            <template #[`item.classType`]="{ item }">
+              <span>{{ formatClassType(item.classType) }}</span>
+            </template>
+            <template #[`item.totalAmount`]="{ item }">
+              <span>{{ formatMoney(item.totalAmount) }}</span>
+            </template>
+          </v-data-table>
+
+          <div class="d-flex justify-end align-center pt-4 border-top mt-3">
+            <v-btn text color="#A2212B" class="text-none font-weight-bold" @click="dialogDetail = false">
+              Đóng <v-icon right small>mdi-close</v-icon>
+            </v-btn>
+          </div>
+        </div>
+      </v-card>
+    </v-dialog>
+
+    <!-- ================= MODAL CẬP NHẬT (Chuẩn Ảnh 2) ================= -->
+    <v-dialog v-model="dialogEdit" max-width="900px" persistent>
+      <v-form ref="editForm" @submit.prevent="saveUpdate">
+        <v-card class="pa-0 rounded-lg overflow-hidden">
+          <!-- Header màu đỏ Bách khoa -->
+          <div class="px-4 py-3 d-flex align-center justify-space-between" style="background-color: #A2212B; color: white;">
+            <div class="text-subtitle-1 font-weight-bold">Cập nhật đợt thanh toán GV theo lớp học lại</div>
+            <v-btn icon dark small @click="dialogEdit = false">
+              <v-icon>mdi-close</v-icon>
+            </v-btn>
+          </div>
+
+          <div class="pa-4">
+            <!-- Thông tin thanh toán (Upload File) -->
+            <v-file-input
+              placeholder="Thông tin thanh toán"
+              accept=".xlsx, .xls, .pdf"
+              outlined
+              dense
+              hide-details
+              prepend-icon=""
+              append-icon="mdi-file-upload-outline"
+              class="custom-input mb-3"
+              @change="handleUploadEdit"
+            ></v-file-input>
+
+            <v-row class="mb-1">
+              <!-- Ngày thanh toán -->
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="formEditData.paymentDate"
+                  label="Ngày thanh toán (*)"
+                  outlined
+                  dense
+                  hide-details
+                  readonly
+                  class="custom-input"
+                ></v-text-field>
+              </v-col>
+
+              <!-- Chọn lớp học lại -->
+              <v-col cols="12" md="6">
+                <v-select
+                  v-model="formEditData.examSessionIds"
+                  :items="examSessionList"
+                  item-text="name"
+                  item-value="id"
+                  label="Chọn lớp học lại (*)"
+                  outlined
+                  dense
+                  hide-details
+                  multiple
+                  chips
+                  small-chips
+                  clearable
+                  class="custom-input"
+                  @change="onEditClassSelected"
+                ></v-select>
+              </v-col>
+            </v-row>
+
+            <!-- Tiêu đề Danh sách giảng viên & Ô tìm kiếm -->
+            <div class="d-flex align-center justify-space-between my-3 flex-wrap" style="gap: 10px;">
+              <div class="text-subtitle-2 font-weight-bold">
+                Danh sách giảng viên (<span class="text-red-bold">{{ filteredEditTeacherList.length }}</span>)
+              </div>
+              <v-text-field
+                v-model="editTeacherSearchKeyword"
+                placeholder="Tìm kiếm"
+                outlined
+                dense
+                hide-details
+                clearable
+                append-icon="mdi-magnify"
+                style="max-width: 280px;"
+                class="custom-input"
+              ></v-text-field>
+            </div>
+
+            <!-- Bảng danh sách giảng viên -->
+            <v-data-table
+              :headers="detailHeaders"
+              :items="filteredEditTeacherList"
+              dense
+              hide-default-footer
+              class="elevation-1 mb-3"
+              no-data-text="Không có dữ liệu giảng viên"
+              style="max-height: 280px; overflow-y: auto;"
+            >
+              <template #[`item.stt`]="{ index }">
+                <span>{{ index + 1 }}</span>
+              </template>
+              <template #[`item.unitPrice`]="{ item }">
+                <span>{{ formatMoney(item.unitPrice) }}</span>
+              </template>
+              <template #[`item.classType`]="{ item }">
+                <span>{{ formatClassType(item.classType) }}</span>
+              </template>
+
+              <!-- Hiển thị đúng số tiền 210,000 đ -->
+              <template #[`item.totalAmount`]="{ item }">
+                <span>{{ formatMoney(item.totalAmount || item.amount) }}</span>
+              </template>
+            </v-data-table>
+
+            <!-- Tổng tiền -->
+            <div class="text-right font-weight-bold text-subtitle-1 mb-4 text-red-bold">
+              Tổng tiền: {{ formatMoney(calculateEditTotalAmount) }} VNĐ
+            </div>
+
+            <!-- Footer: Đóng & Nút Lưu luôn xuất hiện có icon đĩa lưu -->
+            <div class="d-flex justify-end align-center pt-2 border-top" style="gap: 8px;">
+              <v-btn text color="#A2212B" class="text-none font-weight-bold px-3" height="38" @click="dialogEdit = false">
+                Đóng <v-icon right small class="ml-1">mdi-close</v-icon>
+              </v-btn>
+              <v-btn color="#A2212B" dark depressed class="text-none px-4" height="38" @click="saveUpdate">
+                Lưu <v-icon right small class="ml-1">mdi-content-save</v-icon>
+              </v-btn>
+            </div>
+          </div>
+        </v-card>
+      </v-form>
+    </v-dialog>
+
+    <!-- THANH THÔNG BÁO ĐỎ KHI BẤM LƯU MÀ KHÔNG CÓ GIẢNG VIÊN -->
+    <v-snackbar
+      v-model="snackbar.show"
+      color="#f44336"
+      top
+      right
+      timeout="3000"
+    >
+      <v-icon left dark>mdi-alert-circle</v-icon>
+      {{ snackbar.text }}
+      <template v-slot:action="{ attrs }">
+        <v-btn text dark v-bind="attrs" @click="snackbar.show = false">Đóng</v-btn>
+      </template>
+    </v-snackbar>
+
+    <!-- ================= 3. MODAL XÁC NHẬN XÓA (Ảnh 6 chuẩn) ================= -->
+    <v-dialog v-model="dialogDelete" max-width="450px" persistent>
+      <v-card class="pa-0 rounded-lg overflow-hidden">
+        <div class="px-4 py-3 d-flex align-center justify-space-between" style="background-color: #A2212B; color: white;">
+          <div class="text-subtitle-1 font-weight-bold">Xác nhận</div>
+          <v-btn icon dark small @click="dialogDelete = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </div>
+
+        <div class="pa-6 text-center text-body-1">
+          Xác nhận xóa <strong class="text-red-bold">{{ itemToDelete?.name || itemToDelete?.examName || itemToDelete?.code }}</strong>?
+        </div>
+
+        <div class="d-flex justify-end align-center pa-3 bg-light border-top" style="gap: 8px;">
+          <v-btn text color="#A2212B" class="text-none font-weight-bold px-3" height="36" @click="dialogDelete = false">
+            Đóng <v-icon right small class="ml-1">mdi-close</v-icon>
+          </v-btn>
+          <v-btn color="#A2212B" dark depressed class="text-none px-4" height="36" @click="confirmDelete">
+            Xác Nhận
+          </v-btn>
+        </div>
+      </v-card>
+    </v-dialog>
+
+    <!-- Dialog Xác nhận đổi trạng thái / Gửi email -->
+    <v-dialog v-model="dialogConfirmStatus" max-width="500px" persistent>
+      <v-card class="rounded-lg">
+        <v-card-title class="headline error white--text py-3">
+          <span>Xác nhận</span>
+          <v-spacer></v-spacer>
+          <v-btn icon dark @click="dialogConfirmStatus = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        
+        <v-card-text class="py-4 text-body-1">
+          {{ statusConfirmText }}
+        </v-card-text>
+
+        <v-card-actions class="px-4 pb-4">
+          <v-spacer></v-spacer>
+          <v-btn text class="grey--text text--darken-1 px-4" @click="dialogConfirmStatus = false">
+            Đóng
+          </v-btn>
+          <v-btn color="error" class="px-4 white--text" @click="confirmChangeStatus">
+            Xác Nhận
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -463,6 +761,33 @@ export default {
       pickerDate: '',
       isMobileDevice: false,
       loading: false,
+      dialogDetail: false,
+      dialogEdit: false,
+      dialogDelete: false,
+      dialogConfirmStatus: false,
+      statusConfirmText: '',
+      pendingItem: null,
+      pendingStatus: '',
+
+      selectedItem: {},
+      itemToDelete: null,
+      detailTeacherList: [],
+
+      formEditData: {
+        id: null,
+        paymentDate: '',
+        examSessionId: null,
+        fileName: '',
+        fileUrl: '',
+        items: []
+      },
+      editTeacherSearchKeyword: '',
+      
+      snackbar: {
+        show: false,
+        text: ''
+      },
+
       filters: {
         classCode: '',
         teacherId: '',
@@ -482,6 +807,17 @@ export default {
         { value: 'WAIT_PAID', text: 'Chờ thanh toán', color: '#a2212b' },
         { value: 'COMPLETE_PAID', text: 'Đã thanh toán', color: '#4caf50' },
         { value: 'CANCELED_PAID', text: 'Hủy thanh toán', color: '#f44336' },
+      ],
+
+      detailHeaders: [
+        { text: 'STT', value: 'stt', align: 'center', width: '60px', sortable: false },
+        { text: 'Họ tên giảng viên', value: 'teacherName', align: 'left', sortable: false },
+        { text: 'Lớp giảng dạy', value: 'classCode', align: 'left', sortable: false },
+        { text: 'Số tiết', value: 'period', align: 'center', sortable: false },
+        { text: 'Số lượng sinh viên', value: 'numberOfStudent', align: 'center', sortable: false },
+        { text: 'Định mức', value: 'unitPrice', align: 'right', sortable: false },
+        { text: 'Loại lớp', value: 'classType', align: 'left', sortable: false },
+        { text: 'Số tiền', value: 'totalAmount', align: 'right', sortable: false },
       ],
 
       itemList: [],
@@ -513,7 +849,6 @@ export default {
         { value: 'actions', text: 'Chức năng', align: 'center', width: '90px', sortable: false },
       ],
 
-      // Dữ liệu Modal Thêm Mới chuẩn API mẫu
       open: false,
       menuDate: false,
       teacherSearchKeyword: '',
@@ -544,7 +879,7 @@ export default {
         Object.assign(this.$data, this.$options.data());
         if (this.$refs.form) this.$refs.form.resetValidation();
       } else {
-        this.getTrainingTypes();
+        this.getTrainingTypes(); // Gọi API 4: /decisionTeacherJobFee/rc/teacher-class
       }
     },
   },
@@ -552,7 +887,9 @@ export default {
     if (typeof navigator !== 'undefined') {
       this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
     }
+    // Khi vừa vào trang, kích hoạt song song API 2 và API 3 để đổ dữ liệu vào các ô select Tìm kiếm
     await this.fetchCatalogs()
+    // Kích hoạt API 1 để lấy danh sách bảng chính
     await this.loadData()
   },
   computed: {
@@ -566,53 +903,79 @@ export default {
     },
     calculateTotalAmount() {
       return this.teacherList.reduce((sum, item) => sum + (Number(item.totalAmount) || 0), 0)
+    },
+    filteredEditTeacherList() {
+      if (!this.editTeacherSearchKeyword) return this.formEditData.items || []
+      const keyword = this.editTeacherSearchKeyword.toLowerCase().trim()
+      return (this.formEditData.items || []).filter(item => 
+        (item.teacherName && item.teacherName.toLowerCase().includes(keyword)) ||
+        (item.classCode && item.classCode.toLowerCase().includes(keyword))
+      )
+    },
+    calculateEditTotalAmount() {
+      return (this.formEditData.items || []).reduce((sum, item) => sum + (Number(item.totalAmount || item.amount) || 0), 0)
     }
   },
   methods: {
+    // Kết nối API 2 (/api/retakeCourse) và API 3 (/api/teacher/list?status=ACTIVE) cho phần ô chọn Tìm kiếm
     async fetchCatalogs() {
       try {
         const [teacherRes, examRes] = await Promise.all([
-          feeService.getTeachers({ status: 'ACTIVE', channel: 'CMS' }, this.$axios).catch(() => null),
-          feeService.getRetakeCourses({ pageSize: 100, pageIndex: 1, channel: 'CMS' }, this.$axios).catch(() => null),
+          feeService.getTeachers({ status: 'ACTIVE', channel: 'CMS' }).catch(() => null), // API 3: Danh sách giảng viên
+          feeService.getRetakeCourses({ pageSize: 100, pageIndex: 1, channel: 'CMS' }).catch(() => null), // API 2: Danh sách đợt học lại
         ])
 
-        if (teacherRes) {
-          const list = Array.isArray(teacherRes) ? teacherRes : teacherRes.data || teacherRes.content || []
-          this.teacherOptions = list.map(item => ({ text: item.fullName || item.name, value: item.id }))
-        }
-        if (examRes) {
-          const list = Array.isArray(examRes) ? examRes : examRes.data || examRes.content || []
-          this.examOptions = list.map(item => ({ text: item.code || item.name, value: item.code || item.id }))
-        }
+        // Đổ dữ liệu vào ô chọn Giảng viên ở bộ lọc
+        const teacherData = teacherRes?.data !== undefined ? teacherRes.data : teacherRes
+        const teacherListRaw = Array.isArray(teacherData) ? teacherData : (teacherData?.data || teacherData?.content || teacherData?.items || [])
+        this.teacherOptions = Array.isArray(teacherListRaw) 
+          ? teacherListRaw.map(item => ({ text: item.fullName || item.name, value: item.id }))
+          : []
+
+        // Đổ dữ liệu vào ô chọn Lớp học lại ở bộ lọc
+        const examData = examRes?.data !== undefined ? examRes.data : examRes
+        const examListRaw = Array.isArray(examData) ? examData : (examData?.data || examData?.content || examData?.items || [])
+        this.examOptions = Array.isArray(examListRaw) 
+          ? examListRaw.map(item => ({ text: item.code || item.name, value: item.code || item.id }))
+          : []
+
       } catch (error) {
-        console.error('Lỗi tải danh mục:', error)
+        console.error('Lỗi tải danh mục tìm kiếm:', error)
       }
     },
 
+    // Kết nối API 1 (/api/decisionTeacherJobFee/byExam) để hiển thị danh sách bảng chính
     async loadData() {
       this.loading = true
       try {
         const params = {
           pageIndex: this.currentPage,
           pageSize: this.itemsPerPage,
+          channel: 'CMS',
           classCode: this.activeFilters.classCode || '',
           teacherId: this.activeFilters.teacherId || '',
           examSessionCode: this.activeFilters.examSessionCode || '',
           paymentFeeStatus: this.activeFilters.paymentFeeStatus || '',
-          channel: 'CMS',
         }
 
-        const res = await feeService.getList(params, this.$axios)
-        if (res) {
-          const rootData = res.data !== undefined ? res.data : res
-          this.itemList = Array.isArray(rootData) ? rootData : rootData.data || rootData.content || rootData.items || []
-          this.totalRecords = rootData.totalElements || rootData.totalRecords || rootData.total || this.itemList.length
-          this.totalPages = Math.max(1, Math.ceil(this.totalRecords / this.itemsPerPage))
-          
-          if (this.currentPage > this.totalPages) {
-            this.currentPage = this.totalPages
-            this.pageInput = this.totalPages
+        Object.keys(params).forEach(key => {
+          if (params[key] === '' || params[key] === null || params[key] === undefined) {
+            delete params[key]
           }
+        })
+
+        const res = await feeService.getList(params)
+        const responseData = res?.data !== undefined ? res.data : res
+
+        if (responseData) {
+          const rootData = responseData.data !== undefined ? responseData.data : responseData
+          
+          this.itemList = Array.isArray(rootData) 
+            ? rootData 
+            : (rootData.content || rootData.items || rootData.list || rootData.rows || rootData.result || [])
+            
+          this.totalRecords = rootData.totalElements ?? rootData.totalRecords ?? rootData.total ?? responseData.totalElements ?? responseData.totalRecords ?? this.itemList.length
+          this.totalPages = Math.max(1, Math.ceil(this.totalRecords / this.itemsPerPage))
         }
       } catch (error) {
         console.error('Lỗi tải danh sách thanh toán theo đợt:', error)
@@ -638,9 +1001,7 @@ export default {
 
     formatSelectedDate(dateVal) {
       if (!dateVal) return
-      // dateVal nhận từ v-date-picker có dạng YYYY-MM-DD
       const [year, month, day] = dateVal.split('-')
-      // Chuyển thành DD/MM/YYYY có dấu gạch chéo
       this.params.paymentDate = `${day}/${month}/${year}`
     },
 
@@ -695,31 +1056,179 @@ export default {
     },
 
     updateStatus(item, newStatus) {
-      item.paymentFeeStatus = newStatus
+      if (item.paymentFeeStatus === newStatus) return
+      this.pendingItem = item
+      this.pendingStatus = newStatus
+      this.statusConfirmText = `Bạn có chắc chắn muốn đổi trạng thái từ ${this.getStatusLabel(item.paymentFeeStatus)} sang ${this.getStatusLabel(newStatus)} không?`
+      this.dialogConfirmStatus = true
     },
 
-    viewDetail(item) {
-      console.log('Xem chi tiết:', item)
+    async confirmChangeStatus() {
+      try {
+        if (!this.pendingItem) return
+
+        await feeService.updateStatus(this.pendingItem.id, {
+          paymentFeeStatus: this.pendingStatus,
+          channel: 'CMS'
+        })
+
+        if (this.$toast) {
+          this.$toast.success('Cập nhật trạng thái thành công!')
+        }
+        
+        this.dialogConfirmStatus = false
+        this.loadData()
+      } catch (error) {
+        console.error('Lỗi cập nhật trạng thái:', error)
+        if (this.$toast) {
+          this.$toast.error(error?.message || 'Có lỗi xảy ra khi cập nhật trạng thái!')
+        }
+      }
     },
 
-    exportExcelSummary(item) {
-      console.log('Xuất Excel file tổng hợp:', item)
+    getStatusLabel(status) {
+      const map = {
+        'WAIT_PAID': 'Chờ thanh toán',
+        'COMPLETE_PAID': 'Đã thanh toán',
+        'CANCELED_PAID': 'Hủy thanh toán'
+      }
+      return map[status] || status
     },
 
-    exportExcelDetail(item) {
-      console.log('Xuất Excel file chi tiết:', item)
+    async viewDetail(item) {
+      try {
+        const res = await feeService.getDetail(item.id)
+        const rootData = res?.data !== undefined ? res.data : res
+        this.selectedItem = rootData || item
+
+        const rawList = rootData?.teacherFees || rootData?.teachers || rootData?.details || rootData?.items || []
+        
+        this.detailTeacherList = Array.isArray(rawList) ? rawList.map(t => ({
+          teacherName: t.name || t.teacherName || '',
+          classCode: t.classCode || '',
+          period: t.period || 0,
+          numberOfStudent: t.numberOfStudent || 0,
+          unitPrice: t.unitPrice || 0,
+          classType: t.classType || '',
+          totalAmount: t.amount || t.totalAmount || 0
+        })) : []
+
+        this.dialogDetail = true
+      } catch (error) {
+        console.error('Lỗi lấy chi tiết:', error)
+        this.detailTeacherList = []
+      }
     },
 
-    exportExcelCompact(item) {
-      console.log('Xuất Excel file chi tiết rút gọn:', item)
+    async updateRecord(item) {
+      try {
+        const resClass = await feeService.getTeacherClass({ paymentTeacherId: item.id, channel: 'CMS' })
+        const rootData = resClass?.data !== undefined ? resClass.data : resClass
+
+        let matchedSessions = []
+        if (rootData && Array.isArray(rootData.data)) {
+          matchedSessions = rootData.data
+        } else if (Array.isArray(rootData)) {
+          matchedSessions = rootData
+        } else if (rootData?.examSessions && Array.isArray(rootData.examSessions)) {
+          matchedSessions = rootData.examSessions
+        } else if (item.examSessions && Array.isArray(item.examSessions)) {
+          matchedSessions = item.examSessions
+        }
+
+        this.examSessionList = matchedSessions.map(s => ({
+          id: s.id || s.classId || s.examSessionId,
+          name: s.name || s.code || s.examName || s.classCode || s.examClass
+        }))
+
+        const defaultClassId = matchedSessions.length > 0 ? (matchedSessions[0].id || matchedSessions[0].classId || matchedSessions[0].examSessionId) : null
+
+        this.formEditData = {
+          id: item.id,
+          paymentDate: this.formatDate(item.paymentDate),
+          examSessionId: defaultClassId,
+          fileName: item.fileName || '',
+          fileUrl: item.fileUrl || '',
+          items: []
+        }
+
+        if (defaultClassId) {
+          await this.onEditClassSelected(defaultClassId)
+        }
+
+        this.dialogEdit = true
+      } catch (error) {
+        console.error('Lỗi tải dữ liệu cập nhật:', error)
+      }
     },
 
-    updateRecord(item) {
-      console.log('Cập nhật bản ghi:', item)
+    async onEditClassSelected(selectedId) {
+      if (!selectedId) {
+        this.formEditData.items = []
+        return
+      }
+
+      try {
+        const resList = await feeService.getListByClass({ ids: selectedId, channel: 'CMS' })
+        const listRoot = resList?.data !== undefined ? resList.data : resList
+        const listArr = Array.isArray(listRoot) ? listRoot : [listRoot]
+
+        this.formEditData.items = listArr.filter(Boolean).map(t => ({
+          id: t.id,
+          teacherId: t.id || t.teacherId,
+          teacherName: t.name || t.teacherName,
+          classId: t.classId || selectedId,
+          classCode: t.classCode,
+          period: t.period || 0,
+          numberOfStudent: t.numberOfStudent || 0,
+          unitPrice: t.unitPrice || 0,
+          classType: t.classType || '',
+          totalAmount: t.amount || t.totalAmount || 0
+        }))
+      } catch (err) {
+        console.error(`Lỗi gọi getListByClass cho ID ${selectedId}:`, err)
+        this.formEditData.items = []
+      }
+    },
+
+    handleUploadEdit(data) {
+      if (data) {
+        this.formEditData.fileName = data.name
+      }
+    },
+
+    saveUpdate() {
+      if (!this.formEditData.items || this.formEditData.items.length === 0) {
+        this.snackbar = {
+          show: true,
+          text: 'Không có giảng viên nào cho các lớp đã chọn'
+        }
+        return
+      }
+
+      try {
+        this.dialogEdit = false
+        this.loadData()
+      } catch (error) {
+        console.error('Lỗi cập nhật đợt thanh toán:', error)
+      }
     },
 
     deleteRecord(item) {
-      console.log('Xóa bản ghi:', item)
+      this.itemToDelete = item
+      this.dialogDelete = true
+    },
+
+    async confirmDelete() {
+      try {
+        if (this.itemToDelete?.id) {
+          await feeService.deleteItem(this.itemToDelete.id)
+        }
+        this.dialogDelete = false
+        this.loadData()
+      } catch (error) {
+        console.error('Lỗi xóa bản ghi:', error)
+      }
     },
 
     openAddModal() {
@@ -741,7 +1250,6 @@ export default {
 
     formatDate(dateStr) {
       if (!dateStr) return '-'
-      // Nếu chuỗi có chứa khoảng trắng (VD: "12/05/2026 00:00:00" hoặc "2026-05-12 00:00:00")
       const parts = dateStr.split(' ')[0]
       return parts
     },
@@ -751,7 +1259,7 @@ export default {
       try {
         const formData = new FormData()
         formData.append("file", data)
-        const res = await feeService.uploadFile ? feeService.uploadFile(formData, this.$axios) : null
+        const res = feeService.uploadFile ? await feeService.uploadFile(formData) : null
         if (res && res.success) {
           this.params.fileUrl = res?.data?.url || ''
           this.params.fileName = res?.data?.name || data.name
@@ -764,9 +1272,10 @@ export default {
       }
     },
 
+    // Kết nối API 4 (/api/decisionTeacherJobFee/rc/teacher-class) khi mở modal Thêm mới
     async getTrainingTypes() {
       try {
-        const res = await feeService.getTeacherClass({ channel: 'CMS' }, this.$axios)
+        const res = await feeService.getTeacherClass({ channel: 'CMS' })
         const rootData = res.data !== undefined ? res.data : res
         const list = Array.isArray(rootData) ? rootData : rootData.data || rootData.content || []
         this.examSessionList = list.map((item) => ({
@@ -787,18 +1296,21 @@ export default {
       this.teacherList = []
       for (const id of selectedIds) {
         try {
-          const res = await feeService.getTeacherListByClass({ ids: id, channel: 'CMS' }, this.$axios)
+          const res = await feeService.getTeacherListByClass({ ids: id, channel: 'CMS' })
           const rootData = res.data !== undefined ? res.data : res
           const data = Array.isArray(rootData) ? rootData : [rootData]
           
           const mappedData = data.filter(Boolean).map(item => ({
             id: item.id,
+            teacherId: item.id || item.teacherId,
             teacherName: item.name,
+            classId: item.classId || id,
             classCode: item.classCode,
             period: item.period,
             numberOfStudent: item.numberOfStudent,
             unitPrice: item.unitPrice,
             classType: item.classType,
+            fee: item.amount || item.totalAmount || 0,
             totalAmount: item.amount,
           }))
 
@@ -812,34 +1324,28 @@ export default {
     async handleAdd() {
       if (this.$refs.form && !this.$refs.form.validate()) return;
       try {
-        // Chuẩn hóa ngày tháng thành định dạng DD/MM/YYYY
         let formattedDate = this.params.paymentDate;
         if (formattedDate && formattedDate.includes('-')) {
           const [year, month, day] = formattedDate.split(" ")[0].split('-');
           formattedDate = `${day}/${month}/${year}`;
         }
 
-        // Map lại danh sách chi tiết các lớp và giảng viên tương ứng vào examSessionIds
-        const detailedExamSessions = this.params.examSessionIds.map(classId => {
-          // Lấy thông tin giảng viên tương ứng với lớp này trong teacherList
-          const teacherItem = this.teacherList.find(t => t.classId === classId || t.id === classId || true);
-          return {
-            classId,
-            teacherId: teacherItem ? teacherItem.teacherId : null,
-            fee: teacherItem ? teacherItem.totalAmount : 0
-          };
-        });
+        const sessionPayloads = this.teacherList.map(item => ({
+          classId: item.classId,
+          teacherId: item.teacherId,
+          fee: item.fee
+        }));
 
         const payload = {
           fileUrl: this.params.fileUrl || '',
           fileName: this.params.fileName || '',
           paymentDate: formattedDate,
-          examSessionIds: detailedExamSessions,
+          examSessionIds: sessionPayloads.length > 0 ? sessionPayloads : this.params.examSessionIds,
           channel: 'CMS'
         };
 
         if (feeService.createDecision) {
-          await feeService.createDecision(payload, this.$axios);
+          await feeService.createDecision(payload);
         }
 
         this.open = false;
@@ -848,6 +1354,48 @@ export default {
         console.error("Error adding payment:", error);
       }
     },
+
+    async exportExcelSummary(item) {
+      try {
+        const res = await feeService.exportExcelSummary(item.id)
+        this.downloadFile(res, `Tong_hop_${item.id}.xlsx`)
+      } catch (error) {
+        console.error('Lỗi xuất file tổng hợp:', error)
+      }
+    },
+
+    async exportExcelDetail(item) {
+      try {
+        const res = await feeService.exportExcelDetail(item.id)
+        this.downloadFile(res, `Chi_tiet_${item.id}.xlsx`)
+      } catch (error) {
+        console.error('Lỗi xuất file chi tiết:', error)
+      }
+    },
+
+    async exportExcelCompact(item) {
+      try {
+        const res = await feeService.exportExcelCompact(item.id)
+        this.downloadFile(res, `Rut_gon_${item.id}.xlsx`)
+      } catch (error) {
+        console.error('Lỗi xuất file rút gọn:', error)
+      }
+    },
+
+    sendEmailNotification(item) {
+      this.selectedItemForMail = item
+      this.dialogSendMail = true 
+    },
+
+    downloadFile(response, filename) {
+      const url = window.URL.createObjectURL(new Blob([response.data || response]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', filename)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    }
   },
 }
 </script>
