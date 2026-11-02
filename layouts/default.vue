@@ -66,8 +66,8 @@
       v-else
       v-model="mobileDrawer"
       app
-      temporary
       fixed
+      :temporary="!mobileDrawer"
       width="260"
       color="#a2212b"
       dark
@@ -487,7 +487,7 @@ export default {
             },
             {
               title: 'BC giảng viên tổng hợp',
-              path: '/quan-ly-hoc-lai/ao-cao-giang-vien-tong-hop',
+              path: '/quan-ly-hoc-lai/bao-cao-giang-vien-tong-hop',
             },
           ],
         },

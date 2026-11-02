@@ -41,9 +41,12 @@ class Api {
             });
     }
 
-    async getBlob(url, data) {
+    async getBlob(url, config = {}) {
         return await this.$axios
-            .post(url, data, { responseType: "blob" })
+            .get(url, {
+                ...config,
+                responseType: "blob",
+            })
             .then((res) => res)
             .catch((error) => {
                 throw error;
@@ -52,11 +55,7 @@ class Api {
 
     async postMultipart(url, data) {
         return await this.$axios
-            .post(url, data, {
-                headers: {
-                    "Content-Type": "Multipart/form-data",
-                },
-            })
+            .post(url, data)
             .then((res) => res)
             .catch((error) => {
                 throw error;

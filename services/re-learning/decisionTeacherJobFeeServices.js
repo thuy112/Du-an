@@ -1,39 +1,32 @@
-import Api from "~/api/Api.js";
+import Api from '~/api/Api'
 
-class DecisionTeacherJobFeeServices {
-    async getListExam(params) {
-        return await Api.get("/decisionTeacherJobFee/byExam", params);
-    }
+export default {
+  getByClass(params) {
+    return Api.get('/api/decisionTeacherJobFee/byClass',params)
+  },
 
-    async getDetailExam(id) {
-        return await Api.get(`/decisionTeacherJobFee/byExam/${id}`);
-    }
+  // Thêm API chuyên biệt khi lọc theo lớp học lại
+  getListByClass(params) {
+    return Api.get('/api/teacher/rc/listByClass',params)
+  },
 
-    async addExam(params) {
-        return await Api.post("/decisionTeacherJobFee/byExam", params);
-    }
+  getRetakeCourse(params) {
+    return Api.get('/api/retakeCourse',params)
+  },
 
-    async updateExam(params) {
-        return await Api.put(`/decisionTeacherJobFee/byExam/${params.id}`, params);
-    }
+  getAllExam(params) {
+    return Api.get('/api/exam/allExam',params)
+  },
 
-    async changeStatusExam(id, paymentFeeStatus) {
-        return await Api.put(`/decisionTeacherJobFee/byExam/${id}/status`, {
-            paymentFeeStatus,
-        });
-    }
+  getTeacherList(params) {
+    return Api.get('/api/teacher/list',params)
+  },
 
-    async deleteExam(id) {
-        return await Api.delete(`/decisionTeacherJobFee/byExam/${id}`);
-    }
+  getPageRole(params) {
+    return Api.get('/api/auth/getPageRole',params)
+  },
 
-    async getListTeacherClass(params) {
-        return await Api.get("/decisionTeacherJobFee/teacher-class", params);
-    }
-
-    async getListClassByTeacher() {
-        return await Api.get("/decisionTeacherJobFee/rc/teacher-class");
-    }
+  getUserInfo(params) {
+    return Api.get('/api/user/info',params)
+  },
 }
-
-export default new DecisionTeacherJobFeeServices();

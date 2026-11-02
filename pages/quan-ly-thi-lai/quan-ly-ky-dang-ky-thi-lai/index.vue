@@ -18,6 +18,7 @@
           outlined
           dense
           hide-details
+          clearable
           class="custom-filter-input bg-white rounded"
           @keyup.enter="handleSearch"
         ></v-text-field>
@@ -38,6 +39,7 @@
               dense
               readonly
               hide-details
+              clearable
               class="custom-filter-input bg-white rounded"
               v-bind="attrs"
               v-on="on"
@@ -66,6 +68,7 @@
               dense
               readonly
               hide-details
+              clearable
               class="custom-filter-input bg-white rounded"
               v-bind="attrs"
               v-on="on"
@@ -131,143 +134,64 @@
       <BaseTable
         :loading="loading"
         :headers="headers"
-        :items="paginatedItems"
-        :page="page"
-        :page-size="itemsPerPage"
+        :items="items"
         :hide-default-footer="true"
         class="custom-responsive-table"
+        no-data-text="Không có dữ liệu"
       >
-        <template #body="{ items }">
-          <tbody>
-            <tr v-if="loading">
-              <td colspan="7" class="text-center py-6">
-                <v-progress-circular
-                  indeterminate
-                  color="#a2212b"
-                  size="32"
-                ></v-progress-circular>
-              </td>
-            </tr>
-            <tr v-else-if="items.length === 0">
-              <td colspan="7" class="text-center py-6 grey--text">
-                Không có dữ liệu.
-              </td>
-            </tr>
-            <tr
-              v-for="(item, index) in items"
-              :key="item.id || index"
-              class="responsive-row"
-            >
-              <td class="text-center" data-label="STT">
-                <span class="mobile-label font-weight-bold d-md-none"
-                  >STT:
-                </span>
-                {{ (page - 1) * itemsPerPage + index + 1 }}
-              </td>
-              <td
-                class="font-weight-medium"
-                data-label="Tên kỳ đăng ký thi lại"
-              >
-                <span class="mobile-label font-weight-bold d-md-none"
-                  >Tên kỳ thi lại:
-                </span>
-                {{ item.name }}
-              </td>
-              <td data-label="Mã kỳ đăng ký thi lại">
-                <span class="mobile-label font-weight-bold d-md-none"
-                  >Mã kỳ thi lại:
-                </span>
-                {{ item.code }}
-              </td>
-              <td data-label="Học kỳ">
-                <span class="mobile-label font-weight-bold d-md-none"
-                  >Học kỳ:
-                </span>
-                {{ item.semester || '—' }}
-              </td>
-              <td class="text-center" data-label="Thời gian đăng ký">
-                <span class="mobile-label font-weight-bold d-md-none"
-                  >Thời gian đăng ký:
-                </span>
-                {{ item.fromTime }} - {{ item.toTime }}
-              </td>
-              <td class="text-center" data-label="Trạng thái">
-                <span class="mobile-label font-weight-bold d-md-none"
-                  >Trạng thái:
-                </span>
-                <v-select
-                  :value="item.status"
-                  :items="statusSelectItems"
-                  item-text="label"
-                  item-value="value"
-                  dense
-                  solo
-                  flat
-                  hide-details
-                  class="status-select-btn"
-                  :class="
-                    item.status === 'ACTIVE'
-                      ? 'status-active'
-                      : 'status-inactive'
-                  "
-                  @change="(val) => openConfirmStatusDialog(item, val)"
-                ></v-select>
-              </td>
-              <td class="text-center" data-label="Chức năng">
-                <span class="mobile-label font-weight-bold d-md-none"
-                  >Chức năng:
-                </span>
-                <div
-                  class="d-flex align-center justify-end justify-md-center gap-1"
-                >
-                  <v-tooltip bottom>
-                    <template #activator="{ on, attrs }">
-                      <v-btn
-                        icon
-                        x-small
-                        v-bind="attrs"
-                        v-on="on"
-                        @click="viewDetail(item)"
-                      >
-                        <v-icon size="20" color="blue">mdi-eye</v-icon>
-                      </v-btn>
-                    </template>
-                    <span>Xem chi tiết</span>
-                  </v-tooltip>
+        <template #[`item.stt`]="{ index }">
+          <span class="font-weight-medium">{{ (page - 1) * itemsPerPage + index + 1 }}</span>
+        </template>
 
-                  <v-tooltip bottom>
-                    <template #activator="{ on, attrs }">
-                      <v-btn
-                        icon
-                        x-small
-                        v-bind="attrs"
-                        v-on="on"
-                        @click="openEditModal(item)"
-                      >
-                        <v-icon size="20" color="warning">mdi-pencil</v-icon>
-                      </v-btn>
-                    </template>
-                    <span>Chỉnh sửa</span>
-                  </v-tooltip>
+        <template #[`item.registrationTime`]="{ item }">
+          <span>{{ item.fromTime || '---' }} - {{ item.toTime || '---' }}</span>
+        </template>
 
-                  <v-tooltip bottom>
-                    <template #activator="{ on, attrs }">
-                      <v-btn
-                        icon
-                        x-small
-                        v-bind="attrs"
-                        v-on="on"
-                        @click="openDeleteDialog(item)"
-                      >
-                        <v-icon size="20" color="red">mdi-trash-can</v-icon>
-                      </v-btn>
-                    </template>
-                    <span>Xóa</span>
-                  </v-tooltip>
-                </div>
-              </td>
-            </tr>
-          </tbody>
+        <template #[`item.status`]="{ item }">
+          <v-select
+            :value="item.status"
+            :items="statusSelectItems"
+            item-text="label"
+            item-value="value"
+            dense
+            solo
+            flat
+            hide-details
+            class="status-select-btn"
+            :class="item.status === 'ACTIVE' ? 'status-active' : 'status-inactive'"
+            @change="(val) => openConfirmStatusDialog(item, val)"
+          ></v-select>
+        </template>
+
+        <template #[`item.actions`]="{ item }">
+          <div class="d-flex align-center justify-end justify-md-center gap-1">
+            <v-tooltip bottom>
+              <template #activator="{ on, attrs }">
+                <v-btn icon x-small v-bind="attrs" v-on="on" @click="viewDetail(item)">
+                  <v-icon size="20" color="blue">mdi-eye</v-icon>
+                </v-btn>
+              </template>
+              <span>Xem chi tiết</span>
+            </v-tooltip>
+
+            <v-tooltip bottom>
+              <template #activator="{ on, attrs }">
+                <v-btn icon x-small v-bind="attrs" v-on="on" @click="openEditModal(item)">
+                  <v-icon size="20" color="warning">mdi-pencil</v-icon>
+                </v-btn>
+              </template>
+              <span>Chỉnh sửa</span>
+            </v-tooltip>
+
+            <v-tooltip bottom>
+              <template #activator="{ on, attrs }">
+                <v-btn icon x-small v-bind="attrs" v-on="on" @click="openDeleteDialog(item)">
+                  <v-icon size="20" color="red">mdi-trash-can</v-icon>
+                </v-btn>
+              </template>
+              <span>Xóa</span>
+            </v-tooltip>
+          </div>
         </template>
       </BaseTable>
     </div>
@@ -275,6 +199,7 @@
     <!-- ==================== THANH PHÂN TRANG CỐ ĐỊNH GÓC DƯỚI BÊN PHẢI ==================== -->
     <div
       class="fixed-footer-pagination d-flex align-center justify-end px-4 py-2 bg-white flex-wrap gap-3"
+      :class="{ 'fixed-footer-pagination-drawer-open': mobileDrawer && !isDesktop }"
     >
       <!-- Cụm bên trái: Chọn bản ghi & Nhập trang & Nút Đi -->
       <div class="d-flex align-center gap-2">
@@ -316,31 +241,34 @@
 
       <!-- Cụm bên phải: Nút qua lại & Các nút số trang vuông -->
       <div class="d-flex align-center gap-1">
-        <v-btn icon small :disabled="page === 1" @click="changePage(page - 1)">
+        <v-btn icon small :disabled="page <= 1" @click="changePage(page - 1)">
           <v-icon>mdi-chevron-left</v-icon>
         </v-btn>
 
-        <v-btn
-          v-for="p in visiblePages"
-          :key="p"
-          small
-          elevation="0"
-          :color="p === page ? '#a2212b' : 'transparent'"
-          :class="
-            p === page
-              ? 'white--text font-weight-bold'
-              : 'grey--text text--darken-2'
-          "
-          class="pagination-square-btn min-w-0"
-          @click="changePage(p)"
-        >
-          {{ p }}
-        </v-btn>
+        <template v-for="p in visiblePages">
+          <v-btn
+            v-if="p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)"
+            :key="p"
+            small
+            elevation="0"
+            :color="p === page ? '#a2212b' : 'transparent'"
+            :class="
+              p === page
+                ? 'white--text font-weight-bold'
+                : 'grey--text text--darken-2'
+            "
+            class="pagination-square-btn min-w-0"
+            @click="changePage(p)"
+          >
+            {{ p }}
+          </v-btn>
+          <span v-else-if="p === page - 2 || p === page + 2" :key="'dots-' + p">...</span>
+        </template>
 
         <v-btn
           icon
           small
-          :disabled="page === totalPages"
+          :disabled="page >= totalPages"
           @click="changePage(page + 1)"
         >
           <v-icon>mdi-chevron-right</v-icon>
@@ -656,8 +584,92 @@
 
 <script>
 import BaseTable from '~/components/Base/BaseTable.vue'
-import { MOCK_DATA_KY_THI } from '~/consts/kydangkythilai.js'
 import examServices from '~/services/examServices'
+
+const collectionKeys = [
+  'data',
+  'content',
+  'items',
+  'records',
+  'list',
+  'rows',
+  'result',
+  'results',
+  'examList',
+]
+
+function findCollection(value, depth = 0, seen = new Set()) {
+  if (Array.isArray(value)) return value
+  if (typeof value === 'string') {
+    try {
+      return findCollection(JSON.parse(value), depth + 1, seen)
+    } catch (error) {
+      return null
+    }
+  }
+  if (!value || typeof value !== 'object' || depth >= 8 || seen.has(value)) {
+    return null
+  }
+  seen.add(value)
+
+  for (const key of collectionKeys) {
+    if (Array.isArray(value[key]) && value[key].length) return value[key]
+  }
+
+  for (const key of collectionKeys) {
+    const collection = findCollection(value[key], depth + 1, seen)
+    if (collection?.length) return collection
+  }
+
+  for (const [key, nestedValue] of Object.entries(value)) {
+    if (!collectionKeys.includes(key)) {
+      const collection = findCollection(nestedValue, depth + 1, seen)
+      if (collection?.length) return collection
+    }
+  }
+
+  for (const key of collectionKeys) {
+    if (Array.isArray(value[key])) return value[key]
+  }
+
+  for (const key of collectionKeys) {
+    const collection = findCollection(value[key], depth + 1, seen)
+    if (collection) return collection
+  }
+
+  for (const [key, nestedValue] of Object.entries(value)) {
+    if (!collectionKeys.includes(key)) {
+      const collection = findCollection(nestedValue, depth + 1, seen)
+      if (collection) return collection
+    }
+  }
+
+  return null
+}
+
+function findTotal(value, depth = 0, seen = new Set()) {
+  if (!value || typeof value !== 'object' || depth >= 8 || seen.has(value)) {
+    return undefined
+  }
+  seen.add(value)
+
+  const totalKeys = [
+    'totalElements',
+    'totalRecords',
+    'total',
+    'totalCount',
+    'count',
+  ]
+  for (const key of totalKeys) {
+    if (value[key] !== undefined && value[key] !== null) return value[key]
+  }
+
+  for (const nestedValue of Object.values(value)) {
+    const total = findTotal(nestedValue, depth + 1, seen)
+    if (total !== undefined) return total
+  }
+  return undefined
+}
 
 export default {
   name: 'QuanLyKyDangKyThiLaiPage',
@@ -671,7 +683,8 @@ export default {
       loading: false,
       page: 1,
       pageInput: 1,
-      itemsPerPage: 50, // Cố định bản ghi mặc định là 50
+      itemsPerPage: 50,
+      totalItemsCount: 0,
 
       // Bộ lọc
       filters: { search: '', startDate: null, endDate: null, status: null },
@@ -760,41 +773,12 @@ export default {
         },
       ],
 
-      items: MOCK_DATA_KY_THI || [],
+      items: [],
+      totalPages: 1,
     }
   },
 
   computed: {
-    totalItemsCount() {
-      return this.filteredItems.length
-    },
-    filteredItems() {
-      const list = this.items || []
-      return list.filter((item) => {
-        const name = item.name || ''
-        const code = item.code || ''
-        const matchSearch =
-          !this.appliedFilters.search ||
-          name
-            .toLowerCase()
-            .includes(this.appliedFilters.search.toLowerCase()) ||
-          code.toLowerCase().includes(this.appliedFilters.search.toLowerCase())
-
-        const matchStatus =
-          !this.appliedFilters.status ||
-          item.status === this.appliedFilters.status
-
-        return matchSearch && matchStatus
-      })
-    },
-    paginatedItems() {
-      const start = (this.page - 1) * this.itemsPerPage
-      return this.filteredItems.slice(start, start + this.itemsPerPage)
-    },
-    totalPages() {
-      const total = Math.ceil(this.filteredItems.length / this.itemsPerPage)
-      return total > 0 ? total : 1
-    },
     visiblePages() {
       const pages = []
       for (let i = 1; i <= this.totalPages; i++) {
@@ -804,20 +788,64 @@ export default {
     },
   },
 
-  mounted() {
-    this.fetchData()
+  async mounted() {
+    if (this.$store) {
+      this.$store.commit('SET_PAGE_TITLE', 'Quản lý kỳ đăng ký thi lại')
+    }
+    await Promise.all([
+      this.fetchSupportingData(),
+      this.fetchData(),
+    ])
   },
 
   methods: {
+    async fetchSupportingData() {
+      const results = await Promise.allSettled([
+        examServices.getPageRole({ channel: 'CMS' }),
+        examServices.getUserInfo({ channel: 'CMS' }),
+      ])
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const endpoint = index === 0 ? 'getPageRole' : 'user/info'
+          console.error(`Lỗi tải API ${endpoint}:`, result.reason)
+        }
+      })
+    },
+
     async fetchData() {
       this.loading = true
       try {
-        const res = await examServices.getExamList(this.appliedFilters)
-        if (res && res.success && res.data && res.data.length > 0) {
-          this.items = res.data
+        const params = {
+          pageIndex: this.page,
+          pageSize: this.itemsPerPage,
+          search: this.appliedFilters.search || '',
+          status: this.appliedFilters.status || '',
+          fromTime: this.appliedFilters.startDate || '',
+          toTime: this.appliedFilters.endDate || '',
+          channel: 'CMS',
         }
+
+        const res = await examServices.getExamList(params)
+        if (res?.success === false) {
+          throw new Error('API danh sách kỳ thi lại trả về lỗi.')
+        }
+
+        const responseData = res?.data !== undefined ? res.data : res
+        const items = findCollection(responseData) || []
+        this.items = items
+        this.totalItemsCount =
+          findTotal(responseData) ??
+          res?.totalElements ??
+          res?.totalRecords ??
+          res?.total ??
+          items.length
+        this.totalPages = Math.ceil(this.totalItemsCount / this.itemsPerPage) || 1
       } catch (error) {
         console.error('Lỗi khi tải danh sách kỳ thi lại từ API:', error)
+        this.showToast('Không tải được danh sách kỳ đăng ký thi lại', '#f44336')
+        this.items = []
+        this.totalItemsCount = 0
+        this.totalPages = 1
       } finally {
         this.loading = false
       }
@@ -827,6 +855,7 @@ export default {
       this.appliedFilters = { ...this.filters }
       this.page = 1
       this.pageInput = 1
+      this.fetchData()
     },
 
     resetFilters() {
@@ -844,26 +873,30 @@ export default {
       }
       this.page = 1
       this.pageInput = 1
+      this.fetchData()
     },
 
     changePage(p) {
       if (p >= 1 && p <= this.totalPages) {
         this.page = p
         this.pageInput = p
+        this.fetchData()
       }
     },
 
     goToPage() {
-      let target = parseInt(this.pageInput)
+      let target = parseInt(this.pageInput, 10)
       if (isNaN(target) || target < 1) target = 1
       if (target > this.totalPages) target = this.totalPages
       this.page = target
       this.pageInput = target
+      this.fetchData()
     },
 
     onItemsPerPageChange() {
       this.page = 1
       this.pageInput = 1
+      this.fetchData()
     },
 
     openCreateModal() {
@@ -892,19 +925,13 @@ export default {
         try {
           if (this.isEdit) {
             await examServices.updateExam(this.formData.id, this.formData)
-            const idx = this.items.findIndex((i) => i.id === this.formData.id)
-            if (idx !== -1) this.items.splice(idx, 1, { ...this.formData })
             this.showToast('Cập nhật kỳ đăng ký thành công', '#4caf50')
           } else {
-            const res = await examServices.createExam(this.formData)
-            if (res && res.data) {
-              this.items.unshift(res.data)
-            } else {
-              this.items.unshift({ ...this.formData, id: Date.now() })
-            }
+            await examServices.createExam(this.formData)
             this.showToast('Thêm mới kỳ đăng ký thành công', '#4caf50')
           }
           this.formDialog = false
+          this.fetchData()
         } catch (error) {
           this.showToast('Lưu thông tin thất bại', '#f44336')
         }
@@ -920,12 +947,18 @@ export default {
     async confirmStatusUpdate() {
       if (this.pendingStatusChange.item) {
         try {
-          await examServices.updateExamStatus(
-            this.pendingStatusChange.item.id,
-            this.pendingStatusChange.newStatus
-          )
-          this.pendingStatusChange.item.status =
-            this.pendingStatusChange.newStatus
+          if (examServices.updateExamStatus) {
+            await examServices.updateExamStatus(
+              this.pendingStatusChange.item.id,
+              this.pendingStatusChange.newStatus
+            )
+          } else {
+            await examServices.updateExam(this.pendingStatusChange.item.id, {
+              ...this.pendingStatusChange.item,
+              status: this.pendingStatusChange.newStatus,
+            })
+          }
+          this.pendingStatusChange.item.status = this.pendingStatusChange.newStatus
           this.showToast('Cập nhật trạng thái thành công', '#4caf50')
         } catch (error) {
           this.showToast('Cập nhật trạng thái thất bại', '#f44336')
@@ -946,8 +979,8 @@ export default {
       this.deleteLoading = true
       try {
         await examServices.deleteExam(this.itemToDelete.id)
-        this.items = this.items.filter((i) => i.id !== this.itemToDelete.id)
         this.showToast('Xóa thông tin thành công', '#4caf50')
+        this.fetchData()
       } catch (error) {
         console.error('Lỗi khi xóa:', error)
         this.showToast('Xóa thông tin thất bại', '#f44336')
@@ -972,20 +1005,13 @@ export default {
 </script>
 
 <style scoped>
-/* Biến toàn bộ trang thành vùng cuộn độc lập, bỏ qua việc bị khóa khung ngoài của layout */
 .page-container {
-  position: absolute !important;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  overflow-y: auto !important;
+  min-height: calc(100vh - 60px);
   overflow-x: hidden !important;
   box-sizing: border-box;
   font-size: 14px;
   background-color: #f8f9fa;
-  padding-bottom: 90px !important; /* Chừa khoảng trống cho thanh phân trang cố định */
-  z-index: 10;
+  padding-bottom: 90px !important;
 }
 
 .table-container-wrapper {
@@ -1002,7 +1028,6 @@ export default {
   gap: 12px;
 }
 
-/* Ô FILTER INPUT RESPONSIVE */
 .custom-filter-input {
   width: 100% !important;
   max-width: 180px !important;
@@ -1031,7 +1056,6 @@ export default {
   min-height: 38px !important;
 }
 
-/* NÚT TRẠNG THÁI */
 .status-select-btn {
   min-width: 125px !important;
   width: 125px !important;
@@ -1067,7 +1091,6 @@ export default {
   background-color: #757575 !important;
 }
 
-/* CỐ ĐỊNH FOOTER PHÂN TRANG GÓC DƯỚI BÊN PHẢI */
 .fixed-footer-pagination {
   position: fixed;
   bottom: 0;
@@ -1078,6 +1101,30 @@ export default {
   border-top: none !important;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05) !important;
   justify-content: flex-end !important;
+}
+
+.fixed-footer-pagination-drawer-open {
+  left: 0;
+  right: 0;
+  width: auto;
+}
+
+@media (max-width: 600px) {
+  .fixed-footer-pagination-drawer-open {
+    justify-content: center !important;
+    padding: 6px 4px !important;
+    gap: 3px !important;
+  }
+
+  .fixed-footer-pagination-drawer-open > div {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 3px !important;
+  }
+
+  .fixed-footer-pagination-drawer-open .text-caption {
+    font-size: 0.68rem !important;
+  }
 }
 
 .size-select {

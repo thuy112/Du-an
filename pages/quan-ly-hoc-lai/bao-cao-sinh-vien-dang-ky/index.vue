@@ -48,15 +48,15 @@
           >
             <template v-slot:activator="{ on, attrs }">
               <v-text-field
+                label="Từ ngày đăng ký"
                 :value="formatDisplayDate(filters.fromTime)"
-                @input="onInputFromDate"
-                placeholder="dd/mm/yyyy"
                 outlined
                 dense
                 hide-details
                 clearable
                 class="bg-white filter-item date-input custom-outlined-input"
                 v-bind="attrs"
+                @input="onInputFromDate"
                 v-on="on"
               ></v-text-field>
             </template>
@@ -82,15 +82,15 @@
           >
             <template v-slot:activator="{ on, attrs }">
               <v-text-field
+                label="Đến ngày đăng ký"
                 :value="formatDisplayDate(filters.toTime)"
-                @input="onInputToDate"
-                placeholder="dd/mm/yyyy"
                 outlined
                 dense
                 hide-details
                 clearable
                 class="bg-white filter-item date-input custom-outlined-input"
                 v-bind="attrs"
+                @input="onInputToDate"
                 v-on="on"
               ></v-text-field>
             </template>
@@ -369,9 +369,8 @@ export default {
           search: this.appliedFilters.search || undefined,
           examIds: this.appliedFilters.examIds || undefined,
           
-          // Sử dụng định dạng chuẩn ISO có chữ 'T' ở giữa thay vì dấu cách
-          fromTime: this.appliedFilters.fromTime ? `${this.appliedFilters.fromTime}T00:00:00` : undefined,
-          toTime: this.appliedFilters.toTime ? `${this.appliedFilters.toTime}T23:59:59` : undefined,
+          fromTime: this.formatDateTimeParam(this.appliedFilters.fromTime, '00:00:00'),
+          toTime: this.formatDateTimeParam(this.appliedFilters.toTime, '23:59:59'),
           
           channel: 'CMS',
         }
@@ -469,7 +468,25 @@ export default {
     },
 
     search() {
-      this.appliedFilters = { ...this.filters }
+      const fromTime = this.parseDateToBackend(this.filters.fromTime)
+      const toTime = this.parseDateToBackend(this.filters.toTime)
+
+      if (this.filters.fromTime && !fromTime) {
+        this.$toast?.error?.('Ngày bắt đầu đăng ký không hợp lệ!')
+        return
+      }
+
+      if (this.filters.toTime && !toTime) {
+        this.$toast?.error?.('Ngày kết thúc đăng ký không hợp lệ!')
+        return
+      }
+
+      if (fromTime && toTime && fromTime > toTime) {
+        this.$toast?.error?.('Từ ngày đăng ký không được lớn hơn đến ngày!')
+        return
+      }
+
+      this.appliedFilters = { ...this.filters, fromTime, toTime }
       this.page = 1
       this.pageInput = 1
       this.fetchData()
@@ -517,6 +534,41 @@ export default {
       return `${Number(val).toLocaleString('en-US')}đ`
     },
 
+    parseDateToBackend(dateStr) {
+      if (!dateStr) return ''
+
+      let year, month, day
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        [year, month, day] = dateStr.split('-')
+      } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+        [day, month, year] = dateStr.split('/')
+      } else {
+        return null
+      }
+
+      year = Number(year)
+      month = Number(month)
+      day = Number(day)
+
+      const date = new Date(Date.UTC(year, month - 1, day))
+      if (
+        date.getUTCFullYear() !== year ||
+        date.getUTCMonth() !== month - 1 ||
+        date.getUTCDate() !== day
+      ) {
+        return null
+      }
+
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    },
+
+    formatDateTimeParam(dateStr, time) {
+      if (!dateStr) return undefined
+      const [year, month, day] = dateStr.split('-')
+      return `${day}/${month}/${year} ${time}`
+    },
+
     formatDisplayDate(dateStr) {
       if (!dateStr) return ''
       if (dateStr.includes('/')) return dateStr
@@ -561,7 +613,7 @@ export default {
     formatDateTime(dateStr) {
       if (!dateStr) return '---'
       if (dateStr.includes('-')) {
-        const [datePart, timePart] = dateStr.split(' ')
+        const [datePart, timePart] = dateStr.split(/[ T]/)
         const [year, month, day] = datePart.split('-')
         return timePart ? `${day}/${month}/${year} ${timePart}` : `${day}/${month}/${year}`
       }
@@ -573,8 +625,8 @@ export default {
         const params = {
           search: this.appliedFilters.search || undefined,
           examIds: this.appliedFilters.examIds || undefined,
-          fromTime: this.appliedFilters.fromTime ? `${this.appliedFilters.fromTime} 00:00:00` : undefined,
-          toTime: this.appliedFilters.toTime ? `${this.appliedFilters.toTime} 23:59:59` : undefined,
+          fromTime: this.formatDateTimeParam(this.appliedFilters.fromTime, '00:00:00'),
+          toTime: this.formatDateTimeParam(this.appliedFilters.toTime, '23:59:59'),
           channel: 'CMS',
         }
 

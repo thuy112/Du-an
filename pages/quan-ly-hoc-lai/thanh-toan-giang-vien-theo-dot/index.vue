@@ -594,10 +594,10 @@
                 ></v-text-field>
               </v-col>
 
-              <!-- Chọn lớp học lại -->
+              <!-- Chọn lớp học lại (Chọn đơn có ô tích vuông dạng như ảnh) -->
               <v-col cols="12" md="6">
                 <v-select
-                  v-model="formEditData.examSessionIds"
+                  v-model="formEditData.examSessionId"
                   :items="examSessionList"
                   item-text="name"
                   item-value="id"
@@ -605,13 +605,27 @@
                   outlined
                   dense
                   hide-details
-                  multiple
-                  chips
-                  small-chips
                   clearable
                   class="custom-input"
                   @change="onEditClassSelected"
-                ></v-select>
+                >
+                  <!-- Custom hiển thị item trong danh sách dropdown có ô tích vuông -->
+                  <template v-slot:item="{ item, attrs, on }">
+                    <v-list-item v-bind="attrs" v-on="on" dense>
+                      <v-list-item-action class="mr-2">
+                        <v-checkbox
+                          :input-value="formEditData.examSessionId === item.id"
+                          color="#A2212B"
+                          dense
+                          hide-details
+                        ></v-checkbox>
+                      </v-list-item-action>
+                      <v-list-item-content>
+                        <v-list-item-title>{{ item.name }}</v-list-item-title>
+                      </v-list-item-content>
+                    </v-list-item>
+                  </template>
+                </v-select>
               </v-col>
             </v-row>
 
@@ -678,7 +692,7 @@
       </v-form>
     </v-dialog>
 
-    <!-- THANH THÔNG BÁO ĐỎ KHI BẤM LƯU MÀ KHÔNG CÓ GIẢNG VIÊN -->
+    <!-- THANH THÔNG BÁO ĐỎ -->
     <v-snackbar
       v-model="snackbar.show"
       color="#f44336"
@@ -689,7 +703,9 @@
       <v-icon left dark>mdi-alert-circle</v-icon>
       {{ snackbar.text }}
       <template v-slot:action="{ attrs }">
-        <v-btn text dark v-bind="attrs" @click="snackbar.show = false">Đóng</v-btn>
+        <v-btn icon dark v-bind="attrs" @click="snackbar.show = false" title="Đóng">
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
       </template>
     </v-snackbar>
 
@@ -718,30 +734,28 @@
       </v-card>
     </v-dialog>
 
-    <!-- Dialog Xác nhận đổi trạng thái / Gửi email -->
+    <!-- BẢNG HỎI XÁC NHẬN ĐỔI TRẠNG THÁI (Đã đổi sang màu đỏ đô) -->
     <v-dialog v-model="dialogConfirmStatus" max-width="500px" persistent>
-      <v-card class="rounded-lg">
-        <v-card-title class="headline error white--text py-3">
-          <span>Xác nhận</span>
-          <v-spacer></v-spacer>
-          <v-btn icon dark @click="dialogConfirmStatus = false">
+      <v-card class="rounded-lg overflow-hidden">
+        <div class="px-4 py-3 d-flex align-center justify-space-between" style="background-color: #A2212B; color: white;">
+          <div class="text-subtitle-1 font-weight-bold">Xác nhận</div>
+          <v-btn icon dark small @click="dialogConfirmStatus = false">
             <v-icon>mdi-close</v-icon>
           </v-btn>
-        </v-card-title>
-        
-        <v-card-text class="py-4 text-body-1">
+        </div>
+
+        <v-card-text class="py-4 text-body-1 text--darken-2">
           {{ statusConfirmText }}
         </v-card-text>
 
-        <v-card-actions class="px-4 pb-4">
-          <v-spacer></v-spacer>
-          <v-btn text class="grey--text text--darken-1 px-4" @click="dialogConfirmStatus = false">
-            Đóng
+        <div class="d-flex justify-end align-center pa-3 bg-light border-top" style="gap: 8px;">
+          <v-btn text color="#A2212B" class="text-none font-weight-bold px-3" height="36" @click="dialogConfirmStatus = false">
+            Đóng <v-icon right small class="ml-1">mdi-close</v-icon>
           </v-btn>
-          <v-btn color="error" class="px-4 white--text" @click="confirmChangeStatus">
+          <v-btn color="#A2212B" dark depressed class="text-none px-4" height="36" @click="confirmChangeStatus">
             Xác Nhận
           </v-btn>
-        </v-card-actions>
+        </div>
       </v-card>
     </v-dialog>
   </div>
@@ -768,6 +782,8 @@ export default {
       statusConfirmText: '',
       pendingItem: null,
       pendingStatus: '',
+      snackbars: [],
+      failedClassIds: [],
 
       selectedItem: {},
       itemToDelete: null,
@@ -876,10 +892,20 @@ export default {
   watch: {
     open(newVal) {
       if (!newVal) {
-        Object.assign(this.$data, this.$options.data());
+        // CHỈ RESET RIÊNG FORM THÊM MỚI, KHÔNG XÓA DỮ LIỆU CỦA CẢ TRANG
+        this.params = {
+          fileUrl: '',
+          fileName: '',
+          paymentDate: '',
+          examSessionIds: [],
+          channel: 'CMS'
+        }
+        this.teacherList = []
+        this.failedClassIds = []
+        this.teacherSearchKeyword = ''
         if (this.$refs.form) this.$refs.form.resetValidation();
       } else {
-        this.getTrainingTypes(); // Gọi API 4: /decisionTeacherJobFee/rc/teacher-class
+        this.getTrainingTypes();
       }
     },
   },
@@ -1067,11 +1093,25 @@ export default {
       try {
         if (!this.pendingItem) return
 
-        await feeService.updateStatus(this.pendingItem.id, {
+        // Gọi API cập nhật trạng thái
+        const res = await feeService.updateStatus(this.pendingItem.id, {
           paymentFeeStatus: this.pendingStatus,
           channel: 'CMS'
         })
 
+        // Kiểm tra nếu server trả về mã lỗi hoặc thông báo lỗi cấu trúc trong response
+        if (res && (res.code === 400 || res.error || res.success === false)) {
+          const msg = res.message || 'Không tìm thấy định mức thù lao giảng viên cho lớp đồ án'
+          if (this.$toast) {
+            this.$toast.error(msg)
+          } else {
+            alert(msg)
+          }
+          this.dialogConfirmStatus = false
+          return
+        }
+
+        // Chỉ khi thành công thực sự mới báo xanh và load lại
         if (this.$toast) {
           this.$toast.success('Cập nhật trạng thái thành công!')
         }
@@ -1080,9 +1120,17 @@ export default {
         this.loadData()
       } catch (error) {
         console.error('Lỗi cập nhật trạng thái:', error)
+        // Bắt lỗi HTTP (ví dụ lỗi 400 như trên hình ảnh của bạn)
+        const errorMsg = error?.response?.data?.message || error?.message || 'Có lỗi xảy ra khi cập nhật trạng thái!'
+        
+        // TUYỆT ĐỐI KHÔNG HIỂN THỊ THÔNG BÁO XANH KHI GẶP LỖI NÀY
         if (this.$toast) {
-          this.$toast.error(error?.message || 'Có lỗi xảy ra khi cập nhật trạng thái!')
+          this.$toast.error(errorMsg)
+        } else {
+          alert(errorMsg)
         }
+        
+        this.dialogConfirmStatus = false
       }
     },
 
@@ -1141,19 +1189,25 @@ export default {
           name: s.name || s.code || s.examName || s.classCode || s.examClass
         }))
 
-        const defaultClassId = matchedSessions.length > 0 ? (matchedSessions[0].id || matchedSessions[0].classId || matchedSessions[0].examSessionId) : null
+        // Lấy đúng ID lớp của dòng hiện tại để check đúng ô tích
+        let exactClassId = null
+        if (item.examSessions && item.examSessions.length > 0) {
+          exactClassId = item.examSessions[0].id || item.examSessions[0].classId
+        } else if (matchedSessions.length > 0) {
+          exactClassId = matchedSessions[0].id || matchedSessions[0].classId || matchedSessions[0].examSessionId
+        }
 
         this.formEditData = {
           id: item.id,
           paymentDate: this.formatDate(item.paymentDate),
-          examSessionId: defaultClassId,
+          examSessionId: exactClassId, // Gán ID để check đúng ô vuông trong dropdown
           fileName: item.fileName || '',
           fileUrl: item.fileUrl || '',
           items: []
         }
 
-        if (defaultClassId) {
-          await this.onEditClassSelected(defaultClassId)
+        if (exactClassId) {
+          await this.onEditClassSelected(exactClassId)
         }
 
         this.dialogEdit = true
@@ -1198,15 +1252,23 @@ export default {
     },
 
     saveUpdate() {
+      // Kiểm tra nếu danh sách giảng viên trống
       if (!this.formEditData.items || this.formEditData.items.length === 0) {
-        this.snackbar = {
-          show: true,
-          text: 'Không có giảng viên nào cho các lớp đã chọn'
-        }
+        // 1. Tắt snackbar ngay lập tức nếu nó đang hiển thị để reset vị trí
+        this.snackbar.show = false
+
+        // 2. Bật lại ngay sau 50ms để nó nhảy lên trên cùng mượt mà
+        setTimeout(() => {
+          this.snackbar = {
+            show: true,
+            text: 'Không có giảng viên nào cho các lớp đã chọn'
+          }
+        }, 50)
         return
       }
 
       try {
+        // Code xử lý lưu dữ liệu ở đây của bạn...
         this.dialogEdit = false
         this.loadData()
       } catch (error) {
@@ -1231,7 +1293,7 @@ export default {
       }
     },
 
-    openAddModal() {
+    async openAddModal() {
       this.open = true
       const today = new Date()
       const day = String(today.getDate()).padStart(2, '0')
@@ -1246,6 +1308,11 @@ export default {
         channel: 'CMS'
       }
       this.pickerDate = `${year}-${month}-${day}`
+      
+      this.teacherList = [] // Reset lại danh sách giảng viên khi mở modal mới
+
+      // GỌI HÀM NÀY ĐỂ TẢI DANH SÁCH LỚP HỌC LẠI CHO MODAL THÊM MỚI
+      await this.getTrainingTypes()
     },
 
     formatDate(dateStr) {
@@ -1272,57 +1339,118 @@ export default {
       }
     },
 
-    // Kết nối API 4 (/api/decisionTeacherJobFee/rc/teacher-class) khi mở modal Thêm mới
     async getTrainingTypes() {
       try {
         const res = await feeService.getTeacherClass({ channel: 'CMS' })
         const rootData = res.data !== undefined ? res.data : res
-        const list = Array.isArray(rootData) ? rootData : rootData.data || rootData.content || []
+        const list = Array.isArray(rootData) ? rootData : (rootData.data || rootData.content || [])
+        
         this.examSessionList = list.map((item) => ({
-          id: item?.id,
+          id: item?.id || item?.classId || item?.examSessionId,
           name: item?.name || `${item?.code || ''}-${item?.classroom || ''}`,
         }))
       } catch (error) {
         console.error("Lỗi lấy danh mục lớp:", error)
+        this.examSessionList = []
       }
     },
 
     async onClassesSelected(selectedIds) {
-      if (!selectedIds || selectedIds.length === 0) {
-        this.teacherList = []
+      const validIds = (selectedIds || []).filter(id => id !== null && id !== undefined && id !== '')
+
+      this.failedClassIds = []
+      this.teacherList = []
+
+      if (validIds.length === 0) {
         return
       }
-
-      this.teacherList = []
-      for (const id of selectedIds) {
+      
+      for (const id of validIds) {
+        const stringId = String(id) // Ép kiểu về chuỗi để đồng nhất dữ liệu
         try {
-          const res = await feeService.getTeacherListByClass({ ids: id, channel: 'CMS' })
-          const rootData = res.data !== undefined ? res.data : res
-          const data = Array.isArray(rootData) ? rootData : [rootData]
+          const res = await feeService.getListByClass({ ids: id, channel: 'CMS' })
+          const rootData = res?.data !== undefined ? res.data : res
           
-          const mappedData = data.filter(Boolean).map(item => ({
+          if (!rootData || (Array.isArray(rootData) && rootData.length === 0)) {
+            this.failedClassIds.push(stringId) // Đánh dấu lớp lỗi
+            const currentClass = this.examSessionList.find(c => String(c.id) === stringId)
+            const className = currentClass ? currentClass.name : `ID ${id}`
+            this.showNotification(`Không tìm thấy định mức thù lao giảng viên cho lớp ${className}`, '#ffae1f')
+            continue
+          }
+
+          const data = Array.isArray(rootData) ? rootData : [rootData]
+          const validItems = data.filter(Boolean)
+          
+          if (validItems.length === 0) {
+            this.failedClassIds.push(stringId) // Đánh dấu lớp lỗi
+            const currentClass = this.examSessionList.find(c => String(c.id) === stringId)
+            const className = currentClass ? currentClass.name : `ID ${id}`
+            this.showNotification(`Không tìm thấy định mức thù lao giảng viên cho lớp ${className}`, '#ffae1f')
+            continue
+          }
+
+          const mappedData = validItems.map(item => ({
             id: item.id,
             teacherId: item.id || item.teacherId,
-            teacherName: item.name,
+            teacherName: item.name || item.teacherName,
             classId: item.classId || id,
             classCode: item.classCode,
-            period: item.period,
-            numberOfStudent: item.numberOfStudent,
-            unitPrice: item.unitPrice,
-            classType: item.classType,
+            period: item.period || 0,
+            numberOfStudent: item.numberOfStudent || 0,
+            unitPrice: item.unitPrice || 0,
+            classType: item.classType || '',
             fee: item.amount || item.totalAmount || 0,
-            totalAmount: item.amount,
+            totalAmount: item.amount || item.totalAmount || 0,
           }))
 
           this.teacherList.push(...mappedData)
         } catch (error) {
           console.error(`Lỗi tải giảng viên cho lớp ID ${id}:`, error)
+          this.failedClassIds.push(stringId) // Đánh dấu lớp lỗi khi bắt exception (lỗi 400)
+          
+          const currentClass = this.examSessionList.find(c => String(c.id) === stringId)
+          const className = currentClass ? currentClass.name : `ID ${id}`
+          
+          let errorMsg = `Không tìm thấy định mức thù lao giảng viên cho lớp ${className}`
+          if (className && className.startsWith('D_')) {
+            errorMsg = `Không tìm thấy định mức thù lao giảng viên cho lớp đồ án`
+          } else if (className && className.startsWith('G_')) {
+            errorMsg = `Không tìm thấy định mức thù lao giảng viên cho lớp ghép`
+          }
+
+          this.showNotification(errorMsg, '#ffae1f')
         }
       }
     },
 
+    // Hàm dùng chung để hiển thị thông báo xếp chồng (vàng hoặc đỏ)
+    showNotification(text, color = '#f44336') {
+      const id = Date.now()
+      this.snackbars.unshift({
+        id,
+        text,
+        color,
+        show: true
+      })
+
+      setTimeout(() => {
+        this.snackbars = this.snackbars.filter(item => item.id !== id)
+      }, 3000)
+    },
+
     async handleAdd() {
-      if (this.$refs.form && !this.$refs.form.validate()) return;
+      if (!this.params.paymentDate) {
+        this.showNotification('Vui lòng chọn ngày thanh toán', '#f44336')
+        return
+      }
+
+      // CHẶN NGAY LẬP TỨC: Nếu có bất kỳ lớp nào bị lỗi HOẶC danh sách giảng viên trống
+      if (this.failedClassIds.length > 0 || !this.teacherList || this.teacherList.length === 0) {
+        this.showNotification('Không có giảng viên nào cho các lớp đã chọn', '#f44336')
+        return
+      }
+
       try {
         let formattedDate = this.params.paymentDate;
         if (formattedDate && formattedDate.includes('-')) {
@@ -1333,7 +1461,7 @@ export default {
         const sessionPayloads = this.teacherList.map(item => ({
           classId: item.classId,
           teacherId: item.teacherId,
-          fee: item.fee
+          fee: item.fee || item.totalAmount
         }));
 
         const payload = {
@@ -1344,17 +1472,22 @@ export default {
           channel: 'CMS'
         };
 
-        if (feeService.createDecision) {
+        if (feeService.createDecisionV2) {
+          await feeService.createDecisionV2(payload);
+        } else if (feeService.createDecision) {
           await feeService.createDecision(payload);
+        } else if (feeService.create) {
+          await feeService.create(payload);
         }
 
         this.open = false;
+        this.showNotification('Thêm mới đợt thanh toán GV theo lớp học lại thành công', '#4caf50');
         this.loadData();
       } catch (error) {
         console.error("Error adding payment:", error);
+        this.showNotification('Thêm mới thất bại!', '#f44336');
       }
     },
-
     async exportExcelSummary(item) {
       try {
         const res = await feeService.exportExcelSummary(item.id)

@@ -48,15 +48,15 @@
           >
             <template v-slot:activator="{ on, attrs }">
               <v-text-field
+                label="Từ ngày"
                 :value="formatDisplayDate(filters.fromTime)"
-                @input="onInputFromDate"
-                placeholder="dd/mm/yyyy"
                 outlined
                 dense
                 hide-details
                 clearable
                 class="bg-white filter-item date-input custom-outlined-input"
                 v-bind="attrs"
+                @input="onInputFromDate"
                 v-on="on"
               ></v-text-field>
             </template>
@@ -66,7 +66,7 @@
               no-title
               scrollable
               color="#a2212b"
-              @input="menuFrom = false"
+              @input="onInputFromDatePicker"
             ></v-date-picker>
           </v-menu>
 
@@ -82,15 +82,15 @@
           >
             <template v-slot:activator="{ on, attrs }">
               <v-text-field
+                label="Đến ngày"
                 :value="formatDisplayDate(filters.toTime)"
-                @input="onInputToDate"
-                placeholder="dd/mm/yyyy"
                 outlined
                 dense
                 hide-details
                 clearable
                 class="bg-white filter-item date-input custom-outlined-input"
                 v-bind="attrs"
+                @input="onInputToDate"
                 v-on="on"
               ></v-text-field>
             </template>
@@ -100,7 +100,7 @@
               no-title
               scrollable
               color="#a2212b"
-              @input="menuTo = false"
+              @input="onInputToDatePicker"
             ></v-date-picker>
           </v-menu>
 
@@ -162,6 +162,18 @@
       <!-- THỜI GIAN THU -->
       <template #[`item.dateFeePaid`]="{ item }">
         <span>{{ item.dateFeePaid ? formatDateTime(item.dateFeePaid) : '---' }}</span>
+      </template>
+
+      <!-- NỘI DUNG THU -->
+      <template #[`item.type`]="{ item }">
+        <v-chip
+          small
+          color="info"
+          text-color="white"
+          class="font-weight-medium"
+        >
+          {{ formatSendType(item.type) }}
+        </v-chip>
       </template>
     </BaseTable>
 
@@ -407,28 +419,111 @@ export default {
       }
     },
 
+    
     async fetchData() {
       try {
         this.isLoading = true
+
+        // Chuẩn hóa ngày về định dạng YYYY-MM-DD
+        const parseDateToBackend = (dateStr) => {
+          if (!dateStr) return undefined
+
+          let year, month, day
+
+          // Trường hợp YYYY-MM-DD
+          if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            [year, month, day] = dateStr.split('-')
+          }
+          // Trường hợp DD/MM/YYYY
+          else if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+            [day, month, year] = dateStr.split('/')
+          } else {
+            return null
+          }
+
+          year = Number(year)
+          month = Number(month)
+          day = Number(day)
+
+          // Kiểm tra ngày hợp lệ
+          const date = new Date(Date.UTC(year, month - 1, day))
+
+          if (
+            date.getUTCFullYear() !== year ||
+            date.getUTCMonth() !== month - 1 ||
+            date.getUTCDate() !== day
+          ) {
+            return null
+          }
+
+          return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+        }
+
+        // Chuyển đổi ngày bắt đầu và kết thúc
+        const cleanFrom = parseDateToBackend(
+          this.appliedFilters.fromTime
+        )
+
+        const cleanTo = parseDateToBackend(
+          this.appliedFilters.toTime
+        )
+
+        // Kiểm tra định dạng ngày
+        if (this.appliedFilters.fromTime && !cleanFrom) {
+          this.showToast('Ngày bắt đầu không hợp lệ!', '#C62828')
+          return
+        }
+
+        if (this.appliedFilters.toTime && !cleanTo) {
+          this.showToast('Ngày kết thúc không hợp lệ!', '#C62828')
+          return
+        }
+
+        // Kiểm tra khoảng ngày
+        if (cleanFrom && cleanTo && cleanFrom > cleanTo) {
+          this.showToast(
+            'Từ ngày không được lớn hơn đến ngày!',
+            '#C62828'
+          )
+          return
+        }
+
+        // Xử lý danh sách đợt học lại
+        const examIdsParam =
+          Array.isArray(this.appliedFilters.examIds) &&
+          this.appliedFilters.examIds.length > 0
+            ? this.appliedFilters.examIds.join(',')
+            : (this.appliedFilters.examIds || undefined)
+
+        // Tạo tham số tìm kiếm
         const params = {
           pageIndex: this.page,
           pageSize: this.itemsPerPage,
+
           search: this.appliedFilters.search || undefined,
-          examIds: this.appliedFilters.examIds || undefined,
-          
-          // Gắn thêm giờ phút giây để backend nhận diện đúng khoảng thời gian thu
-          fromTime: this.appliedFilters.fromTime ? `${this.appliedFilters.fromTime} 00:00:00` : undefined,
-          toTime: this.appliedFilters.toTime ? `${this.appliedFilters.toTime} 23:59:59` : undefined,
-          
+
+          examIds: examIdsParam,
+
+          fromTime: cleanFrom
+            ? `${cleanFrom.split('-').reverse().join('/')} 00:00:00`
+            : undefined,
+          toTime: cleanTo
+            ? `${cleanTo.split('-').reverse().join('/')} 23:59:59`
+            : undefined,
+
           channel: 'CMS',
         }
 
+        console.log('Tham số tìm kiếm report/result:', params)
+
         const res = await reportResultServices.getReportResult(params)
+
         console.log('Dữ liệu thô từ API report/result:', res)
 
         const raw = res?.data !== undefined ? res.data : res
-        
+
         let items = []
+
         if (Array.isArray(raw)) {
           items = raw
         } else if (Array.isArray(raw?.data)) {
@@ -447,82 +542,176 @@ export default {
 
         this.list = items.map((item) => {
           let formattedTerms = '---'
+
           const termsArray = item.registerStudentTerms || []
-          
+
           if (Array.isArray(termsArray) && termsArray.length > 0) {
             formattedTerms = termsArray
               .map((itemTerm) => {
                 const target = itemTerm.term || itemTerm
                 const code = target.code || ''
                 const name = target.name || ''
-                const feeVal = target.fee !== undefined ? Number(target.fee) : (itemTerm.fee !== undefined ? Number(itemTerm.fee) : 0)
-                
-                // Định dạng tiền học phần: dấu phẩy phân cách, thêm đ
+
+                const feeVal =
+                  target.fee !== undefined
+                    ? Number(target.fee)
+                    : (itemTerm.fee !== undefined
+                        ? Number(itemTerm.fee)
+                        : 0)
+
                 const fee = feeVal.toLocaleString('en-US') + 'đ'
-                
+
                 return [code, name, fee].filter(Boolean).join(' - ')
               })
               .join('\n')
           }
 
-          // Khai báo rõ ràng biến lấy tên học kỳ từ exam.semester.name
-          const semesterName = item.exam?.semester?.name || item.semester?.name || '---'
+          const semesterName =
+            item.exam?.semester?.name ||
+            item.semester?.name ||
+            '---'
 
-          const rowTotalFee = item.totalFee !== undefined ? Number(item.totalFee) : (item.totalPaid !== undefined ? Number(item.totalPaid) : 0)
+          const rowTotalFee =
+            item.totalFee !== undefined
+              ? Number(item.totalFee)
+              : (item.totalPaid !== undefined
+                  ? Number(item.totalPaid)
+                  : 0)
+
           calculatedTotalAmount += rowTotalFee
 
           return {
             code: item.code || item.studentCode || item.maSv || '---',
             fullName: item.fullName || item.studentName || item.name || '---',
-            
             registerStudentTerms: formattedTerms,
-            
             'exam.code': item.exam?.code || item.examName || item.dotHocLai || '---',
-            
-            // Gán giá trị vào cột học kỳ
             registerSemesterTerms: semesterName,
-            
             totalFee: rowTotalFee,
             phone: item.phone || item.phoneNumber || '---',
-            
             'clazz.name': item.clazz?.name || item.className || '---',
             'course.name': item.course?.name || item.course || '---',
             'major.name': item.major?.name || item.major || '---',
-            'clazz.trainingMethodName': item.clazz?.trainingMethodName || item.trainingType || '---',
-            'clazz.trainingUnitName': item.clazz?.trainingUnitName || item.trainingLocation || '---',
-            
+            'clazz.trainingMethodName':
+              item.clazz?.trainingMethodName || item.trainingType || '---',
+            'clazz.trainingUnitName':
+              item.clazz?.trainingUnitName || item.trainingLocation || '---',
             type: item.type || item.content || '---',
             dateFeePaid: item.dateFeePaid || item.createdTime || '---',
           }
         })
 
-        this.totalRecord = 
-          raw?.totalRecords || 
-          raw?.data?.totalRecords || 
-          raw?.total || 
+        // Tổng số bản ghi
+        this.totalRecord =
+          raw?.totalRecords ||
+          raw?.data?.totalRecords ||
+          raw?.total ||
           this.list.length
 
-        this.totalAmount = 
-          raw?.totalAmount || 
-          raw?.data?.totalAmount || 
+        // Tổng tiền
+        this.totalAmount =
+          raw?.totalAmount ||
+          raw?.data?.totalAmount ||
           calculatedTotalAmount
 
-        this.totalPage = Math.ceil(this.totalRecord / this.itemsPerPage) || 1
+        // Tổng số trang
+        this.totalPage =
+          Math.ceil(this.totalRecord / this.itemsPerPage) || 1
+
       } catch (err) {
         console.error('Lỗi khi tải dữ liệu:', err)
+
         this.list = []
         this.totalRecord = 0
         this.totalAmount = 0
-        this.showToast('Không thể tải dữ liệu báo cáo!', '#C62828')
+
+        this.showToast(
+          'Không thể tải dữ liệu báo cáo!',
+          '#C62828'
+        )
       } finally {
         this.isLoading = false
       }
     },
 
+
+    parseDateToBackend(dateStr) {
+      if (!dateStr) return ''
+
+      let year, month, day
+
+      // Trường hợp YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        [year, month, day] = dateStr.split('-')
+      }
+      // Trường hợp DD/MM/YYYY
+      else if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+        [day, month, year] = dateStr.split('/')
+      } else {
+        return null
+      }
+
+      year = Number(year)
+      month = Number(month)
+      day = Number(day)
+
+      // Kiểm tra ngày hợp lệ
+      const date = new Date(Date.UTC(year, month - 1, day))
+
+      if (
+        date.getUTCFullYear() !== year ||
+        date.getUTCMonth() !== month - 1 ||
+        date.getUTCDate() !== day
+      ) {
+        return null
+      }
+
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    },
+
     search() {
-      this.appliedFilters = { ...this.filters }
+      const cleanFrom = this.parseDateToBackend(
+        this.filters.fromTime
+      )
+
+      const cleanTo = this.parseDateToBackend(
+        this.filters.toTime
+      )
+
+      // Kiểm tra định dạng ngày
+      if (this.filters.fromTime && !cleanFrom) {
+        this.showToast(
+          'Ngày bắt đầu không hợp lệ!',
+          '#C62828'
+        )
+        return
+      }
+
+      if (this.filters.toTime && !cleanTo) {
+        this.showToast(
+          'Ngày kết thúc không hợp lệ!',
+          '#C62828'
+        )
+        return
+      }
+
+      // Kiểm tra khoảng ngày
+      if (cleanFrom && cleanTo && cleanFrom > cleanTo) {
+        this.showToast(
+          'Từ ngày không được lớn hơn đến ngày!',
+          '#C62828'
+        )
+        return
+      }
+
+      this.appliedFilters = {
+        ...this.filters,
+        fromTime: cleanFrom,
+        toTime: cleanTo,
+      }
+
       this.page = 1
       this.pageInput = 1
+
       this.fetchData()
     },
 
@@ -582,6 +771,17 @@ export default {
       } catch (e) {
         return dateStr
       }
+    },
+    formatSendType(type) {
+      if (!type) return '---'
+      // Chuyển mã code sang tiếng Việt tương ứng
+      const mapType = {
+        'RETAKE_COURSES': 'Học lại',
+        'RETACK_COURSE': 'Học lại',
+        'RE_DEFENSE': 'Bảo vệ lại',
+        // Thêm các loại khác nếu có
+      }
+      return mapType[type] || type
     },
 
     async exportExcel() {
@@ -653,6 +853,19 @@ export default {
         this.toastList.splice(index, 1)
       }
     },
+
+    // Xử lý khi chọn ngày từ lịch 'Từ ngày'
+    onInputFromDatePicker(val) {
+      this.filters.fromTime = val
+      this.menuFrom = false
+    },
+
+    // Xử lý khi chọn ngày từ lịch 'Đến ngày'
+    onInputToDatePicker(val) {
+      this.filters.toTime = val
+      this.menuTo = false
+    },
+
     // Chuyển từ YYYY-MM-DD sang DD/MM/YYYY để hiển thị lên ô input
     formatDisplayDate(dateStr) {
       if (!dateStr) return ''
@@ -669,12 +882,9 @@ export default {
         this.filters.fromTime = ''
         return
       }
-      if (val.includes('/')) {
-        const parts = val.split('/')
-        if (parts.length === 3) {
-          const [day, month, year] = parts
-          this.filters.fromTime = `${year}-${month}-${day}`
-        }
+
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(val)) {
+        this.filters.fromTime = this.parseDateToBackend(val)
       } else {
         this.filters.fromTime = val
       }
@@ -685,12 +895,9 @@ export default {
         this.filters.toTime = ''
         return
       }
-      if (val.includes('/')) {
-        const parts = val.split('/')
-        if (parts.length === 3) {
-          const [day, month, year] = parts
-          this.filters.toTime = `${year}-${month}-${day}`
-        }
+
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(val)) {
+        this.filters.toTime = this.parseDateToBackend(val)
       } else {
         this.filters.toTime = val
       }
@@ -702,6 +909,19 @@ export default {
         const [datePart, timePart] = dateStr.split(' ')
         const [year, month, day] = datePart.split('-')
         return timePart ? `${day}/${month}/${year} ${timePart}` : `${day}/${month}/${year}`
+      }
+      return dateStr
+    },
+    formatToSend(dateStr) {
+      if (!dateStr) return undefined
+      // Nếu là định dạng YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return dateStr
+      }
+      // Nếu là định dạng DD/MM/YYYY thì chuyển thành YYYY-MM-DD
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+        const [day, month, year] = dateStr.split('/')
+        return `${year}-${month}-${day}`
       }
       return dateStr
     },

@@ -1,239 +1,230 @@
 <template>
-  <div class="table-container d-flex flex-column pa-4">
-    <!-- 1. CỐ ĐỊNH: TIÊU ĐỀ & THANH TÌM KIẾM Ở TRÊN -->
-    <div class="fixed-top-section flex-shrink-0">
-      <div class="text-h6 font-weight-bold mb-3">
-        Danh sách sinh viên được đăng ký ({{ totalItems }})
-      </div>
+  <div class="authorize-registration-page pa-3 pa-md-4 bg-white" :class="{ 'is-mobile-device': isMobileDevice }">
+    <!-- TIÊU ĐỀ TRANG -->
+    <div class="text-h6 font-weight-bold black--text mb-3">
+      Danh sách sinh viên được đăng ký (<span class="text-red-bold">{{ totalRecords }}</span>)
+    </div>
 
-      <div class="top-header-bar d-flex align-center gap-2 mb-3 w-100">
+    <!-- BỘ LỌC TÌM KIẾM CỐ ĐỊNH PHÍA TRÊN -->
+    <div class="filter-container mb-3 sticky-filter">
+      <div class="d-flex align-center flex-wrap" style="gap: 8px; padding: 6px;">
         <v-text-field
-          v-model="searchQuery"
+          v-model="filters.search"
           placeholder="Tìm kiếm"
-          dense
           outlined
+          dense
           hide-details
-          class="flex-grow-1"
+          clearable
+          class="filter-input flex-grow-1"
+          style="min-width: 180px;"
           @keyup.enter="handleSearch"
         ></v-text-field>
 
         <v-select
-          v-model="filterKyHoc"
-          :items="kyHocList"
+          v-model="filters.semesterId"
+          :items="semesterOptions"
+          item-text="text"
+          item-value="value"
           placeholder="Kỳ học"
-          dense
           outlined
+          dense
           hide-details
           clearable
-          class="flex-grow-1"
+          class="filter-input flex-grow-1"
+          style="min-width: 150px;"
         ></v-select>
 
         <v-select
-          v-model="filterKyDangKy"
-          :items="kyDangKyList"
-          placeholder="Kỳ đăng ký thi"
-          dense
+          v-model="filters.examId"
+          :items="examOptions"
+          item-text="text"
+          item-value="value"
+          placeholder="Kỳ đăng ký thi lại"
           outlined
+          dense
           hide-details
           clearable
-          class="flex-grow-1"
+          class="filter-input flex-grow-1"
+          style="min-width: 170px;"
         ></v-select>
 
         <v-select
-          v-model="filterHocPhan"
-          :items="hocPhanList"
+          v-model="filters.termId"
+          :items="termOptions"
+          item-text="text"
+          item-value="value"
           placeholder="Học phần"
-          dense
           outlined
+          dense
           hide-details
           clearable
-          class="flex-grow-1"
+          class="filter-input flex-grow-1"
+          style="min-width: 150px;"
         ></v-select>
 
         <v-select
-          v-model="filterStatus"
+          v-model="filters.status"
           :items="statusList"
+          item-text="text"
+          item-value="value"
           placeholder="Trạng thái"
-          dense
           outlined
+          dense
           hide-details
           clearable
-          class="flex-grow-1"
+          class="filter-input flex-grow-1"
+          style="min-width: 140px;"
         ></v-select>
 
-        <!-- ICON REFRESH -->
-        <v-btn
-          icon
-          color="red darken-3"
-          class="flex-shrink-0"
-          @click="handleRefreshIconClick"
-        >
-          <v-icon>mdi-refresh</v-icon>
-        </v-btn>
+        <div class="d-flex align-center" style="gap: 5px;">
+          <v-btn icon color="#A62229" class="btn-square-action" @click="refreshData" title="Làm mới">
+            <v-icon size="22">mdi-refresh</v-icon>
+          </v-btn>
 
-        <!-- ICON TÌM KIẾM -->
-        <v-btn
-          color="#a2212b"
-          dark
-          elevation="0"
-          class="rounded min-w-0 px-3 flex-shrink-0"
-          @click="handleSearch"
-        >
-          <v-icon>mdi-magnify</v-icon>
-        </v-btn>
+          <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" @click="handleSearch" title="Tìm kiếm">
+            <v-icon size="22">mdi-magnify</v-icon>
+          </v-btn>
 
-        <!-- NÚT THÊM (+) -->
-        <v-btn
-          color="#a2212b"
-          dark
-          elevation="0"
-          class="rounded min-w-0 px-3 flex-shrink-0"
-          @click="handleAddClick"
-        >
-          <v-icon>mdi-plus</v-icon>
-        </v-btn>
+          <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" @click="openAddDialog" title="Thêm mới">
+            <v-icon size="22">mdi-plus</v-icon>
+          </v-btn>
+        </div>
       </div>
     </div>
 
-    <!-- 2. KHUNG DANH SÁCH LƯỚT LÊN XUỐNG KHI NHIỀU BẢN GHI (FIXED HEADER BẢNG) -->
-    <div class="table-scroll-content flex-grow-1 overflow-y-auto">
-      <v-data-table
-        :headers="headers"
-        :items="paginatedStudents"
+    <!-- KHUNG BASETABLE -->
+    <div class="table-scroll-container">
+      <BaseTable
+        :headers="tableHeaders"
+        :items="itemList"
+        :loading="loading"
+        :is-mobile="isMobileDevice"
+        :current-page="currentPage"
+        :items-per-page="itemsPerPage"
+        :total-records="totalRecords"
         hide-default-footer
-        disable-pagination
-        fixed-header
-        height="100%"
-        class="elevation-0 bg-transparent custom-table"
+        @page-change="changePage"
+        @per-page-change="handleItemsPerPageChange"
       >
-        <!-- Custom cột STT -->
-        <template #[`item.stt`]="{ index }">
-          {{ (page - 1) * itemsPerPage + index + 1 }}
+        <template #[`item.index`]="{ index }">
+          <span>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</span>
         </template>
 
-        <!-- Custom cột Thông tin sinh viên -->
-        <template #[`item.sinhVien`]="{ item }">
-          <div class="font-weight-bold">{{ item.hoTen }}</div>
-          <div class="caption text--secondary">
-            Mã số sinh viên:
-            <span class="red--text text--darken-2 font-weight-bold">{{
-              item.mssv
-            }}</span>
-          </div>
-          <div class="caption text--secondary">
-            Lớp:
-            <span class="red--text text--darken-2 font-weight-bold">{{
-              item.lop
-            }}</span>
+        <template #[`item.studentInfo`]="{ item }">
+          <div class="py-1">
+            <div class="font-weight-bold black--text">{{ item.studentName || item.fullName || '-' }}</div>
+            <div class="text-caption grey--text text--darken-2">Mã số sinh viên: <span class="error--text font-weight-medium">{{ item.studentCode || item.code || '-' }}</span></div>
+            <div class="text-caption grey--text text--darken-2">Lớp: {{ item.className || item.class_name || '-' }}</div>
           </div>
         </template>
 
-        <!-- Custom cột Trạng thái -->
-        <template #[`item.trangThai`]="{ item }">
+        <template #[`item.classExam`]="{ item }">
+          <span>{{ item.classExam || item.examClass || '-' }}</span>
+        </template>
+
+        <template #[`item.examName`]="{ item }">
+          <span>{{ item.examName || item.examTitle || '-' }}</span>
+        </template>
+
+        <template #[`item.semesterName`]="{ item }">
+          <span>{{ item.semesterName || item.semester || '-' }}</span>
+        </template>
+
+        <template #[`item.courseCode`]="{ item }">
+          <span>{{ item.courseCode || item.subjectCode || '-' }}</span>
+        </template>
+
+        <template #[`item.courseName`]="{ item }">
+          <span>{{ item.courseName || item.subjectName || '-' }}</span>
+        </template>
+
+        <template #[`item.status`]="{ item }">
           <v-chip
             small
-            :color="item.trangThai === 'Đã đăng ký' ? 'success' : 'grey'"
-            text-color="white"
-            class="font-weight-medium"
+            dark
+            :color="item.status === 'REGISTERED' || item.status === 'ACTIVE' || item.isRegistered ? '#4caf50' : '#757575'"
+            class="font-weight-medium text-caption"
           >
-            {{ item.trangThai }}
+            {{ item.statusText || (item.status === 'REGISTERED' || item.isRegistered ? 'Đã đăng ký' : 'Chưa đăng ký') }}
           </v-chip>
         </template>
 
-        <!-- Custom cột Chức năng -->
-        <template #[`item.chucNang`]="{ item }">
-          <v-btn icon small color="red" @click="deleteItem(item)">
-            <v-icon small>mdi-delete</v-icon>
+        <template #[`item.actions`]="{ item }">
+          <v-btn icon small color="error" @click="handleDelete(item)" title="Xóa">
+            <v-icon size="20">mdi-delete</v-icon>
           </v-btn>
         </template>
-      </v-data-table>
+      </BaseTable>
     </div>
 
-    <!-- 3. CỐ ĐỊNH: FOOTER (XUẤT NHẬP EXCEL & PHÂN TRANG CỐ ĐỊNH 50 BẢN GHI) -->
-    <div
-      class="bottom-fixed-bar d-flex align-center justify-space-between flex-wrap gap-2 pt-3 bg-white border-top mt-2 flex-shrink-0"
-    >
-      <!-- CỤM NÚT XUẤT NHẬP CỐ ĐỊNH -->
-      <div class="d-flex align-center gap-2">
-        <v-btn
-          color="#2e7d32"
-          dark
-          elevation="0"
-          class="text-capitalize rounded px-3 font-weight-bold"
-          small
-          @click="exportReport"
-        >
-          <v-icon left small>mdi-file-excel</v-icon> XUẤT FILE BÁO CÁO
+    <!-- PHÂN TRANG -->
+    <div class="pagination-bottom-container mt-4 pt-3 d-flex align-center justify-space-between flex-wrap gap-3 sticky-bottom-bar border-top">
+      <div class="d-flex align-center" style="gap: 8px;">
+        <v-btn color="#4caf50" dark class="text-none font-weight-medium rounded-sm text-nowrap px-3" height="32" elevation="0" style="font-size: 12px; border-radius: 4px !important;" @click="exportReportFile">
+          <v-icon left small>mdi-export</v-icon>
+          XUẤT FILE BÁO CÁO
         </v-btn>
 
-        <v-btn
-          color="#2e7d32"
-          dark
-          elevation="0"
-          class="text-capitalize rounded px-3 font-weight-bold"
-          small
-          @click="importFile"
-        >
-          <v-icon left small>mdi-file-excel</v-icon> NHẬP FILE ĐĂNG KÝ
+        <v-btn color="#4caf50" dark class="text-none font-weight-medium rounded-sm text-nowrap px-3" height="32" elevation="0" style="font-size: 12px; border-radius: 4px !important;" @click="openImportDialog">
+          <v-icon left small>mdi-import</v-icon>
+          NHẬP FILE ĐĂNG KÍ
         </v-btn>
       </div>
 
-      <!-- CỤM PHÂN TRANG -->
-      <div class="d-flex align-center gap-2">
-        <span class="caption text--secondary font-weight-medium mr-1">
-          {{ itemsPerPage }} bản ghi/trang
-        </span>
-
-        <v-text-field
-          v-model.number="pageInput"
-          label="Trang"
-          dense
+      <div class="d-flex align-center custom-pagination-group" style="gap: 8px;">
+        <v-select
+          v-model="itemsPerPage"
+          :items="[5, 10, 20, 50, 100]"
+          label="Bản ghi"
           outlined
+          dense
           hide-details
-          class="pagination-input text-center"
-          style="width: 60px"
-          @keyup.enter="goToPage"
-        ></v-text-field>
+          class="per-page-select"
+          style="width: 90px;"
+          @change="handleItemsPerPageChange(itemsPerPage)"
+        ></v-select>
 
-        <v-btn
-          color="#a2212b"
-          dark
-          small
-          class="text-capitalize px-3 rounded-sm elevation-0"
-          style="height: 36px"
-          @click="goToPage"
-        >
-          Đi
+        <div class="d-flex align-center" style="gap: 4px;">
+          <v-text-field
+            v-model.number="pageInput"
+            label="Trang"
+            outlined
+            dense
+            hide-details
+            type="number"
+            style="width: 70px;"
+            @keyup.enter="goToPage"
+          ></v-text-field>
+          <v-btn color="#A2212B" dark depressed class="text-none px-3" height="36" @click="goToPage">
+            Đi
+          </v-btn>
+        </div>
+
+        <v-btn icon outlined small color="grey" :disabled="currentPage <= 1" @click="changePage(currentPage - 1)">
+          <v-icon small>mdi-chevron-left</v-icon>
         </v-btn>
 
-        <!-- Nút Lùi trang -->
-        <v-btn icon small :disabled="page <= 1" @click="changePage(page - 1)">
-          <v-icon>mdi-chevron-left</v-icon>
-        </v-btn>
+        <div class="d-flex align-center" style="gap: 4px;">
+          <template v-for="p in totalPages">
+            <v-btn
+              v-if="p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)"
+              :key="p"
+              :color="p === currentPage ? '#A2212B' : 'grey lighten-2'"
+              :dark="p === currentPage"
+              depressed
+              min-width="32"
+              height="32"
+              small
+              @click="changePage(p)"
+            >
+              {{ p }}
+            </v-btn>
+            <span v-else-if="p === currentPage - 2 || p === currentPage + 2" :key="'dot-' + p">...</span>
+          </template>
+        </div>
 
-        <!-- Các nút trang tự động sinh theo dữ liệu (1, 2, 3...) -->
-        <v-btn
-          v-for="p in visiblePages"
-          :key="p"
-          small
-          :color="page === p ? '#a2212b' : ''"
-          :dark="page === p"
-          :outlined="page !== p"
-          class="min-w-0 pa-0 rounded-sm elevation-0"
-          style="width: 28px; height: 28px"
-          @click="changePage(p)"
-        >
-          {{ p }}
-        </v-btn>
-
-        <!-- Nút Tiến trang -->
-        <v-btn
-          icon
-          small
-          :disabled="page >= totalPages"
-          @click="changePage(page + 1)"
-        >
-          <v-icon>mdi-chevron-right</v-icon>
+        <v-btn icon outlined small color="grey" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)">
+          <v-icon small>mdi-chevron-right</v-icon>
         </v-btn>
       </div>
     </div>
@@ -241,388 +232,258 @@
 </template>
 
 <script>
+import BaseTable from '~/components/Base/BaseTable.vue'
+import authorizeService from '~/services/authorizeRegistrationService' // Import service
+
 export default {
-  name: 'QuanLySinhVienDangKy',
+  name: 'AuthorizeRegistrationPage',
+  components: {
+    BaseTable,
+  },
   data() {
     return {
-      page: 1,
-      pageInput: 1,
-      itemsPerPage: 50,
-      // Phải chắc chắn khai báo đầy đủ object filters bên dưới
+      isMobileDevice: false,
+      loading: false,
       filters: {
         search: '',
-        gender: null,
-        teacherType: null,
-        status: null,
-        department: null,
+        semesterId: '',
+        examId: '',
+        termId: '',
+        status: '',
       },
-      searchQuery: '',
-      filterKyHoc: null,
-      filterKyDangKy: null,
-      filterHocPhan: null,
-      filterStatus: null,
-
-      kyHocList: ['Học kỳ II (2024-2025)', 'Kỳ 20231'],
-      kyDangKyList: ['TL20232', 'TL20231'],
-      hocPhanList: ['EE2010', 'JAVA', 'EE1024', 'EE4220'],
-      statusList: ['Đã đăng ký', 'Chưa đăng ký'],
-
-      headers: [
-        { text: 'STT', value: 'stt', sortable: false, width: '60px' },
-        { text: 'Thông tin sinh viên', value: 'sinhVien', width: '220px' },
-        { text: 'Lớp thi', value: 'lopThi' },
-        { text: 'Tên kỳ đăng ký thi lại', value: 'kyDangKy' },
-        { text: 'Học kỳ', value: 'hocKy' },
-        { text: 'Mã học phần', value: 'maHocPhan' },
-        { text: 'Tên học phần', value: 'tenHocPhan' },
-        { text: 'Trạng thái', value: 'trangThai' },
-        {
-          text: 'Chức năng',
-          value: 'chucNang',
-          sortable: false,
-          align: 'center',
-        },
+      activeFilters: {
+        search: '',
+        semesterId: '',
+        examId: '',
+        termId: '',
+        status: '',
+      },
+      semesterOptions: [],
+      examOptions: [],
+      termOptions: [],
+      
+      statusList: [
+        { value: 'REGISTERED', text: 'Đã đăng ký' },
+        { value: 'UNREGISTERED', text: 'Chưa đăng ký' },
       ],
 
-      // Danh sách sinh viên mẫu
-      studentsList: [
-        {
-          id: 1,
-          hoTen: 'Đỗ Hồng Kiên',
-          mssv: 'PH218834',
-          lop: 'Lớp 39',
-          lopThi: '734863',
-          kyDangKy: 'TL20232',
-          hocKy: 'Học kỳ II (2024-2025)',
-          maHocPhan: 'EE2010',
-          tenHocPhan: 'Kỹ thuật điện',
-          trangThai: 'Đã đăng ký',
-        },
-        {
-          id: 2,
-          hoTen: 'Nguyễn Văn A',
-          mssv: '1293478923P',
-          lop: 'Lớp 39',
-          lopThi: '734863',
-          kyDangKy: 'TL20232',
-          hocKy: 'Học kỳ II (2024-2025)',
-          maHocPhan: 'EE2010',
-          tenHocPhan: 'Kỹ thuật điện',
-          trangThai: 'Đã đăng ký',
-        },
-        {
-          id: 3,
-          hoTen: 'Đỗ Hồng Kiên',
-          mssv: 'PH218834',
-          lop: 'Lớp 39',
-          lopThi: 'FE',
-          kyDangKy: 'TL20232',
-          hocKy: 'Học kỳ II (2025-2026)',
-          maHocPhan: 'JAVA',
-          tenHocPhan: 'Lập trình Java',
-          trangThai: 'Đã đăng ký',
-        },
-        {
-          id: 4,
-          hoTen: 'Vũ Thị Kim Chi',
-          mssv: '20230305P',
-          lop: 'Khóa 68 – Kỹ thuật Điều khiển và Tự động hóa - Vừa làm vừa học',
-          lopThi: '161518',
-          kyDangKy: 'TL20231',
-          hocKy: 'Kỳ 20231',
-          maHocPhan: 'EE1024',
-          tenHocPhan: 'Nhập môn ngành Điện',
-          trangThai: 'Đã đăng ký',
-        },
-        {
-          id: 5,
-          hoTen: 'DEV',
-          mssv: 'DEV',
-          lop: 'Công nghệ phần mềm',
-          lopThi: '734234',
-          kyDangKy: 'TL20231',
-          hocKy: 'Học kỳ II (2025-2026)',
-          maHocPhan: 'JAVA',
-          tenHocPhan: 'Lập trình Java',
-          trangThai: 'Chưa đăng ký',
-        },
-        {
-          id: 6,
-          hoTen: 'Lâm Vinh Doanh',
-          mssv: '20230832P',
-          lop: 'LT-CĐTN-KTVL01-K68',
-          lopThi: 'HỘI ĐỒNG BẢO VỆ 6',
-          kyDangKy: 'TL20232',
-          hocKy: 'Học kỳ II (2024-2025)',
-          maHocPhan: 'EE4220',
-          tenHocPhan: 'Điều khiển logic và PLC',
-          trangThai: 'Chưa đăng ký',
-        },
-        {
-          id: 7,
-          hoTen: 'Lâm Vinh Doanh',
-          mssv: '20230832P',
-          lop: 'LT-CĐTN-KTVL01-K68',
-          lopThi: '161742',
-          kyDangKy: 'TL20231',
-          hocKy: 'Kỳ 20231',
-          maHocPhan: 'EE2010',
-          tenHocPhan: 'Kỹ thuật điện',
-          trangThai: 'Chưa đăng ký',
-        },
-        {
-          id: 1,
-          hoTen: 'Đỗ Hồng Kiên',
-          mssv: 'PH218834',
-          lop: 'Lớp 39',
-          lopThi: '734863',
-          kyDangKy: 'TL20232',
-          hocKy: 'Học kỳ II (2024-2025)',
-          maHocPhan: 'EE2010',
-          tenHocPhan: 'Kỹ thuật điện',
-          trangThai: 'Đã đăng ký',
-        },
-        {
-          id: 2,
-          hoTen: 'Nguyễn Văn A',
-          mssv: '1293478923P',
-          lop: 'Lớp 39',
-          lopThi: '734863',
-          kyDangKy: 'TL20232',
-          hocKy: 'Học kỳ II (2024-2025)',
-          maHocPhan: 'EE2010',
-          tenHocPhan: 'Kỹ thuật điện',
-          trangThai: 'Đã đăng ký',
-        },
-        {
-          id: 3,
-          hoTen: 'Đỗ Hồng Kiên',
-          mssv: 'PH218834',
-          lop: 'Lớp 39',
-          lopThi: 'FE',
-          kyDangKy: 'TL20232',
-          hocKy: 'Học kỳ II (2025-2026)',
-          maHocPhan: 'JAVA',
-          tenHocPhan: 'Lập trình Java',
-          trangThai: 'Đã đăng ký',
-        },
-        {
-          id: 4,
-          hoTen: 'Vũ Thị Kim Chi',
-          mssv: '20230305P',
-          lop: 'Khóa 68 – Kỹ thuật Điều khiển và Tự động hóa - Vừa làm vừa học',
-          lopThi: '161518',
-          kyDangKy: 'TL20231',
-          hocKy: 'Kỳ 20231',
-          maHocPhan: 'EE1024',
-          tenHocPhan: 'Nhập môn ngành Điện',
-          trangThai: 'Đã đăng ký',
-        },
-        {
-          id: 5,
-          hoTen: 'DEV',
-          mssv: 'DEV',
-          lop: 'Công nghệ phần mềm',
-          lopThi: '734234',
-          kyDangKy: 'TL20231',
-          hocKy: 'Học kỳ II (2025-2026)',
-          maHocPhan: 'JAVA',
-          tenHocPhan: 'Lập trình Java',
-          trangThai: 'Chưa đăng ký',
-        },
-        {
-          id: 6,
-          hoTen: 'Lâm Vinh Doanh',
-          mssv: '20230832P',
-          lop: 'LT-CĐTN-KTVL01-K68',
-          lopThi: 'HỘI ĐỒNG BẢO VỆ 6',
-          kyDangKy: 'TL20232',
-          hocKy: 'Học kỳ II (2024-2025)',
-          maHocPhan: 'EE4220',
-          tenHocPhan: 'Điều khiển logic và PLC',
-          trangThai: 'Chưa đăng ký',
-        },
-        {
-          id: 7,
-          hoTen: 'Lâm Vinh Doanh',
-          mssv: '20230832P',
-          lop: 'LT-CĐTN-KTVL01-K68',
-          lopThi: '161742',
-          kyDangKy: 'TL20231',
-          hocKy: 'Kỳ 20231',
-          maHocPhan: 'EE2010',
-          tenHocPhan: 'Kỹ thuật điện',
-          trangThai: 'Chưa đăng ký',
-        },
+      itemList: [],
+      totalRecords: 0,
+      totalPages: 1,
+      currentPage: 1,
+      pageInput: 1,
+      itemsPerPage: 50,
+
+      tableHeaders: [
+        { text: 'STT', value: 'index', align: 'center', width: '60px', sortable: false },
+        { text: 'Thông tin sinh viên', value: 'studentInfo', align: 'left', minWidth: '220px', sortable: false },
+        { text: 'Lớp thi', value: 'classExam', align: 'left', minWidth: '110px', sortable: false },
+        { text: 'Tên kỳ đăng ký thi lại', value: 'examName', align: 'left', minWidth: '160px', sortable: false },
+        { text: 'Kỳ học', value: 'semesterName', align: 'left', minWidth: '150px', sortable: false },
+        { text: 'Mã học phần', value: 'courseCode', align: 'left', minWidth: '110px', sortable: false },
+        { text: 'Tên học phần', value: 'courseName', align: 'left', minWidth: '160px', sortable: false },
+        { text: 'Trạng thái', value: 'status', align: 'center', minWidth: '130px', sortable: false },
+        { text: 'Chức năng', value: 'actions', align: 'center', width: '90px', sortable: false },
       ],
     }
   },
-
-  computed: {
-    // 1. Mảng dữ liệu đã qua bộ lọc
-    filteredStudents() {
-      return this.studentsList.filter((item) => {
-        const matchSearch =
-          !this.filters.search ||
-          item.hoTen?.toLowerCase().includes(this.filters.search.toLowerCase())
-        const matchGender =
-          !this.filters.gender || item.gioiTinh === this.filters.gender
-        const matchTeacher =
-          !this.filters.teacherType ||
-          item.loaiGiangVien === this.filters.teacherType
-        const matchStatus =
-          !this.filters.status || item.trangThai === this.filters.status
-        const matchDept =
-          !this.filters.department || item.khoaPhong === this.filters.department
-
-        return (
-          matchSearch && matchGender && matchTeacher && matchStatus && matchDept
-        )
-      })
-    },
-
-    // 2. Tổng số bản ghi thực tế
-    totalItems() {
-      return this.filteredStudents.length
-    },
-
-    // 3. Tự động tính tổng số trang dựa trên itemsPerPage (Ví dụ: 120 bản ghi / 50 = 3 trang)
-    totalPages() {
-      return Math.ceil(this.totalItems / this.itemsPerPage) || 1
-    },
-
-    // 4. Lấy danh sách bản ghi hiển thị cho trang hiện tại
-    paginatedStudents() {
-      const start = (this.page - 1) * this.itemsPerPage
-      const end = start + this.itemsPerPage
-      return this.filteredStudents.slice(start, end)
-    },
-
-    // 5. Tự động tính các nút trang hiển thị (1, 2, 3...)
-    visiblePages() {
-      const pages = []
-      const maxVisible = 5 // Hiển thị tối đa 5 nút trang
-      let start = Math.max(1, this.page - Math.floor(maxVisible / 2))
-      const end = Math.min(this.totalPages, start + maxVisible - 1)
-
-      if (end - start + 1 < maxVisible) {
-        start = Math.max(1, end - maxVisible + 1)
-      }
-
-      for (let i = start; i <= end; i++) {
-        pages.push(i)
-      }
-      return pages
-    },
+  async mounted() {
+    if (typeof navigator !== 'undefined') {
+      this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+    }
+    await this.fetchCatalogs()
+    await this.loadData()
   },
-
-  watch: {
-    // Khi danh sách đã lọc thay đổi, nếu trang hiện tại lớn hơn tổng số trang thì tự lùi về trang hợp lệ
-    totalPages(newTotalPages) {
-      if (this.page > newTotalPages) {
-        this.page = newTotalPages || 1
-        this.pageInput = this.page
-      }
-    },
-
-    // Tự động reset về trang 1 khi thay đổi điều kiện tìm kiếm/bộ lọc
-    filters: {
-      handler() {
-        this.page = 1
-        this.pageInput = 1
-      },
-      deep: true,
-    },
-  },
-
   methods: {
-    handleRefreshIconClick() {
-      this.searchQuery = ''
-      this.filterKyHoc = null
-      this.filterKyDangKy = null
-      this.filterHocPhan = null
-      this.filterStatus = null
-      this.page = 1
-      this.pageInput = 1
+    async fetchCatalogs() {
+      try {
+        const [semesterRes, examRes, termRes] = await Promise.all([
+          authorizeService.getSemesters({ status: 'ACTIVE', channel: 'CMS' }).catch(() => null),
+          authorizeService.getExams({ status: 'ACTIVE', channel: 'CMS' }).catch(() => null),
+          authorizeService.getTerms({ status: 'ACTIVE', channel: 'CMS' }).catch(() => null),
+        ])
+
+        if (semesterRes) {
+          const list = Array.isArray(semesterRes) ? semesterRes : semesterRes.data || semesterRes.content || []
+          this.semesterOptions = list.map(item => ({ text: item.name || item.code, value: item.id }))
+        }
+        if (examRes) {
+          const list = Array.isArray(examRes) ? examRes : examRes.data || examRes.content || []
+          this.examOptions = list.map(item => ({ text: item.name || item.code, value: item.id }))
+        }
+        if (termRes) {
+          const list = Array.isArray(termRes) ? termRes : termRes.data || termRes.content || []
+          this.termOptions = list.map(item => ({ text: item.name || item.code, value: item.id }))
+        }
+      } catch (error) {
+        console.error('Lỗi tải danh mục phụ:', error)
+      }
+    },
+
+    extractValue(val) {
+      if (val === null || val === undefined || val === '') return ''
+      if (typeof val === 'object') {
+        return val.value !== undefined ? val.value : (val.id !== undefined ? val.id : (val.code !== undefined ? val.code : ''))
+      }
+      return val
     },
 
     handleSearch() {
-      this.page = 1
-      this.pageInput = 1
-    },
-
-    handleAddClick() {
-      console.log('Thêm mới sinh viên')
-    },
-
-    deleteItem(item) {
-      console.log('Xóa:', item)
-    },
-
-    changePage(newPage) {
-      if (newPage >= 1 && newPage <= this.totalPages) {
-        this.page = newPage
-        this.pageInput = newPage
+      this.activeFilters = {
+        search: this.extractValue(this.filters.search),
+        semesterId: this.extractValue(this.filters.semesterId),
+        examId: this.extractValue(this.filters.examId),
+        termId: this.extractValue(this.filters.termId),
+        status: this.extractValue(this.filters.status),
       }
+      this.currentPage = 1
+      this.pageInput = 1
+      this.loadData()
+    },
+
+    refreshData() {
+      this.filters = {
+        search: '',
+        semesterId: '',
+        examId: '',
+        termId: '',
+        status: '',
+      }
+      this.activeFilters = {
+        search: '',
+        semesterId: '',
+        examId: '',
+        termId: '',
+        status: '',
+      }
+      this.currentPage = 1
+      this.pageInput = 1
+      this.loadData()
+    },
+
+    async loadData() {
+      this.loading = true
+      try {
+        const baseParams = {
+          pageIndex: this.currentPage,
+          pageSize: this.itemsPerPage,
+          channel: 'CMS',
+        }
+
+        if (this.activeFilters.search !== '') {
+          baseParams.search = this.activeFilters.search
+        }
+        if (this.activeFilters.semesterId !== '') {
+          baseParams.semesterId = this.activeFilters.semesterId
+        }
+        if (this.activeFilters.examId !== '') {
+          baseParams.examId = this.activeFilters.examId
+        }
+        if (this.activeFilters.termId !== '') {
+          baseParams.termId = this.activeFilters.termId
+        }
+        if (this.activeFilters.status !== '') {
+          baseParams.status = this.activeFilters.status
+        }
+
+        const res = await authorizeService.getList(baseParams)
+        if (res) {
+          const rootData = res.data !== undefined ? res.data : res
+          const allItems = Array.isArray(rootData) ? rootData : (rootData.data || rootData.content || rootData.items || [])
+          
+          const rawTotal = rootData.totalElements ?? rootData.totalRecords ?? rootData.total ?? (res.totalElements || res.totalRecords || res.total)
+          this.totalRecords = rawTotal !== undefined ? Number(rawTotal) : allItems.length
+
+          this.itemList = allItems
+          this.totalPages = Math.ceil(this.totalRecords / this.itemsPerPage) || 1
+        }
+      } catch (error) {
+        console.error('Lỗi tải danh sách sinh viên đăng ký:', error)
+        this.itemList = []
+        this.totalRecords = 0
+        this.totalPages = 1
+      } finally {
+        this.loading = false
+      }
+    },
+
+    changePage(page) {
+      if (page < 1 || page > this.totalPages) return
+      this.currentPage = page
+      this.pageInput = page
+      this.loadData()
     },
 
     goToPage() {
-      const p = parseInt(this.pageInput, 10)
-      if (p && p >= 1 && p <= this.totalPages) {
-        this.page = p
+      const page = parseInt(this.pageInput)
+      if (page >= 1 && page <= this.totalPages) {
+        this.changePage(page)
       } else {
-        this.pageInput = this.page
+        this.pageInput = this.currentPage
       }
     },
 
-    exportReport() {
-      console.log('Xuất báo cáo')
+    handleItemsPerPageChange(size) {
+      this.itemsPerPage = size
+      this.currentPage = 1
+      this.pageInput = 1
+      this.loadData()
     },
 
-    importFile() {
-      console.log('Nhập file đăng ký')
+    handleDelete(item) {
+      console.log('Xóa bản ghi:', item)
     },
-  },
+
+    openAddDialog() {},
+    exportReportFile() {},
+    openImportDialog() {}
+  }
 }
 </script>
 
 <style scoped>
-/* Khung tổng thể vừa vặn màn hình */
-.table-container {
-  height: calc(100vh - 70px);
-  background-color: #fff;
-  overflow: hidden;
+.text-red-bold {
+  color: #A62229 !important;
+}
+.bg-white {
+  background-color: #ffffff !important;
+}
+.filter-input >>> .v-input__slot {
+  border-radius: 6px !important;
+  min-height: 38px !important;
+}
+.btn-square-action {
+  border-radius: 6px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+}
+.cursor-pointer {
+  cursor: pointer;
 }
 
-/* Cho phép vùng danh sách tự co giãn và lướt */
-.table-scroll-content {
-  min-height: 0;
-  height: 100%;
+.sticky-filter {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background-color: #ffffff;
 }
 
-.gap-2 {
-  gap: 8px;
+.sticky-bottom-bar {
+  background-color: #ffffff;
 }
 
-.border-top {
-  border-top: 1px solid #e0e0e0;
+.table-scroll-container {
+  overflow-x: auto;
 }
 
-.min-w-0 {
-  min-width: 0 !important;
+.table-scroll-container >>> th {
+  position: sticky !important;
+  top: 0;
+  z-index: 2;
+  background-color: #f5f5f5 !important;
 }
 
-.flex-shrink-0 {
-  flex-shrink: 0;
-}
-
-/* Cố định Header của Data Table (STT, Mã SV,...) luôn hiển thị trên cùng khi lướt */
-::v-deep .v-data-table--fixed-header > .v-data-table__wrapper {
-  height: 100%;
-}
-
-::v-deep .v-data-table--fixed-header th {
-  background-color: #f8f9fa !important;
-  z-index: 2 !important;
+::v-deep .v-data-footer {
+  display: none !important;
 }
 </style>

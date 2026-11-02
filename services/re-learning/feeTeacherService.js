@@ -29,6 +29,10 @@ const feeTeacherService = {
   exportExcelSummary(id) {
     return Api.get(`/api/decisionTeacherJobFee/export-excel/summary`, { id, channel: 'CMS' })
   },
+  // Lấy chi tiết báo cáo thanh toán giảng viên theo ID (khi bấm icon mắt)
+  getDetailById(id, params) {
+    return Api.get(`/api/decisionTeacherJobFee/byExam/${id}`, params)
+  },
 }
 
 export default feeTeacherService

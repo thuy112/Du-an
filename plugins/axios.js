@@ -48,9 +48,22 @@ export default ({
       case 201:
       case 202:
       case 200: {
+        if (response.config.responseType === "blob") {
+          return {
+            success: true,
+            data: response.data,
+            headers: response.headers,
+          };
+        }
+
+        const responseBody = response.data;
+        const hasDataEnvelope =
+          responseBody &&
+          Object.prototype.hasOwnProperty.call(responseBody, "data");
+
         return {
           success: true,
-          data: response.data.data,
+          data: hasDataEnvelope ? responseBody.data : responseBody,
         };
       }
 

@@ -93,6 +93,99 @@
               <v-icon size="24">mdi-magnify</v-icon>
             </v-btn>
           </div>
+          <!-- MODAL XEM CHI TIẾT BÁO CÁO THANH TOÁN -->
+          <v-dialog v-model="isDetailModalOpen" max-width="950px" persistent>
+            <v-card class="rounded-lg">
+              <!-- Header Modal -->
+              <v-card-title class="headline text-white" style="background-color: #a2212b;">
+                <span class="text-h6 font-weight-bold">Chi tiết báo cáo thanh toán giảng viên</span>
+                <v-spacer></v-spacer>
+                <v-btn icon dark @click="isDetailModalOpen = false">
+                  <v-icon>mdi-close</v-icon>
+                </v-btn>
+              </v-card-title>
+
+              <!-- Body Modal -->
+              <v-card-text class="pa-5">
+                <div class="text-subtitle-1 font-weight-bold red--text text--darken-2 mb-3">
+                  Thông tin báo cáo thanh toán giảng viên
+                </div>
+
+                <v-row class="mb-4 text-body-2">
+                  <v-col cols="12" sm="6">
+                    <div>Tên đợt thanh toán: <strong class="text--darken-3">{{ selectedItem.name || '---' }}</strong></div>
+                    <div class="mt-2">Mã đợt thanh toán: <strong class="text--darken-3">{{ selectedItem.code || '---' }}</strong></div>
+                  </v-col>
+                  <v-col cols="12" sm="6">
+                    <div>Ngày thanh toán: <strong class="text--darken-3">{{ formatDate(selectedItem.paymentDate) }}</strong></div>
+                    <div class="mt-2">
+                      Trạng thái: 
+                      <span :class="selectedItem.paymentFeeStatus === 'PAID' || selectedItem.paymentFeeStatus === 'COMPLETE_PAID' ? 'green--text font-weight-bold' : 'error--text font-weight-bold'">
+                        {{ selectedItem.paymentFeeStatus === 'PAID' || selectedItem.paymentFeeStatus === 'COMPLETE_PAID' ? 'Đã thanh toán' : 'Chờ thanh toán' }}
+                      </span>
+                    </div>
+                  </v-col>
+                </v-row>
+
+                <v-divider class="my-4"></v-divider>
+
+                <div class="text-subtitle-1 font-weight-bold mb-3">
+                  Danh sách giảng viên (<span class="red--text">{{ Array.isArray(selectedItem.teacherFees) ? selectedItem.teacherFees.length : 0 }}</span>)
+                </div>
+
+                <!-- Bảng danh sách chi tiết giảng viên -->
+                <v-data-table
+                  :headers="[
+                    { text: 'STT', value: 'stt', align: 'center', sortable: false, width: 60 },
+                    { text: 'Họ tên giảng viên', value: 'name', sortable: false },
+                    { text: 'Mã lớp giảng dạy', value: 'classCode', sortable: false },
+                    { text: 'Số tiết', value: 'period', align: 'center', sortable: false },
+                    { text: 'Số lượng sinh viên', value: 'numberOfStudent', align: 'center', sortable: false },
+                    { text: 'Định mức', value: 'unitPrice', align: 'center', sortable: false },
+                    { text: 'Loại lớp', value: 'classType', align: 'center', sortable: false },
+                    { text: 'Số tiền', value: 'amount', align: 'center', sortable: false },
+                  ]"
+                  :items="Array.isArray(selectedItem.teacherFees) ? selectedItem.teacherFees : []"
+                  hide-default-footer
+                  class="elevation-1 border rounded"
+                >
+                  <template #[`item.stt`]="{ index }">
+                    {{ index + 1 }}
+                  </template>
+                  <template #[`item.name`]="{ item }">
+                    <span class="font-weight-medium">{{ item.name || '---' }}</span>
+                  </template>
+                  <template #[`item.classCode`]="{ item }">
+                    {{ item.classCode || '---' }}
+                  </template>
+                  <template #[`item.period`]="{ item }">
+                    {{ item.period ?? '---' }}
+                  </template>
+                  <template #[`item.numberOfStudent`]="{ item }">
+                    {{ item.numberOfStudent ?? '---' }}
+                  </template>
+                  <template #[`item.unitPrice`]="{ item }">
+                    {{ formatCurrency(item.unitPrice) }}
+                  </template>
+                  <template #[`item.classType`]="{ item }">
+                    <v-chip small outlined color="primary" class="font-weight-medium">
+                      {{ item.classType === 'COMBINE_CLASS' ? 'Lớp ghép' : (item.classType || '---') }}
+                    </v-chip>
+                  </template>
+                  <template #[`item.amount`]="{ item }">
+                    <span class="font-weight-bold red--text text--darken-2">{{ formatCurrency(item.amount) }}</span>
+                  </template>
+                </v-data-table>
+              </v-card-text>
+
+              <!-- Footer Modal -->
+              <v-card-actions class="pa-4 pt-0 justify-end">
+                <v-btn color="grey darken-1" text @click="isDetailModalOpen = false">
+                  Đóng <v-icon right>mdi-close</v-icon>
+                </v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
         </div>
       </div>
     </div>
@@ -145,9 +238,8 @@
           <v-tooltip bottom>
             <template v-slot:activator="{ on, attrs }">
               <v-icon
-                size="28"
+                size="26"
                 color="success"
-                small
                 v-bind="attrs"
                 v-on="on"
                 @click="exportItemExcel(item)"
@@ -165,9 +257,8 @@
         <v-tooltip bottom>
           <template v-slot:activator="{ on, attrs }">
             <v-icon
-              size="28"
+              size="26"
               color="info"
-              small
               v-bind="attrs"
               v-on="on"
               @click="viewDetail(item)"
@@ -191,7 +282,7 @@
         class="text-capitalize rounded px-4 font-weight-bold"
         @click="exportExcel"
       >
-        <v-icon left small>mdi-microsoft-excel</v-icon> XUẤT FILE BÁO CÁO
+        <v-icon size="16">mdi-microsoft-excel</v-icon> XUẤT FILE BÁO CÁO
       </v-btn>
 
       <div class="d-flex align-center gap-2 flex-nowrap">
@@ -364,6 +455,7 @@ export default {
             this.fetchExams(),
             this.fetchRetakeCourses(),
             this.fetchData(),
+            this.fetchExams(),
         ])
     },
 
@@ -503,14 +595,24 @@ export default {
 
         async exportExcel() {
             try {
-                this.loadingExport = true
-                let examIdsParam = ''
+                this.loadingExport = true;
+                
+                // Kiểm tra nếu chưa chọn đợt học lại thì cảnh báo hoặc tự động lấy tất cả các đợt đang có
+                let examIdsParam = '';
                 if (this.search.examIds) {
                     examIdsParam = Array.isArray(this.search.examIds) 
                         ? this.search.examIds.join(',') 
-                        : this.search.examIds
+                        : this.search.examIds;
                 } else if (this.examList && this.examList.length > 0) {
-                    examIdsParam = this.examList.map(item => item.id || item.code).join(',')
+                    // Tự động lấy tất cả id của đợt học lại nếu người dùng chưa chọn trên bộ lọc
+                    examIdsParam = this.examList.map(item => item.id || item.code).join(',');
+                } else {
+                    if (this.$toast) {
+                        this.$toast.warning('Vui lòng chọn đợt học lại trước khi xuất file!');
+                    } else {
+                        alert('Vui lòng chọn đợt học lại trước khi xuất file!');
+                    }
+                    return;
                 }
 
                 const params = {
@@ -519,47 +621,44 @@ export default {
                     toTime: '',
                     examIds: examIdsParam,
                     channel: 'CMS',
-                }
+                };
 
-                const res = await feeTeacherService.exportResult(params)
-                const downloadUrl = res?.data?.url || res?.url || res?.data
+                const res = await feeTeacherService.exportResult(params);
+                const downloadUrl = res?.data?.url || res?.url || res?.data;
                 if (downloadUrl && this.$download) {
-                    this.$download(downloadUrl)
+                    this.$download(downloadUrl);
                 }
             } catch (error) {
-                console.error('Lỗi xuất file:', error)
+                console.error('Lỗi xuất file:', error);
+                const errorMessage = error?.response?.data?.message || error?.message || 'Vui lòng chọn kỳ thi lại!';
+                if (this.$toast) {
+                    this.$toast.error(errorMessage);
+                } else {
+                    alert(errorMessage);
+                }
             } finally {
-                this.loadingExport = false
+                this.loadingExport = false;
             }
         },
 
+        // Bấm icon Excel từng dòng (Đã bỏ thông báo thành công, chỉ tự động tải file)
         async exportItemExcel(item) {
             try {
                 this.isLoading = true;
                 const res = await feeTeacherService.exportExcelSummary(item.id);
-                
-                // Kiểm tra nếu API trả về link download hoặc thành công rõ ràng
                 const downloadUrl = res?.data?.url || res?.url || res?.data;
                 if (downloadUrl && typeof downloadUrl === 'string' && downloadUrl.startsWith('http')) {
                     if (this.$download) {
                         this.$download(downloadUrl);
                     }
-                    if (this.$toast) {
-                        this.$toast.success('Xuất file thành công!');
-                    }
                 } else if (res && this.$download && (res instanceof Blob || res.data instanceof Blob)) {
-                    // Nếu server trả về kết quả thành công dạng blob/stream trực tiếp
                     const blob = res instanceof Blob ? res : res.data;
                     const url = window.URL.createObjectURL(blob);
                     this.$download(url);
                 }
             } catch (error) {
                 console.error('Lỗi xuất file excel dòng:', error);
-                
-                // Lấy message lỗi chính xác từ backend (ví dụ: "Định mức giảng viên không tồn tại")
                 const errorMessage = error?.response?.data?.message || error?.message || 'Không thể xuất file do chưa có định mức giảng viên!';
-                
-                // Hiển thị thông báo lỗi lên màn hình
                 if (this.$toast) {
                     this.$toast.error(errorMessage);
                 } else {
@@ -570,9 +669,33 @@ export default {
             }
         },
 
-        viewDetail(item) {
-            this.selectedItem = item
-            this.isDetailModalOpen = true
+        formatDate(dateStr) {
+            if (!dateStr) return '---';
+            // Nếu chuỗi chứa khoảng trắng (có phần giờ phía sau), lấy phần trước khoảng trắng
+            if (dateStr.includes(' ')) {
+                return dateStr.split(' ')[0];
+            }
+            return dateStr;
+        },
+
+        // Bấm icon mắt: Gọi API lấy chi tiết và mở Modal
+        async viewDetail(item) {
+            try {
+                this.isLoading = true;
+                const itemId = item.id || item.decisionTeacherJobFeeId;
+                const res = await feeTeacherService.getDetailById(itemId, { channel: 'CMS' });
+                
+                // Lấy đúng cục dữ liệu data nếu API trả về bọc trong object { code, message, data: { ... } }
+                const rawData = res?.data !== undefined ? res.data : res;
+                this.selectedItem = rawData?.data || rawData || item;
+                this.isDetailModalOpen = true;
+            } catch (err) {
+                console.error('Lỗi tải chi tiết báo cáo:', err);
+                this.selectedItem = item;
+                this.isDetailModalOpen = true;
+            } finally {
+                this.isLoading = false;
+            }
         },
     },
 }
@@ -617,10 +740,64 @@ export default {
   height: 40px;
 }
 
-/* Thanh phân trang dưới cùng */
+/* Tổng thể trang */
+.teacher-fee-page {
+  min-height: auto !important;
+  height: auto !important;
+  background-color: #fff;
+  display: block !important;
+  padding-bottom: 24px;
+}
+
+/* Bảng dữ liệu */
+:deep(.v-data-table) {
+  height: auto !important;
+}
+
+/* Cho phép bảng cuộn nội bộ nếu dữ liệu quá dài */
+:deep(.v-data-table__wrapper) {
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
+}
+
+/* ÉP THANH PHÂN TRANG NẰM NGAY DƯỚI ĐÍT BẢNG (Không bị ghim đáy) */
 .bottom-bar {
+  position: relative !important;
+  bottom: auto !important;
+  left: auto !important;
+  right: auto !important;
   border-top: 1px solid #e0e0e0;
   background-color: #fff;
+  margin-top: 16px !important; /* Khoảng cách ngay dưới bảng */
+  width: 100% !important;
+  z-index: 1;
+}
+
+/* Kích thước và kiểu dáng các ô input/select lọc */
+.filter-item {
+  min-width: 150px;
+  max-width: 200px;
+}
+
+.select-md {
+  width: 180px;
+}
+
+/* Tùy chỉnh bo góc và màu sắc cho input Vuetify */
+:deep(.custom-outlined-input .v-input__control .v-input__slot) {
+  min-height: 40px !important;
+  border-radius: 4px !important;
+}
+
+:deep(.custom-outlined-input .v-select__selection) {
+  font-size: 14px;
+}
+
+/* Nút icon refresh và tìm kiếm */
+.action-btn {
+  min-width: 40px !important;
+  width: 40px;
+  height: 40px;
 }
 
 /* Input phân trang (Bản ghi, Trang) */
@@ -633,11 +810,6 @@ export default {
 :deep(.pagination-input input) {
   text-align: center;
   font-size: 14px;
-}
-
-/* Giới hạn chiều cao bảng dữ liệu và cuộn mượt */
-:deep(.v-data-table__wrapper) {
-  max-height: calc(100vh - 280px);
 }
 
 /* Responsive cho màn hình nhỏ / mobile */

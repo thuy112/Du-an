@@ -7,13 +7,15 @@ export default {
   getDetail(id) {
     return Api.get(`/api/decisionTeacherJobFee/byExam/${id}`)
   },
-  // Bổ sung hàm lấy danh sách giảng viên cho ô lọc (API số 3)
   getTeachers(params) {
     return Api.get('/api/teacher/list', params)
   },
-  // Bổ sung hàm lấy danh sách đợt học lại cho ô lọc (API số 2)
   getRetakeCourses(params) {
     return Api.get('/api/retakeCourse', params)
+  },
+  // API cập nhật trạng thái đúng theo link bạn gửi: /api/decisionTeacherJobFee/byExam/{id}/status
+  updateStatus(id, params) {
+    return Api.put(`/api/decisionTeacherJobFee/byExam/${id}/status`, params)
   },
   exportExcelSummary(id) {
     return Api.get('/api/decisionTeacherJobFee/export-excel/summary', { id }, { responseType: 'blob' })
@@ -32,6 +34,9 @@ export default {
   },
   getListByClass(params) {
     return Api.get('/api/teacher/rc/listByClass', params)
+  },
+  createDecisionV2(params) {
+    return Api.post('/api/decisionTeacherJobFee/byExamV2', params)
   },
   deleteItem(id) {
     return Api.delete(`/api/decisionTeacherJobFee/byExam/${id}`)

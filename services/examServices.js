@@ -1,29 +1,52 @@
 import Api from '~/api/Api.js'
 
-const examServices = {
-  async getExamList(params) {
-    return await Api.get('/api/v1/exam-periods', { params })
-  },
-
-  async getExamDetail(id) {
-    return await Api.get(`/api/v1/exam-periods/${id}`)
-  },
-
-  async createExam(data) {
-    return await Api.post('/api/v1/exam-periods', data)
-  },
-
-  async updateExam(id, data) {
-    return await Api.put(`/api/v1/exam-periods/${id}`, data)
-  },
-
-  async updateExamStatus(id, status) {
-    return await Api.put(`/api/v1/exam-periods/${id}/status`, { status })
-  },
-
-  async deleteExam(id) {
-    return await Api.delete(`/api/v1/exam-periods/${id}`)
-  },
+async function getApiData(url, params) {
+  const response = await Api.get(url, params)
+  if (
+    response instanceof Error ||
+    response?.isAxiosError ||
+    response?.success === false
+  ) {
+    throw response instanceof Error || response?.isAxiosError
+      ? response
+      : new Error(`API ${url} trả về lỗi.`)
+  }
+  return response
 }
 
-export default examServices
+export default {
+  // Lấy danh sách kỳ thi lại kèm bộ lọc
+  getExamList(params) {
+    return getApiData('/exam', params)
+  },
+
+  // Tạo mới kỳ thi lại
+  createExam(data) {
+    return Api.post('/exam', data)
+  },
+
+  // Cập nhật kỳ thi lại
+  updateExam(id, data) {
+    return Api.put(`/exam/${id}`, data)
+  },
+
+  // Cập nhật trạng thái kỳ thi lại
+  updateExamStatus(id, status) {
+    return Api.patch(`/exam/${id}/status`, { status })
+  },
+
+  // Xóa kỳ thi lại
+  deleteExam(id) {
+    return Api.delete(`/exam/${id}`)
+  },
+
+  // Lấy quyền của trang (Service phụ trợ)
+  getPageRole(params) {
+    return getApiData('/auth/getPageRole', params)
+  },
+
+  // Lấy thông tin người dùng hiện tại (Service phụ trợ)
+  getUserInfo(params) {
+    return getApiData('/user/info', params)
+  },
+}
