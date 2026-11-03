@@ -826,23 +826,33 @@ export default {
         }
 
         const res = await examServices.getExamList(params)
-        if (res?.success === false) {
-          throw new Error('API danh sách kỳ thi lại trả về lỗi.')
+        
+        // In dữ liệu này ra tab Console của trình duyệt để kiểm tra cấu trúc chính xác từ server
+        console.log('API Response /exam:', res)
+
+        const raw = res?.data !== undefined ? res.data : res
+
+        // Sử dụng hàm findCollection để tìm mảng dữ liệu tự động bên trong object
+        let items = findCollection(raw)
+        if (!items) {
+          if (Array.isArray(raw)) items = raw
+          else if (Array.isArray(raw?.data)) items = raw.data
+          else if (Array.isArray(raw?.items)) items = raw.items
+          else if (Array.isArray(raw?.data?.data)) items = raw.data.data
+          else if (Array.isArray(raw?.data?.items)) items = raw.data.items
+          else items = []
         }
 
-        const responseData = res?.data !== undefined ? res.data : res
-        const items = findCollection(responseData) || []
+        let total = findTotal(raw)
+        if (total === undefined || total === null) {
+          total = raw?.totalRecords || raw?.total || raw?.data?.totalRecords || items.length
+        }
+
         this.items = items
-        this.totalItemsCount =
-          findTotal(responseData) ??
-          res?.totalElements ??
-          res?.totalRecords ??
-          res?.total ??
-          items.length
+        this.totalItemsCount = total
         this.totalPages = Math.ceil(this.totalItemsCount / this.itemsPerPage) || 1
       } catch (error) {
         console.error('Lỗi khi tải danh sách kỳ thi lại từ API:', error)
-        this.showToast('Không tải được danh sách kỳ đăng ký thi lại', '#f44336')
         this.items = []
         this.totalItemsCount = 0
         this.totalPages = 1

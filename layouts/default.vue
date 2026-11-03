@@ -317,6 +317,7 @@ export default {
       dialogPassword: false,
       activeSubMenu: null,
       mobileDrawer: false,
+      dynamicPageTitle: 'Đơn vị công tác Khoa - trường',
 
       user: {
         name: 'Admin',
@@ -359,7 +360,7 @@ export default {
             },
             {
               title: 'Loại hình đào tạo',
-              path: '/danh-muc-he-thong/loai-hinh-dao-tao',
+              path: '/danh-muc-he-thong/loai-hinh-thuc-dao-tao',
             },
             {
               title: 'Quản lý đơn vị',
@@ -367,17 +368,17 @@ export default {
             },
             {
               title: 'Quản lý ngành',
-              path: '/danh-muc-he-thong/quan-ly-nganh',
+              path: '/danh-muc-he-thong/nganh',
             },
-            { title: 'Quản lý khoá', path: '/danh-muc-he-thong/quan-ly-khoa' },
-            { title: 'Quản lý lớp', path: '/danh-muc-he-thong/quan-ly-lop' },
+            { title: 'Quản lý khoá', path: '/danh-muc-he-thong/khoa' },
+            { title: 'Quản lý lớp', path: '/danh-muc-he-thong/lop-hoc' },
             {
               title: 'Chương trình đào tạo',
               path: '/danh-muc-he-thong/chuong-trinh-dao-tao',
             },
             {
               title: 'Quản lý học phần',
-              path: '/danh-muc-he-thong/quan-ly-hoc-phan',
+              path: '/danh-muc-he-thong/hoc-phan',
             },
             {
               title: 'Quản lý học kỳ',
@@ -389,7 +390,7 @@ export default {
             },
             {
               title: 'Quản lý khoản thu',
-              path: '/danh-muc-he-thong/quan-ly-khoan-thu',
+              path: '/danh-muc-he-thong/khoan-thu',
             },
           ],
         },
@@ -701,6 +702,15 @@ export default {
 
     await this.fetchUserInfo()
     await this.fetchPageRole()
+
+    this.$nuxt.$on('update-breadcrumb-title', (newTitle) => {
+      this.dynamicPageTitle = newTitle
+    })
+  },
+
+  // ---> ĐẶT BEFOREDESTROY NẰM RIÊNG NGAY SAU MOUNTED <---
+  beforeDestroy() {
+    this.$nuxt.$off('update-breadcrumb-title')
   },
   methods: {
     isParentActive(item) {

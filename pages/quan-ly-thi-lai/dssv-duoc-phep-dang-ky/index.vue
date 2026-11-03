@@ -15,8 +15,8 @@
           dense
           hide-details
           clearable
-          class="filter-input flex-grow-1"
-          style="min-width: 180px;"
+          class="filter-item"
+          style="min-width: 180px; flex: 1 1 180px;"
           @keyup.enter="handleSearch"
         ></v-text-field>
 
@@ -30,8 +30,8 @@
           dense
           hide-details
           clearable
-          class="filter-input flex-grow-1"
-          style="min-width: 150px;"
+          class="filter-item"
+          style="min-width: 150px; flex: 1 1 150px;"
         ></v-select>
 
         <v-select
@@ -44,8 +44,8 @@
           dense
           hide-details
           clearable
-          class="filter-input flex-grow-1"
-          style="min-width: 170px;"
+          class="filter-item"
+          style="min-width: 170px; flex: 1 1 170px;"
         ></v-select>
 
         <v-select
@@ -58,8 +58,8 @@
           dense
           hide-details
           clearable
-          class="filter-input flex-grow-1"
-          style="min-width: 150px;"
+          class="filter-item"
+          style="min-width: 150px; flex: 1 1 150px;"
         ></v-select>
 
         <v-select
@@ -72,11 +72,12 @@
           dense
           hide-details
           clearable
-          class="filter-input flex-grow-1"
-          style="min-width: 140px;"
+          class="filter-item"
+          style="min-width: 140px; flex: 1 1 140px;"
         ></v-select>
 
-        <div class="d-flex align-center" style="gap: 5px;">
+        <!-- Cụm nút thao tác -->
+        <div class="d-flex align-center flex-shrink-0" style="gap: 6px;">
           <v-btn icon color="#A62229" class="btn-square-action" @click="refreshData" title="Làm mới">
             <v-icon size="22">mdi-refresh</v-icon>
           </v-btn>
@@ -85,6 +86,7 @@
             <v-icon size="22">mdi-magnify</v-icon>
           </v-btn>
 
+          <!-- Nút Dấu Cộng mở Modal Thêm Mới -->
           <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" @click="openAddDialog" title="Thêm mới">
             <v-icon size="22">mdi-plus</v-icon>
           </v-btn>
@@ -106,51 +108,65 @@
         @page-change="changePage"
         @per-page-change="handleItemsPerPageChange"
       >
-        <template #[`item.index`]="{ index }">
+        <!-- Cột STT -->
+        <template #[`item.stt`]="{ index }">
           <span>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</span>
         </template>
 
-        <template #[`item.studentInfo`]="{ item }">
-          <div class="py-1">
-            <div class="font-weight-bold black--text">{{ item.studentName || item.fullName || '-' }}</div>
-            <div class="text-caption grey--text text--darken-2">Mã số sinh viên: <span class="error--text font-weight-medium">{{ item.studentCode || item.code || '-' }}</span></div>
-            <div class="text-caption grey--text text--darken-2">Lớp: {{ item.className || item.class_name || '-' }}</div>
+        <!-- Cột Thông tin sinh viên -->
+        <template #[`item.student`]="{ item }">
+          <div class="py-2 student-info-cell">
+            <div class="font-weight-bold student-name-text" style="color:#a2212b">{{ item.studentName }}</div>
+            <div class="text-caption grey--text text--darken-2 student-code-row">
+              <span>Mã số sinh viên: </span><span class="font-weight-medium text-dark" style="color:#a2212b">{{ item.studentCode }}</span>
+            </div>
+            <div class="text-caption grey--text text--darken-2">
+              <span>Lớp: </span><span style="color:#a2212b">{{ item.className }}</span>
+            </div>
           </div>
         </template>
 
-        <template #[`item.classExam`]="{ item }">
-          <span>{{ item.classExam || item.examClass || '-' }}</span>
+        <template #[`item.examClass`]="{ item }">
+          <span>{{ item.examClass }}</span>
         </template>
 
-        <template #[`item.examName`]="{ item }">
-          <span>{{ item.examName || item.examTitle || '-' }}</span>
+        <template #[`item.exam.name`]="{ item }">
+          <span>{{ item['exam.name'] }}</span>
         </template>
 
         <template #[`item.semesterName`]="{ item }">
-          <span>{{ item.semesterName || item.semester || '-' }}</span>
+          <span>{{ item.semesterName }}</span>
         </template>
 
-        <template #[`item.courseCode`]="{ item }">
-          <span>{{ item.courseCode || item.subjectCode || '-' }}</span>
+        <template #[`item.termCode`]="{ item }">
+          <span>{{ item.termCode }}</span>
         </template>
 
-        <template #[`item.courseName`]="{ item }">
-          <span>{{ item.courseName || item.subjectName || '-' }}</span>
+        <template #[`item.termName`]="{ item }">
+          <span>{{ item.termName }}</span>
         </template>
 
         <template #[`item.status`]="{ item }">
           <v-chip
             small
             dark
-            :color="item.status === 'REGISTERED' || item.status === 'ACTIVE' || item.isRegistered ? '#4caf50' : '#757575'"
+            :color="item.status === 'REGISTERED' || item.status === 'ACTIVE' ? '#4caf50' : '#757575'"
             class="font-weight-medium text-caption"
           >
-            {{ item.statusText || (item.status === 'REGISTERED' || item.isRegistered ? 'Đã đăng ký' : 'Chưa đăng ký') }}
+            {{ item.status === 'REGISTERED' || item.status === 'ACTIVE' ? 'Đã đăng ký' : 'Chưa đăng ký' }}
           </v-chip>
         </template>
 
+        <!-- Cột Chức năng -->
         <template #[`item.actions`]="{ item }">
-          <v-btn icon small color="error" @click="handleDelete(item)" title="Xóa">
+          <v-btn
+            v-if="item.status !== 'REGISTERED' && item.status !== 'ACTIVE'"
+            icon
+            small
+            color="error"
+            @click="handleDelete(item)"
+            title="Xóa"
+          >
             <v-icon size="20">mdi-delete</v-icon>
           </v-btn>
         </template>
@@ -228,22 +244,28 @@
         </v-btn>
       </div>
     </div>
+
+    <!-- MODAL THÊM SINH VIÊN ĐƯỢC PHÉP THI LẠI -->
+    <AddStudentModal v-model="isAddModalOpen" @success="loadData" />
   </div>
 </template>
 
 <script>
 import BaseTable from '~/components/Base/BaseTable.vue'
-import authorizeService from '~/services/authorizeRegistrationService' // Import service
+import AddStudentModal from '~/components/AddStudentModal.vue' // Import component modal thêm mới
+import authorizeService from '~/services/authorizeRegistrationService'
 
 export default {
   name: 'AuthorizeRegistrationPage',
   components: {
     BaseTable,
+    AddStudentModal, // Đăng ký component modal
   },
   data() {
     return {
       isMobileDevice: false,
       loading: false,
+      isAddModalOpen: false, // Biến điều khiển trạng thái ẩn/hiện modal thêm mới
       filters: {
         search: '',
         semesterId: '',
@@ -275,15 +297,15 @@ export default {
       itemsPerPage: 50,
 
       tableHeaders: [
-        { text: 'STT', value: 'index', align: 'center', width: '60px', sortable: false },
-        { text: 'Thông tin sinh viên', value: 'studentInfo', align: 'left', minWidth: '220px', sortable: false },
-        { text: 'Lớp thi', value: 'classExam', align: 'left', minWidth: '110px', sortable: false },
-        { text: 'Tên kỳ đăng ký thi lại', value: 'examName', align: 'left', minWidth: '160px', sortable: false },
-        { text: 'Kỳ học', value: 'semesterName', align: 'left', minWidth: '150px', sortable: false },
-        { text: 'Mã học phần', value: 'courseCode', align: 'left', minWidth: '110px', sortable: false },
-        { text: 'Tên học phần', value: 'courseName', align: 'left', minWidth: '160px', sortable: false },
-        { text: 'Trạng thái', value: 'status', align: 'center', minWidth: '130px', sortable: false },
-        { text: 'Chức năng', value: 'actions', align: 'center', width: '90px', sortable: false },
+        { value: "stt", text: "STT", align: "center", width: "60px", sortable: false },
+        { value: "student", text: "Thông tin sinh viên", width: "250px", align: "left", sortable: false },
+        { value: "examClass", text: "Lớp thi", align: "left", sortable: false },
+        { value: "exam.name", text: "Tên kỳ đăng ký thi lại", align: "left", sortable: false },
+        { value: "semesterName", text: "Học kỳ", align: "left", sortable: false },
+        { value: "termCode", text: "Mã học phần", align: "left", sortable: false },
+        { value: "termName", text: "Tên học phần", align: "left", sortable: false },
+        { value: "status", text: "Trạng thái", align: "center", sortable: false },
+        { value: "actions", text: "Chức năng", align: "center", width: "90px", sortable: false },
       ],
     }
   },
@@ -387,6 +409,7 @@ export default {
         }
 
         const res = await authorizeService.getList(baseParams)
+        
         if (res) {
           const rootData = res.data !== undefined ? res.data : res
           const allItems = Array.isArray(rootData) ? rootData : (rootData.data || rootData.content || rootData.items || [])
@@ -394,7 +417,32 @@ export default {
           const rawTotal = rootData.totalElements ?? rootData.totalRecords ?? rootData.total ?? (res.totalElements || res.totalRecords || res.total)
           this.totalRecords = rawTotal !== undefined ? Number(rawTotal) : allItems.length
 
-          this.itemList = allItems
+          const rawList = Array.isArray(allItems) ? allItems : []
+          this.itemList = rawList.map(item => {
+            return {
+              ...item,
+              studentName: item.studentName || item.fullName || item.name || item.student?.fullName || item.student?.name || '---',
+              studentCode: item.studentCode || item.code || item.maSv || item.student?.code || item.student?.studentCode || '---',
+              className: 
+                item.className || 
+                item.clazzName || 
+                item.classes?.name || 
+                item.classes?.code || 
+                item.class?.name || 
+                item.class?.code || 
+                item.student?.classes?.name || 
+                item.student?.clazz?.name || 
+                item.student?.className || 
+                '---',
+              examClass: item.examClass || item.classExam || item.examClassName || item.classes?.code || '---',
+              'exam.name': item.exam?.name || item.examName || item.examTitle || '---',
+              semesterName: item.semesterName || item.semester?.name || item.semesterTitle || '---',
+              termCode: item.termCode || item.courseCode || item.term?.code || item.subjectCode || '---',
+              termName: item.termName || item.courseName || item.term?.name || item.subjectName || '---',
+              status: item.status || 'UNREGISTERED',
+            }
+          })
+
           this.totalPages = Math.ceil(this.totalRecords / this.itemsPerPage) || 1
         }
       } catch (error) {
@@ -434,7 +482,10 @@ export default {
       console.log('Xóa bản ghi:', item)
     },
 
-    openAddDialog() {},
+    // Mở Modal Thêm mới khi bấm vào nút dấu cộng (+)
+    openAddDialog() {
+      this.isAddModalOpen = true
+    },
     exportReportFile() {},
     openImportDialog() {}
   }
@@ -448,7 +499,7 @@ export default {
 .bg-white {
   background-color: #ffffff !important;
 }
-.filter-input >>> .v-input__slot {
+.filter-item >>> .v-input__slot {
   border-radius: 6px !important;
   min-height: 38px !important;
 }
@@ -468,19 +519,49 @@ export default {
   background-color: #ffffff;
 }
 
+.filter-container > div {
+  width: 100%;
+}
+
 .sticky-bottom-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
   background-color: #ffffff;
+  padding-bottom: 12px;
 }
 
 .table-scroll-container {
   overflow-x: auto;
+  overflow-y: auto;
+  position: relative;
+}
+
+.table-scroll-container >>> .v-data-table__wrapper {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
 }
 
 .table-scroll-container >>> th {
   position: sticky !important;
   top: 0;
-  z-index: 2;
+  z-index: 4;
   background-color: #f5f5f5 !important;
+  box-shadow: inset 0 -1px 0 #e0e0e0;
+}
+
+.student-name-text {
+  color: #A62229 !important;
+  font-size: 14px;
+}
+
+.student-info-cell {
+  line-height: 1.4;
+}
+
+.text-dark {
+  color: #333333 !important;
 }
 
 ::v-deep .v-data-footer {

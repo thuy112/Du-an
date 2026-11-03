@@ -18,5 +18,12 @@ export default {
   },
   getUserInfo(params) {
     return Api.get('/api/user/info', params)
+  },
+  // --- Bổ sung các API cho popup Thêm mới sinh viên ---
+  getStudents(params) {
+    return Api.get('/api/student', params)
+  },
+  getRegisterClasses(params) {
+    return Api.get('/api/registerClass/list', params) // Hoặc thay đổi đường dẫn endpoint lấy lớp đăng ký thực tế của bạn nếu khác
   }
 }
