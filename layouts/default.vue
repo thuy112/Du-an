@@ -382,7 +382,7 @@ export default {
             },
             {
               title: 'Quản lý học kỳ',
-              path: '/danh-muc-he-thong/quan-ly-hoc-ky',
+              path: '/danh-muc-he-thong/quan-ly-ky-hoc',
             },
             {
               title: 'Quản lý định mức phí',

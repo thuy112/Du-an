@@ -1,1184 +1,937 @@
 <template>
-  <div class="page-container pa-2 pa-sm-4">
-    <!-- ==================== HEADER & TIÊU ĐỀ ==================== -->
-    <div class="filter-header-wrapper mb-3">
-      <div class="text-subtitle-1 font-weight-medium black--text mb-2">
-        Danh sách kỳ đăng ký thi lại (
-        <span class="red--text text--darken-3 font-weight-bold">{{
-          totalItemsCount
-        }}</span>
-        )
+  <div class="exam-container">
+    <!-- KHU VỰC 1: CỐ ĐỊNH PHÍA TRÊN (Tiêu đề + Bộ lọc) -->
+    <div class="fixed-top-section">
+      <div class="text-h6 font-weight-bold black--text mb-3">
+        Danh sách kỳ đăng ký thi lại (<span class="text-red-bold">{{ totalRecords }}</span>)
       </div>
 
-      <div class="d-flex align-center justify-end gap-2 flex-wrap">
-        <!-- Ô Tìm kiếm -->
-        <v-text-field
-          v-model="filters.search"
-          placeholder="Tìm kiếm"
-          outlined
-          dense
-          hide-details
-          clearable
-          class="custom-filter-input bg-white rounded"
-          @keyup.enter="handleSearch"
-        ></v-text-field>
+      <div class="filter-container mb-2">
+        <div class="d-flex align-center flex-wrap" style="gap: 8px; padding: 6px 0;">
+          <v-text-field
+            v-model="filters.search"
+            label="Tìm kiếm"
+            outlined
+            dense
+            hide-details
+            clearable
+            class="filter-input flex-grow-1"
+            style="min-width: 180px;"
+            @keyup.enter="handleSearch"
+          ></v-text-field>
 
-        <!-- Ô Từ ngày -->
-        <v-menu
-          v-model="menuFilterStartDate"
-          :close-on-content-click="false"
-          transition="scale-transition"
-          offset-y
-          min-width="auto"
-        >
-          <template #activator="{ on, attrs }">
-            <v-text-field
-              v-model="filters.startDate"
-              placeholder="Từ ngày"
-              outlined
-              dense
-              readonly
-              hide-details
-              clearable
-              class="custom-filter-input bg-white rounded"
-              v-bind="attrs"
-              v-on="on"
-            ></v-text-field>
-          </template>
-          <v-date-picker
-            v-model="filters.startDate"
-            no-title
-            @input="menuFilterStartDate = false"
-          ></v-date-picker>
-        </v-menu>
+          <v-menu
+            v-model="fromFilterMenu"
+            :close-on-content-click="false"
+            transition="scale-transition"
+            offset-y
+            min-width="auto"
+          >
+            <template v-slot:activator="{ on, attrs }">
+              <v-text-field
+                v-model="formattedFromFilterDate"
+                label="Từ ngày"
+                outlined
+                dense
+                hide-details
+                readonly
+                clearable
+                v-bind="attrs"
+                v-on="on"
+                class="filter-input flex-grow-1"
+                style="min-width: 150px;"
+                @click:clear="filters.fromTime = ''"
+              ></v-text-field>
+            </template>
+            <v-date-picker v-model="filters.fromTime" locale="vi" @input="fromFilterMenu = false"></v-date-picker>
+          </v-menu>
 
-        <!-- Ô Đến ngày -->
-        <v-menu
-          v-model="menuFilterEndDate"
-          :close-on-content-click="false"
-          transition="scale-transition"
-          offset-y
-          min-width="auto"
-        >
-          <template #activator="{ on, attrs }">
-            <v-text-field
-              v-model="filters.endDate"
-              placeholder="Đến ngày"
-              outlined
-              dense
-              readonly
-              hide-details
-              clearable
-              class="custom-filter-input bg-white rounded"
-              v-bind="attrs"
-              v-on="on"
-            ></v-text-field>
-          </template>
-          <v-date-picker
-            v-model="filters.endDate"
-            no-title
-            @input="menuFilterEndDate = false"
-          ></v-date-picker>
-        </v-menu>
+          <v-menu
+            v-model="toFilterMenu"
+            :close-on-content-click="false"
+            transition="scale-transition"
+            offset-y
+            min-width="auto"
+          >
+            <template v-slot:activator="{ on, attrs }">
+              <v-text-field
+                v-model="formattedToFilterDate"
+                label="Đến ngày"
+                outlined
+                dense
+                hide-details
+                readonly
+                clearable
+                v-bind="attrs"
+                v-on="on"
+                class="filter-input flex-grow-1"
+                style="min-width: 150px;"
+                @click:clear="filters.toTime = ''"
+              ></v-text-field>
+            </template>
+            <v-date-picker v-model="filters.toTime" locale="vi" @input="toFilterMenu = false"></v-date-picker>
+          </v-menu>
 
-        <!-- Ô Trạng thái -->
-        <v-select
-          v-model="filters.status"
-          :items="statusOptions"
-          item-text="label"
-          item-value="value"
-          placeholder="Trạng thái"
-          outlined
-          dense
-          hide-details
-          clearable
-          class="custom-filter-input bg-white rounded"
-        ></v-select>
+          <v-select
+            v-model="filters.status"
+            :items="statusList"
+            item-text="text"
+            item-value="value"
+            label="Trạng thái"
+            outlined
+            dense
+            hide-details
+            clearable
+            class="filter-input flex-grow-1"
+            style="min-width: 140px;"
+          ></v-select>
 
-        <!-- Nút Refresh -->
-        <v-btn
-          icon
-          color="#a2212b"
-          class="action-btn rounded-sm"
-          @click="resetFilters"
-        >
-          <v-icon color="#a2212b" size="24">mdi-refresh</v-icon>
-        </v-btn>
-
-        <!-- Nút Tìm kiếm -->
-        <v-btn
-          color="#a2212b"
-          dark
-          elevation="0"
-          class="action-btn min-w-0 px-3 rounded-sm"
-          @click="handleSearch"
-        >
-          <v-icon size="24">mdi-magnify</v-icon>
-        </v-btn>
-
-        <!-- Nút Thêm mới -->
-        <v-btn
-          color="#a2212b"
-          dark
-          elevation="0"
-          class="action-btn min-w-0 px-3 rounded-sm"
-          @click="openCreateModal"
-        >
-          <v-icon size="24">mdi-plus</v-icon>
-        </v-btn>
+          <div class="d-flex align-center" style="gap: 5px;">
+            <v-btn icon color="#A62229" class="btn-square-action" @click="refreshData" title="Làm mới">
+              <v-icon size="22">mdi-refresh</v-icon>
+            </v-btn>
+            <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" @click="handleSearch" title="Tìm kiếm">
+              <v-icon size="22">mdi-magnify</v-icon>
+            </v-btn>
+            <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" @click="openAddDialog" title="Thêm mới">
+              <v-icon size="22">mdi-plus</v-icon>
+            </v-btn>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- ==================== BẢNG DỮ LIỆU ==================== -->
-    <div class="table-container-wrapper border rounded-lg mb-16">
+    <!-- KHU VỰC 2: BẢNG DỮ LIỆU Ở GIỮA -->
+    <div class="scrollable-table-section">
       <BaseTable
-        :loading="loading"
         :headers="headers"
-        :items="items"
-        :hide-default-footer="true"
-        class="custom-responsive-table"
-        no-data-text="Không có dữ liệu"
+        :items="itemList"
+        :loading="loading"
+        :current-page="currentPage"
+        :items-per-page="itemsPerPage"
+        :total-records="totalRecords"
+        hide-default-footer
+        @page-change="changePage"
+        @per-page-change="handlePerPageChange"
       >
         <template #[`item.stt`]="{ index }">
-          <span class="font-weight-medium">{{ (page - 1) * itemsPerPage + index + 1 }}</span>
+          <span>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</span>
         </template>
-
-        <template #[`item.registrationTime`]="{ item }">
-          <span>{{ item.fromTime || '---' }} - {{ item.toTime || '---' }}</span>
+        <template #[`item.name`]="{ item }">
+          <span class="font-weight-medium">{{ item.name || '-' }}</span>
         </template>
-
+        <template #[`item.code`]="{ item }">
+          <span>{{ item.code || '-' }}</span>
+        </template>
+        <template #[`item.semesterName`]="{ item }">
+          <span>{{ item.semesterName || item.semester?.name || '-' }}</span>
+        </template>
+        <template #[`item.timeRange`]="{ item }">
+          <span>{{ formatTimeRange(item) }}</span>
+        </template>
         <template #[`item.status`]="{ item }">
-          <v-select
-            :value="item.status"
-            :items="statusSelectItems"
-            item-text="label"
-            item-value="value"
-            dense
-            solo
-            flat
-            hide-details
-            class="status-select-btn"
-            :class="item.status === 'ACTIVE' ? 'status-active' : 'status-inactive'"
-            @change="(val) => openConfirmStatusDialog(item, val)"
-          ></v-select>
+          <ChangeableStatus
+            :status="item.status"
+            :statusList="statusList"
+            @changeStatus="(selectedItem) => handleStatusChange(item, selectedItem)"
+          >
+            <template #content="{ data }">
+              Bạn có chắc chắn muốn đổi trạng thái sang <span class="font-weight-bold red--text">{{ data.text }}</span> không?
+            </template>
+          </ChangeableStatus>
         </template>
-
         <template #[`item.actions`]="{ item }">
-          <div class="d-flex align-center justify-end justify-md-center gap-1">
-            <v-tooltip bottom>
-              <template #activator="{ on, attrs }">
-                <v-btn icon x-small v-bind="attrs" v-on="on" @click="viewDetail(item)">
-                  <v-icon size="20" color="blue">mdi-eye</v-icon>
-                </v-btn>
-              </template>
-              <span>Xem chi tiết</span>
-            </v-tooltip>
+          <div class="d-flex align-center justify-center" style="gap: 4px;">
+            <!-- Xem chi tiết (Icon mắt) -->
+            <v-btn icon small color="info" @click="handleView(item)" title="Xem chi tiết">
+              <v-icon size="24">mdi-eye</v-icon>
+            </v-btn>
 
-            <v-tooltip bottom>
-              <template #activator="{ on, attrs }">
-                <v-btn icon x-small v-bind="attrs" v-on="on" @click="openEditModal(item)">
-                  <v-icon size="20" color="warning">mdi-pencil</v-icon>
-                </v-btn>
-              </template>
-              <span>Chỉnh sửa</span>
-            </v-tooltip>
+            <!-- Cập nhật / Sửa (Icon bút) -->
+            <v-btn icon small color="amber darken-3" @click="handleEdit(item)" title="Cập nhật">
+              <v-icon size="24">mdi-pencil</v-icon>
+            </v-btn>
 
-            <v-tooltip bottom>
-              <template #activator="{ on, attrs }">
-                <v-btn icon x-small v-bind="attrs" v-on="on" @click="openDeleteDialog(item)">
-                  <v-icon size="20" color="red">mdi-trash-can</v-icon>
-                </v-btn>
-              </template>
-              <span>Xóa</span>
-            </v-tooltip>
+            <!-- Xóa (Icon thùng rác) -->
+            <v-btn icon small color="error" @click="handleDelete(item)" title="Xóa">
+              <v-icon size="24">mdi-trash-can</v-icon>
+            </v-btn>
           </div>
         </template>
       </BaseTable>
     </div>
 
-    <!-- ==================== THANH PHÂN TRANG CỐ ĐỊNH GÓC DƯỚI BÊN PHẢI ==================== -->
-    <div
-      class="fixed-footer-pagination d-flex align-center justify-end px-4 py-2 bg-white flex-wrap gap-3"
-      :class="{ 'fixed-footer-pagination-drawer-open': mobileDrawer && !isDesktop }"
-    >
-      <!-- Cụm bên trái: Chọn bản ghi & Nhập trang & Nút Đi -->
-      <div class="d-flex align-center gap-2">
-        <div class="d-flex align-center text-caption gap-1">
-          <span class="grey--text text--darken-1">Bản ghi</span>
+    <!-- KHU VỰC 3: CỐ ĐỊNH PHÍA DƯỚI (Phân trang) -->
+    <div class="fixed-bottom-section d-flex align-center justify-end flex-wrap gap-3 border-top">
+      <div></div>
+      <div class="d-flex align-center pagination-custom" style="gap: 16px;">
+        <div class="d-flex align-center">
           <v-select
             v-model="itemsPerPage"
-            :items="[10, 20, 50, 100]"
-            dense
+            :items="[5, 10, 20, 50, 100]"
+            label="Bản ghi"
             outlined
+            dense
             hide-details
-            class="size-select dense-input"
-            @change="onItemsPerPageChange"
+            style="width: 90px;"
+            @change="handlePerPageChange(itemsPerPage)"
           ></v-select>
         </div>
 
-        <div class="d-flex align-center text-caption gap-1 ml-2">
-          <span class="grey--text text--darken-1">Trang</span>
+        <div class="d-flex align-center" style="gap: 8px;">
           <v-text-field
             v-model.number="pageInput"
-            dense
+            label="Trang"
             outlined
+            dense
             hide-details
-            class="page-input dense-input text-center"
+            type="number"
+            style="width: 80px;"
             @keyup.enter="goToPage"
           ></v-text-field>
-          <v-btn
-            color="#a2212b"
-            dark
-            small
-            elevation="0"
-            class="pagination-square-btn min-w-0 px-2"
-            @click="goToPage"
-          >
-            Đi
+          <v-btn color="#A2212B" dark depressed class="text-none px-4" height="40" @click="goToPage">Đi</v-btn>
+        </div>
+
+        <div class="d-flex align-center" style="gap: 4px;">
+          <v-btn icon outlined small color="grey" :disabled="currentPage <= 1" @click="changePage(currentPage - 1)">
+            <v-icon small>mdi-chevron-left</v-icon>
+          </v-btn>
+          
+          <template v-for="page in displayedPages">
+            <v-btn
+              v-if="page !== '...'"
+              :key="page"
+              :color="currentPage === page ? '#A2212B' : 'white'"
+              :dark="currentPage === page"
+              depressed
+              small
+              class="px-2"
+              style="min-width: 32px; height: 32px;"
+              :style="currentPage !== page ? 'border: 1px solid #e0e0e0; color: #333;' : ''"
+              @click="changePage(page)"
+            >
+              {{ page }}
+            </v-btn>
+            <span v-else :key="'dot-' + page" class="px-1 text-grey">...</span>
+          </template>
+
+          <v-btn icon outlined small color="grey" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)">
+            <v-icon small>mdi-chevron-right</v-icon>
           </v-btn>
         </div>
-      </div>
-
-      <!-- Cụm bên phải: Nút qua lại & Các nút số trang vuông -->
-      <div class="d-flex align-center gap-1">
-        <v-btn icon small :disabled="page <= 1" @click="changePage(page - 1)">
-          <v-icon>mdi-chevron-left</v-icon>
-        </v-btn>
-
-        <template v-for="p in visiblePages">
-          <v-btn
-            v-if="p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)"
-            :key="p"
-            small
-            elevation="0"
-            :color="p === page ? '#a2212b' : 'transparent'"
-            :class="
-              p === page
-                ? 'white--text font-weight-bold'
-                : 'grey--text text--darken-2'
-            "
-            class="pagination-square-btn min-w-0"
-            @click="changePage(p)"
-          >
-            {{ p }}
-          </v-btn>
-          <span v-else-if="p === page - 2 || p === page + 2" :key="'dots-' + p">...</span>
-        </template>
-
-        <v-btn
-          icon
-          small
-          :disabled="page >= totalPages"
-          @click="changePage(page + 1)"
-        >
-          <v-icon>mdi-chevron-right</v-icon>
-        </v-btn>
       </div>
     </div>
 
-    <!-- DIALOG THÊM / SỬA -->
-    <v-dialog v-model="formDialog" max-width="600px" persistent>
+    <!-- MODAL THÊM MỚI / CẬP NHẬT -->
+    <v-dialog v-model="dialog" max-width="650px" persistent>
       <v-card class="rounded-lg overflow-hidden">
-        <v-card-title
-          class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center red-header"
-        >
-          <span>{{
-            isEdit ? 'Chỉnh sửa kỳ thi lại' : 'Thêm mới kỳ thi lại'
-          }}</span>
-          <v-btn icon dark x-small @click="formDialog = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-card-title>
+        <div class="px-6 py-4 text-white font-weight-bold d-flex justify-space-between align-items-center" style="background-color: #A62229; font-size: 18px;">
+          <span>{{ isEdit ? 'Cập nhật kỳ thi lại' : 'Thêm mới kỳ thi lại' }}</span>
+          <v-btn icon dark @click="dialog = false"><v-icon>mdi-close</v-icon></v-btn>
+        </div>
 
-        <v-card-text class="pa-5 black--text">
-          <v-form ref="form" v-model="isFormValid">
-            <v-row dense>
-              <v-col cols="12" sm="6">
-                <v-text-field
-                  v-model="formData.name"
-                  placeholder="Tên kỳ thi lại (*)"
-                  outlined
-                  dense
-                  class="custom-field"
-                  :rules="[(v) => !!v || 'Vui lòng nhập tên kỳ thi lại']"
-                ></v-text-field>
-              </v-col>
+        <v-card-text class="pa-6 pt-6">
+          <v-form ref="form">
+            <div class="mb-4">
+              <label class="d-block mb-1 font-weight-medium">Tên kỳ thi lại <span class="text-red-bold">*</span></label>
+              <v-text-field
+                v-model="formModel.name"
+                label="Nhập tên kỳ thi lại"
+                outlined
+                dense
+                hide-details
+              ></v-text-field>
+            </div>
 
-              <v-col cols="12" sm="6">
-                <v-text-field
-                  v-model="formData.code"
-                  placeholder="Mã kỳ thi lại (*)"
-                  outlined
-                  dense
-                  class="custom-field"
-                  :rules="[(v) => !!v || 'Vui lòng nhập mã kỳ thi lại']"
-                ></v-text-field>
-              </v-col>
+            <div class="mb-4">
+              <label class="d-block mb-1 font-weight-medium">Mã kỳ thi lại <span class="text-red-bold">*</span></label>
+              <v-text-field
+                v-model="formModel.code"
+                label="Nhập mã kỳ thi lại"
+                outlined
+                dense
+                hide-details
+              ></v-text-field>
+            </div>
 
-              <v-col cols="12" sm="6">
-                <v-select
-                  v-model="formData.semester"
-                  :items="semesterList"
-                  placeholder="Học kỳ (*)"
-                  outlined
-                  dense
-                  class="custom-field"
-                  :rules="[(v) => !!v || 'Vui lòng chọn học kỳ']"
-                ></v-select>
-              </v-col>
+            <div class="mb-4">
+              <label class="d-block mb-1 font-weight-medium">Học kỳ <span class="text-red-bold">*</span></label>
+              <v-select
+                v-model="formModel.semesterId"
+                :items="semesterList"
+                item-text="name"
+                item-value="id"
+                label="Chọn học kỳ"
+                outlined
+                dense
+                hide-details
+                clearable
+              ></v-select>
+            </div>
 
-              <v-col cols="12" sm="6">
-                <v-text-field
-                  v-model="formData.fromTime"
-                  placeholder="Thời gian bắt đầu (*)"
-                  outlined
-                  dense
-                  class="custom-field"
-                  :rules="[(v) => !!v || 'Vui lòng nhập thời gian bắt đầu']"
-                ></v-text-field>
-              </v-col>
+            <!-- THỜI GIAN BẮT ĐẦU -->
+            <div class="mb-4">
+              <v-menu
+                v-model="fromMenu"
+                :close-on-content-click="false"
+                transition="scale-transition"
+                offset-y
+                min-width="auto"
+              >
+                <template v-slot:activator="{ on, attrs }">
+                  <v-text-field
+                    v-model="formModel.fromTime"
+                    label="Thời gian bắt đầu đăng ký (*)"
+                    outlined
+                    dense
+                    hide-details
+                    readonly
+                    clearable
+                    v-bind="attrs"
+                    v-on="on"
+                    @click:clear="formModel.fromTime = ''"
+                  ></v-text-field>
+                </template>
+                <v-card>
+                  <v-date-picker
+                    v-if="fromMode === 'DATE'"
+                    v-model="tempFromDate"
+                    locale="vi"
+                    @input="onFromDatePicked"
+                  ></v-date-picker>
+                  <v-time-picker
+                    v-else
+                    v-model="tempFromTime"
+                    format="24hr"
+                    @input="onFromTimePicked"
+                  ></v-time-picker>
+                </v-card>
+              </v-menu>
+            </div>
 
-              <v-col cols="12" sm="6">
-                <v-text-field
-                  v-model="formData.toTime"
-                  placeholder="Thời gian kết thúc (*)"
-                  outlined
-                  dense
-                  class="custom-field"
-                  :rules="[(v) => !!v || 'Vui lòng nhập thời gian kết thúc']"
-                ></v-text-field>
-              </v-col>
-            </v-row>
+            <!-- THỜI GIAN KẾT THÚC -->
+            <div class="mb-4">
+              <v-menu
+                v-model="toMenu"
+                :close-on-content-click="false"
+                transition="scale-transition"
+                offset-y
+                min-width="auto"
+              >
+                <template v-slot:activator="{ on, attrs }">
+                  <v-text-field
+                    v-model="formModel.toTime"
+                    label="Thời gian kết thúc đăng ký (*)"
+                    outlined
+                    dense
+                    hide-details
+                    readonly
+                    clearable
+                    v-bind="attrs"
+                    v-on="on"
+                    @click:clear="formModel.toTime = ''"
+                  ></v-text-field>
+                </template>
+                <v-card>
+                  <v-date-picker
+                    v-if="toMode === 'DATE'"
+                    v-model="tempToDate"
+                    locale="vi"
+                    @input="onToDatePicked"
+                  ></v-date-picker>
+                  <v-time-picker
+                    v-else
+                    v-model="tempToTime"
+                    format="24hr"
+                    @input="onToTimePicked"
+                  ></v-time-picker>
+                </v-card>
+              </v-menu>
+            </div>
+
+            <div class="mb-2">
+              <label class="d-block mb-1 font-weight-medium">Trạng thái <span class="text-red-bold">*</span></label>
+              <v-select
+                v-model="formModel.status"
+                :items="statusList"
+                item-text="text"
+                item-value="value"
+                outlined
+                dense
+                hide-details
+              ></v-select>
+            </div>
           </v-form>
         </v-card-text>
 
-        <v-card-actions class="pa-4 pt-0 d-flex justify-end gap-2">
-          <v-btn
-            outlined
-            color="#a2212b"
-            class="px-4 font-weight-bold rounded-sm text-capitalize border-btn"
-            @click="formDialog = false"
-          >
-            Đóng <v-icon small right>mdi-close</v-icon>
-          </v-btn>
-          <v-btn
-            color="#a2212b"
-            dark
-            elevation="0"
-            class="px-4 font-weight-bold rounded-sm text-capitalize"
-            @click="saveForm"
-          >
-            Lưu
-          </v-btn>
+        <v-divider></v-divider>
+
+        <v-card-actions class="pa-4 justify-end" style="gap: 8px;">
+          <v-btn text class="text-none px-4" @click="dialog = false">Đóng</v-btn>
+          <v-btn color="#A2212B" dark depressed class="text-none px-6" :loading="submitting" @click="handleSave">Lưu</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <!-- DIALOG CHI TIẾT -->
-    <v-dialog v-model="detailDialog" max-width="520px" persistent>
+    <!-- MODAL XEM CHI TIẾT -->
+    <v-dialog v-model="viewDialog" max-width="650px" persistent>
       <v-card class="rounded-lg overflow-hidden">
-        <v-card-title
-          class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center red-header"
-        >
+        <div class="px-6 py-4 text-white font-weight-bold d-flex justify-space-between align-items-center" style="background-color: #A62229; font-size: 18px;">
           <span>Chi tiết kỳ thi lại</span>
-          <v-btn icon dark x-small @click="detailDialog = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-card-title>
+          <v-btn icon dark @click="viewDialog = false"><v-icon>mdi-close</v-icon></v-btn>
+        </div>
 
-        <v-card-text class="pa-5 black--text body-2">
-          <v-row class="mb-2">
-            <v-col cols="12" sm="6" class="py-1">
-              <span class="grey--text text--darken-2">Tên kỳ thi lại: </span>
-              <span class="font-weight-bold red--text text--darken-3">{{
-                selectedItem.name
-              }}</span>
-            </v-col>
-            <v-col cols="12" sm="6" class="py-1">
-              <span class="grey--text text--darken-2">Mã kỳ thi lại: </span>
-              <span class="font-weight-bold red--text text--darken-3">{{
-                selectedItem.code
-              }}</span>
-            </v-col>
-          </v-row>
-
-          <v-row class="mb-2">
-            <v-col cols="12" sm="6" class="py-1">
-              <span class="grey--text text--darken-2">Học kỳ: </span>
-              <span class="font-weight-bold grey--text text--darken-3">{{
-                selectedItem.semester || '—'
-              }}</span>
-            </v-col>
-            <v-col cols="12" sm="6" class="py-1">
-              <span class="grey--text text--darken-2">Loại hình: </span>
-              <span class="font-weight-bold red--text text--darken-3">{{
-                selectedItem.type || 'RETAKE_EXAM'
-              }}</span>
-            </v-col>
-          </v-row>
-
-          <v-row class="mb-2">
-            <v-col cols="12" class="py-1">
-              <span class="grey--text text--darken-2">Thời gian đăng ký: </span>
-              <span class="font-weight-bold red--text text--darken-3">
-                {{ selectedItem.fromTime }} - {{ selectedItem.toTime }}
-              </span>
-            </v-col>
-          </v-row>
-
-          <v-row class="align-center">
-            <v-col cols="12" class="py-1 d-flex align-center">
-              <span class="grey--text text--darken-2 mr-2">Trạng thái: </span>
-              <v-chip
-                small
-                dark
-                :color="
-                  selectedItem.status === 'ACTIVE' ? '#a2212b' : '#757575'
-                "
-                class="font-weight-bold px-3"
-              >
-                {{
-                  selectedItem.status === 'ACTIVE'
-                    ? 'Kích hoạt'
-                    : 'Chưa kích hoạt'
-                }}
-              </v-chip>
-            </v-col>
-          </v-row>
+        <v-card-text class="pa-6 pt-6 text-body-1">
+          <div class="mb-3"><strong>Tên kỳ thi lại:</strong> <span class="red--text font-weight-medium">{{ viewItem.name || '-' }}</span></div>
+          <div class="mb-3"><strong>Mã kỳ thi lại:</strong> <span class="red--text font-weight-medium">{{ viewItem.code || '-' }}</span></div>
+          <div class="mb-3"><strong>Học kỳ:</strong> {{ viewItem.semesterName || viewItem.semester?.name || '-' }}</div>
+          <div class="mb-3"><strong>Loại hình:</strong> {{ viewItem.typeName || 'Thi lại' }}</div>
+          <div class="mb-3"><strong>Thời gian đăng ký:</strong> <span class="red--text font-weight-medium">{{ viewItem.fromTime }} ~ {{ viewItem.toTime }}</span></div>
+          <div class="mb-2 d-flex align-center" style="gap: 8px;">
+            <strong>Trạng thái:</strong>
+            <v-chip small :color="viewItem.status === 'ACTIVE' ? '#a2212b' : '#9e9e9e'" dark>
+              {{ viewItem.status === 'ACTIVE' ? 'Kích hoạt' : 'Chưa kích hoạt' }}
+            </v-chip>
+          </div>
         </v-card-text>
 
-        <v-card-actions class="pa-4 pt-0 d-flex justify-end">
-          <v-btn
-            outlined
-            color="#a2212b"
-            class="px-4 font-weight-bold rounded-sm text-capitalize border-btn"
-            @click="detailDialog = false"
-          >
-            Đóng <v-icon small right>mdi-close</v-icon>
-          </v-btn>
+        <v-divider></v-divider>
+
+        <v-card-actions class="pa-4 justify-end">
+          <v-btn text class="text-none px-4" @click="viewDialog = false">Đóng <v-icon small right>mdi-close</v-icon></v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <!-- DIALOG ĐỔI TRẠNG THÁI -->
-    <v-dialog v-model="confirmStatusDialog" max-width="450px" persistent>
+    <!-- MODAL XÁC NHẬN XÓA -->
+    <v-dialog v-model="deleteDialog" max-width="500px" persistent>
       <v-card class="rounded-lg overflow-hidden">
-        <v-card-title
-          class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center red-header"
-        >
+        <div class="px-6 py-4 text-white font-weight-bold d-flex justify-space-between align-items-center" style="background-color: #A62229; font-size: 18px;">
           <span>Xác nhận</span>
-          <v-btn icon dark x-small @click="confirmStatusDialog = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-card-title>
-
-        <v-card-text class="pa-5 black--text body-2">
-          Bạn có chắc chắn muốn đổi trạng thái từ
-          <span class="font-weight-bold italic-text">
-            {{
-              pendingStatusChange.oldStatus === 'ACTIVE'
-                ? 'Kích hoạt'
-                : 'Chưa kích hoạt'
-            }}
-          </span>
-          sang
-          <span class="font-weight-bold italic-text">
-            {{
-              pendingStatusChange.newStatus === 'ACTIVE'
-                ? 'Kích hoạt'
-                : 'Chưa kích hoạt'
-            }}
-          </span>
-          không?
+          <v-btn icon dark @click="deleteDialog = false"><v-icon>mdi-close</v-icon></v-btn>
+        </div>
+        <v-card-text class="pa-6 text-body-1">
+          Xác nhận xóa <span class="font-weight-bold red--text">{{ selectedItemToDelete ? selectedItemToDelete.name : '' }}</span>
         </v-card-text>
-
-        <v-card-actions class="pa-4 pt-0 d-flex justify-end gap-2">
-          <v-btn
-            outlined
-            color="#a2212b"
-            class="px-4 font-weight-bold rounded-sm text-capitalize border-btn"
-            @click="confirmStatusDialog = false"
-          >
-            Đóng <v-icon small right>mdi-close</v-icon>
-          </v-btn>
-
-          <v-btn
-            color="#a2212b"
-            dark
-            elevation="0"
-            class="px-4 font-weight-bold rounded-sm text-capitalize"
-            @click="confirmStatusUpdate"
-          >
-            Xác Nhận
-          </v-btn>
+        <v-divider></v-divider>
+        <v-card-actions class="pa-4 justify-end" style="gap: 8px;">
+          <v-btn text class="text-none px-4" @click="deleteDialog = false">Đóng</v-btn>
+          <v-btn color="#A2212B" dark depressed class="text-none px-6" :loading="deleting" @click="confirmDelete">Xác Nhận</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <!-- DIALOG XÓA -->
-    <v-dialog v-model="deleteDialog" max-width="450px" persistent>
-      <v-card class="rounded-lg overflow-hidden">
-        <v-card-title
-          class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center red-header"
-        >
-          <span>Xác nhận</span>
-          <v-btn icon dark x-small @click="deleteDialog = false">
-            <v-icon>mdi-close</v-icon>
-          </v-btn>
-        </v-card-title>
-
-        <v-card-text class="pa-5 black--text body-2">
-          Xác nhận xóa
-          <span class="font-weight-bold red--text text--darken-3">{{
-            itemToDelete.name
-          }}</span>
-        </v-card-text>
-
-        <v-card-actions class="pa-4 pt-0 d-flex justify-end gap-2">
-          <v-btn
-            outlined
-            color="#a2212b"
-            class="px-4 font-weight-bold rounded-sm text-capitalize border-btn"
-            @click="deleteDialog = false"
-          >
-            Đóng <v-icon small right>mdi-close</v-icon>
-          </v-btn>
-
-          <v-btn
-            color="#a2212b"
-            dark
-            elevation="0"
-            class="px-4 font-weight-bold rounded-sm text-capitalize"
-            :loading="deleteLoading"
-            @click="confirmDelete"
-          >
-            Xác Nhận
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- TOAST THÔNG BÁO -->
+    <!-- SNACKBAR THÔNG BÁO -->
     <v-snackbar
-      v-model="toast.show"
-      :color="toast.color"
-      timeout="3000"
+      v-model="snackbar"
+      :color="snackbarColor"
       top
       right
-      elevation="3"
+      timeout="3000"
+      class="custom-snackbar"
     >
-      <div class="d-flex align-center justify-space-between w-100">
-        <div class="d-flex align-center gap-2">
-          <v-icon color="white" small>mdi-check-circle-outline</v-icon>
-          <span class="white--text font-weight-medium">{{
-            toast.message
-          }}</span>
-        </div>
-        <v-btn icon dark x-small class="ml-4" @click="toast.show = false">
+      <div class="d-flex align-center">
+        <v-icon left dark>{{ snackbarColor === '#4caf50' ? 'mdi-check-circle' : 'mdi-alert-circle' }}</v-icon>
+        <span>{{ snackbarText }}</span>
+      </div>
+      <template v-slot:action="{ attrs }">
+        <v-btn text dark v-bind="attrs" @click="snackbar = false">
           <v-icon small>mdi-close</v-icon>
         </v-btn>
-      </div>
+      </template>
     </v-snackbar>
   </div>
 </template>
 
 <script>
 import BaseTable from '~/components/Base/BaseTable.vue'
-import examServices from '~/services/examServices'
-
-const collectionKeys = [
-  'data',
-  'content',
-  'items',
-  'records',
-  'list',
-  'rows',
-  'result',
-  'results',
-  'examList',
-]
-
-function findCollection(value, depth = 0, seen = new Set()) {
-  if (Array.isArray(value)) return value
-  if (typeof value === 'string') {
-    try {
-      return findCollection(JSON.parse(value), depth + 1, seen)
-    } catch (error) {
-      return null
-    }
-  }
-  if (!value || typeof value !== 'object' || depth >= 8 || seen.has(value)) {
-    return null
-  }
-  seen.add(value)
-
-  for (const key of collectionKeys) {
-    if (Array.isArray(value[key]) && value[key].length) return value[key]
-  }
-
-  for (const key of collectionKeys) {
-    const collection = findCollection(value[key], depth + 1, seen)
-    if (collection?.length) return collection
-  }
-
-  for (const [key, nestedValue] of Object.entries(value)) {
-    if (!collectionKeys.includes(key)) {
-      const collection = findCollection(nestedValue, depth + 1, seen)
-      if (collection?.length) return collection
-    }
-  }
-
-  for (const key of collectionKeys) {
-    if (Array.isArray(value[key])) return value[key]
-  }
-
-  for (const key of collectionKeys) {
-    const collection = findCollection(value[key], depth + 1, seen)
-    if (collection) return collection
-  }
-
-  for (const [key, nestedValue] of Object.entries(value)) {
-    if (!collectionKeys.includes(key)) {
-      const collection = findCollection(nestedValue, depth + 1, seen)
-      if (collection) return collection
-    }
-  }
-
-  return null
-}
-
-function findTotal(value, depth = 0, seen = new Set()) {
-  if (!value || typeof value !== 'object' || depth >= 8 || seen.has(value)) {
-    return undefined
-  }
-  seen.add(value)
-
-  const totalKeys = [
-    'totalElements',
-    'totalRecords',
-    'total',
-    'totalCount',
-    'count',
-  ]
-  for (const key of totalKeys) {
-    if (value[key] !== undefined && value[key] !== null) return value[key]
-  }
-
-  for (const nestedValue of Object.values(value)) {
-    const total = findTotal(nestedValue, depth + 1, seen)
-    if (total !== undefined) return total
-  }
-  return undefined
-}
+import ChangeableStatus from '~/components/Base/ChangeableStatus.vue'
+import examService from '~/services/examService'
 
 export default {
-  name: 'QuanLyKyDangKyThiLaiPage',
-  components: {
-    BaseTable,
-  },
-  middleware: 'authenticated',
-
+  name: 'ExamManagementPage',
+  components: { BaseTable, ChangeableStatus },
   data() {
     return {
       loading: false,
-      page: 1,
+      submitting: false,
+      deleting: false,
+      itemList: [],
+      semesterList: [],
+      totalRecords: 0,
+      totalPages: 1,
+      currentPage: 1,
       pageInput: 1,
       itemsPerPage: 50,
-      totalItemsCount: 0,
 
-      // Bộ lọc
-      filters: { search: '', startDate: null, endDate: null, status: null },
-      appliedFilters: {
-        search: '',
-        startDate: null,
-        endDate: null,
-        status: null,
-      },
-      menuFilterStartDate: false,
-      menuFilterEndDate: false,
+      viewDialog: false,
+      viewItem: {},
 
-      // Dialog Thêm / Sửa
-      formDialog: false,
+      fromMenu: false,
+      toMenu: false,
+      fromMode: 'DATE',
+      toMode: 'DATE',
+      tempFromDate: '',
+      tempFromTime: '00:00',
+      tempToDate: '',
+      tempToTime: '00:00',
+
+      dialog: false,
       isEdit: false,
-      isFormValid: false,
-      formData: {
-        id: null,
+      editId: null,
+      fromFilterMenu: false,
+      toFilterMenu: false,
+
+      deleteDialog: false,
+      selectedItemToDelete: null,
+
+      snackbar: false,
+      snackbarText: '',
+      snackbarColor: '#4caf50',
+
+      formModel: {
         name: '',
         code: '',
-        semester: '',
+        semesterId: null,
         fromTime: '',
         toTime: '',
-        status: 'INACTIVE',
-        type: 'RETAKE_EXAM',
+        status: 'ACTIVE'
       },
 
-      semesterList: ['20241', '20242', '20251', '20252'],
-
-      // Dialog Chi Tiết
-      detailDialog: false,
-      selectedItem: {},
-
-      // Dialog Đổi trạng thái
-      confirmStatusDialog: false,
-      pendingStatusChange: { item: null, oldStatus: '', newStatus: '' },
-
-      // Dialog Xóa
-      deleteDialog: false,
-      deleteLoading: false,
-      itemToDelete: {},
-
-      // Toast
-      toast: { show: false, message: '', color: '#4caf50' },
-
-      statusOptions: [
-        { label: 'Kích hoạt', value: 'ACTIVE' },
-        { label: 'Chưa kích hoạt', value: 'INACTIVE' },
+      statusList: [
+        { value: 'ACTIVE', text: 'Kích hoạt', color: '#a2212b' },
+        { value: 'INACTIVE', text: 'Chưa kích hoạt', color: '#9e9e9e' }
       ],
 
-      statusSelectItems: [
-        { label: 'Kích hoạt', value: 'ACTIVE' },
-        { label: 'Chưa kích hoạt', value: 'INACTIVE' },
-      ],
+      filters: {
+        search: '',
+        fromTime: '',
+        toTime: '',
+        status: ''
+      },
+      activeFilters: {
+        search: '',
+        fromTime: '',
+        toTime: '',
+        status: ''
+      },
 
       headers: [
-        {
-          text: 'STT',
-          value: 'stt',
-          width: '60px',
-          align: 'center',
-          sortable: false,
-        },
-        { text: 'Tên kỳ đăng ký thi lại', value: 'name', width: '220px' },
-        { text: 'Mã kỳ đăng ký thi lại', value: 'code', width: '150px' },
-        { text: 'Học kỳ', value: 'semester', width: '100px' },
-        {
-          text: 'Thời gian đăng ký',
-          value: 'registrationTime',
-          width: '220px',
-          align: 'center',
-        },
-        {
-          text: 'Trạng thái',
-          value: 'status',
-          width: '150px',
-          align: 'center',
-          sortable: false,
-        },
-        {
-          text: 'Chức năng',
-          value: 'actions',
-          width: '110px',
-          align: 'center',
-          sortable: false,
-        },
-      ],
-
-      items: [],
-      totalPages: 1,
+        { text: 'STT', value: 'stt', align: 'center', width: '60px', sortable: false },
+        { text: 'Tên kỳ đăng ký thi lại', value: 'name', align: 'left', minWidth: '180px', sortable: false },
+        { text: 'Mã kỳ đăng ký thi lại', value: 'code', align: 'left', minWidth: '150px', sortable: false },
+        { text: 'Học kỳ', value: 'semesterName', align: 'left', minWidth: '140px', sortable: false },
+        { text: 'Thời gian đăng ký', value: 'timeRange', align: 'left', minWidth: '200px', sortable: false },
+        { text: 'Trạng thái', value: 'status', align: 'center', minWidth: '150px', sortable: false },
+        { text: 'Chức năng', value: 'actions', align: 'center', minWidth: '120px', sortable: false }
+      ]
     }
   },
-
+  watch: {
+    fromMenu(val) {
+      if (val) this.fromMode = 'DATE'
+    },
+    toMenu(val) {
+      if (val) this.toMode = 'DATE'
+    }
+  },
   computed: {
-    visiblePages() {
+    displayedPages() {
+      const total = this.totalPages
+      const current = this.currentPage
       const pages = []
-      for (let i = 1; i <= this.totalPages; i++) {
-        pages.push(i)
+      if (total <= 7) {
+        for (let i = 1; i <= total; i++) pages.push(i)
+      } else if (current <= 4) {
+        pages.push(1, 2, 3, 4, 5, '...', total)
+      } else if (current >= total - 3) {
+        pages.push(1, '...', total - 4, total - 3, total - 2, total - 1, total)
+      } else {
+        pages.push(1, '...', current - 1, current, current + 1, '...', total)
       }
       return pages
     },
-  },
-
-  async mounted() {
-    if (this.$store) {
-      this.$store.commit('SET_PAGE_TITLE', 'Quản lý kỳ đăng ký thi lại')
-    }
-    await Promise.all([
-      this.fetchSupportingData(),
-      this.fetchData(),
-    ])
-  },
-
-  methods: {
-    async fetchSupportingData() {
-      const results = await Promise.allSettled([
-        examServices.getPageRole({ channel: 'CMS' }),
-        examServices.getUserInfo({ channel: 'CMS' }),
-      ])
-      results.forEach((result, index) => {
-        if (result.status === 'rejected') {
-          const endpoint = index === 0 ? 'getPageRole' : 'user/info'
-          console.error(`Lỗi tải API ${endpoint}:`, result.reason)
-        }
-      })
+    formattedFromFilterDate: {
+      get() {
+        if (!this.filters.fromTime) return ''
+        const parts = this.filters.fromTime.split('-')
+        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`
+        return this.filters.fromTime
+      },
+      set(val) { if (!val) this.filters.fromTime = '' }
     },
-
-    async fetchData() {
+    formattedToFilterDate: {
+      get() {
+        if (!this.filters.toTime) return ''
+        const parts = this.filters.toTime.split('-')
+        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`
+        return this.filters.toTime
+      },
+      set(val) { if (!val) this.filters.toTime = '' }
+    }
+  },
+  async mounted() {
+    await Promise.all([this.loadPageRole(), this.loadUserInfo(), this.loadSemesters()])
+    await this.loadData()
+  },
+  methods: {
+    async loadPageRole() {
+      try { await examService.getPageRole() } catch (err) {}
+    },
+    async loadUserInfo() {
+      try { await examService.getUserInfo() } catch (err) {}
+    },
+    async loadSemesters() {
+      try {
+        const res = await examService.getSemesterList()
+        const root = res.data !== undefined ? res.data : res
+        this.semesterList = Array.isArray(root) ? root : (root.data || root.content || [])
+      } catch (err) {
+        console.error('Lỗi tải danh sách học kỳ:', err)
+      }
+    },
+    async loadData() {
       this.loading = true
       try {
+        const formatParamDate = (dateStr, isEnd = false) => {
+          if (!dateStr) return ''
+          const parts = dateStr.split('-')
+          if (parts.length === 3) {
+            return `${parts[2]}/${parts[1]}/${parts[0]} ${isEnd ? '23:59:59' : '00:00:00'}`
+          }
+          return dateStr
+        }
+
         const params = {
-          pageIndex: this.page,
+          pageIndex: this.currentPage,
           pageSize: this.itemsPerPage,
-          search: this.appliedFilters.search || '',
-          status: this.appliedFilters.status || '',
-          fromTime: this.appliedFilters.startDate || '',
-          toTime: this.appliedFilters.endDate || '',
           channel: 'CMS',
+          sort: 'id,desc',
+          ...(this.activeFilters.search && { search: this.activeFilters.search }),
+          ...(this.activeFilters.status && { status: this.activeFilters.status }),
+          ...(this.activeFilters.fromTime && { fromTime: formatParamDate(this.activeFilters.fromTime, false) }),
+          ...(this.activeFilters.toTime && { toTime: formatParamDate(this.activeFilters.toTime, true) })
         }
 
-        const res = await examServices.getExamList(params)
-        
-        // In dữ liệu này ra tab Console của trình duyệt để kiểm tra cấu trúc chính xác từ server
-        console.log('API Response /exam:', res)
-
-        const raw = res?.data !== undefined ? res.data : res
-
-        // Sử dụng hàm findCollection để tìm mảng dữ liệu tự động bên trong object
-        let items = findCollection(raw)
-        if (!items) {
-          if (Array.isArray(raw)) items = raw
-          else if (Array.isArray(raw?.data)) items = raw.data
-          else if (Array.isArray(raw?.items)) items = raw.items
-          else if (Array.isArray(raw?.data?.data)) items = raw.data.data
-          else if (Array.isArray(raw?.data?.items)) items = raw.data.items
-          else items = []
+        const res = await examService.getExamList(params)
+        if (res) {
+          const rootData = res.data !== undefined ? res.data : res
+          const items = Array.isArray(rootData) ? rootData : (rootData.data || rootData.content || rootData.items || [])
+          this.itemList = items
+          this.totalRecords = Number(rootData.totalElements ?? rootData.totalRecords ?? items.length)
+          this.totalPages = Math.ceil(this.totalRecords / this.itemsPerPage) || 1
         }
-
-        let total = findTotal(raw)
-        if (total === undefined || total === null) {
-          total = raw?.totalRecords || raw?.total || raw?.data?.totalRecords || items.length
-        }
-
-        this.items = items
-        this.totalItemsCount = total
-        this.totalPages = Math.ceil(this.totalItemsCount / this.itemsPerPage) || 1
-      } catch (error) {
-        console.error('Lỗi khi tải danh sách kỳ thi lại từ API:', error)
-        this.items = []
-        this.totalItemsCount = 0
-        this.totalPages = 1
+      } catch (err) {
+        console.error('Lỗi tải danh sách kỳ thi:', err)
       } finally {
         this.loading = false
       }
     },
-
-    handleSearch() {
-      this.appliedFilters = { ...this.filters }
-      this.page = 1
-      this.pageInput = 1
-      this.fetchData()
-    },
-
-    resetFilters() {
-      this.filters = {
-        search: '',
-        startDate: null,
-        endDate: null,
-        status: null,
+    formatTimeRange(item) {
+      if (item.fromTime && item.toTime) {
+        const cleanFrom = item.fromTime.split(' ')[0]
+        const cleanTo = item.toTime.split(' ')[0]
+        return `${cleanFrom} - ${cleanTo}`
       }
-      this.appliedFilters = {
-        search: '',
-        startDate: null,
-        endDate: null,
-        status: null,
-      }
-      this.page = 1
-      this.pageInput = 1
-      this.fetchData()
+      return item.timeRange || item.time || '-'
     },
-
-    changePage(p) {
-      if (p >= 1 && p <= this.totalPages) {
-        this.page = p
-        this.pageInput = p
-        this.fetchData()
-      }
-    },
-
-    goToPage() {
-      let target = parseInt(this.pageInput, 10)
-      if (isNaN(target) || target < 1) target = 1
-      if (target > this.totalPages) target = this.totalPages
-      this.page = target
-      this.pageInput = target
-      this.fetchData()
-    },
-
-    onItemsPerPageChange() {
-      this.page = 1
-      this.pageInput = 1
-      this.fetchData()
-    },
-
-    openCreateModal() {
+    openAddDialog() {
       this.isEdit = false
-      this.formData = {
-        id: null,
-        name: '',
-        code: '',
-        semester: '',
-        fromTime: '',
-        toTime: '',
-        status: 'INACTIVE',
-        type: 'RETAKE_EXAM',
+      this.editId = null
+      this.formModel = { name: '', code: '', semesterId: null, fromTime: '', toTime: '', status: 'ACTIVE' }
+      this.tempFromDate = ''
+      this.tempFromTime = '00:00'
+      this.tempToDate = ''
+      this.tempToTime = '00:00'
+      this.fromMode = 'DATE'
+      this.toMode = 'DATE'
+      this.dialog = true
+    },
+    onFromDatePicked(dateStr) {
+      if (dateStr) {
+        this.tempFromDate = dateStr
+        this.fromMode = 'TIME'
       }
-      this.formDialog = true
     },
-
-    openEditModal(item) {
-      this.isEdit = true
-      this.formData = { ...item }
-      this.formDialog = true
+    onFromTimePicked(timeStr) {
+      if (this.tempFromDate && timeStr) {
+        const parts = this.tempFromDate.split('-')
+        const cleanTime = timeStr.split(':').length === 2 ? `${timeStr}:00` : timeStr
+        this.formModel.fromTime = `${parts[2]}/${parts[1]}/${parts[0]} ${cleanTime}`
+      }
+      this.fromMenu = false
+      this.fromMode = 'DATE'
     },
+    onToDatePicked(dateStr) {
+      if (dateStr) {
+        this.tempToDate = dateStr
+        this.toMode = 'TIME'
+      }
+    },
+    onToTimePicked(timeStr) {
+      if (this.tempToDate && timeStr) {
+        const parts = this.tempToDate.split('-')
+        const cleanTime = timeStr.split(':').length === 2 ? `${timeStr}:00` : timeStr
+        this.formModel.toTime = `${parts[2]}/${parts[1]}/${parts[0]} ${cleanTime}`
+      }
+      this.toMenu = false
+      this.toMode = 'DATE'
+    },
+    async handleSave() {
+      if (!this.formModel.name || !this.formModel.code) return
 
-    async saveForm() {
-      if (this.$refs.form.validate()) {
-        try {
-          if (this.isEdit) {
-            await examServices.updateExam(this.formData.id, this.formData)
-            this.showToast('Cập nhật kỳ đăng ký thành công', '#4caf50')
-          } else {
-            await examServices.createExam(this.formData)
-            this.showToast('Thêm mới kỳ đăng ký thành công', '#4caf50')
-          }
-          this.formDialog = false
-          this.fetchData()
-        } catch (error) {
-          this.showToast('Lưu thông tin thất bại', '#f44336')
+      if (this.tempFromDate && (!this.formModel.fromTime || !this.formModel.fromTime.includes(':'))) {
+        const parts = this.tempFromDate.split('-')
+        this.formModel.fromTime = `${parts[2]}/${parts[1]}/${parts[0]} ${this.tempFromTime.length === 5 ? this.tempFromTime + ':00' : '00:00:00'}`
+      }
+      if (this.tempToDate && (!this.formModel.toTime || !this.formModel.toTime.includes(':'))) {
+        const parts = this.tempToDate.split('-')
+        this.formModel.toTime = `${parts[2]}/${parts[1]}/${parts[0]} ${this.tempToTime.length === 5 ? this.tempToTime + ':00' : '23:59:59'}`
+      }
+
+      this.submitting = true
+      try {
+        const payload = {
+          name: this.formModel.name,
+          code: this.formModel.code,
+          semesterId: this.formModel.semesterId || null,
+          fromTime: this.formModel.fromTime,
+          toTime: this.formModel.toTime,
+          status: this.formModel.status
         }
-      }
-    },
 
-    openConfirmStatusDialog(item, newStatus) {
-      if (item.status === newStatus) return
-      this.pendingStatusChange = { item, oldStatus: item.status, newStatus }
-      this.confirmStatusDialog = true
-    },
-
-    async confirmStatusUpdate() {
-      if (this.pendingStatusChange.item) {
-        try {
-          if (examServices.updateExamStatus) {
-            await examServices.updateExamStatus(
-              this.pendingStatusChange.item.id,
-              this.pendingStatusChange.newStatus
-            )
-          } else {
-            await examServices.updateExam(this.pendingStatusChange.item.id, {
-              ...this.pendingStatusChange.item,
-              status: this.pendingStatusChange.newStatus,
-            })
-          }
-          this.pendingStatusChange.item.status = this.pendingStatusChange.newStatus
-          this.showToast('Cập nhật trạng thái thành công', '#4caf50')
-        } catch (error) {
-          this.showToast('Cập nhật trạng thái thất bại', '#f44336')
-        } finally {
-          this.confirmStatusDialog = false
+        if (this.isEdit) {
+          await examService.updateExam(this.editId, payload, 'CMS')
+          this.snackbarText = 'Cập nhật thành công'
+        } else {
+          await examService.createExam(payload, 'CMS')
+          this.snackbarText = 'Thêm mới thành công'
         }
+
+        this.dialog = false
+        this.snackbarColor = '#4caf50'
+        this.snackbar = true
+        
+        this.currentPage = 1
+        this.pageInput = 1
+        await this.loadData()
+      } catch (err) {
+        console.error('Lỗi lưu kỳ thi:', err)
+        const errorMsg = err.response?.data?.message || err.message || 'Có lỗi xảy ra khi lưu'
+        this.snackbarText = errorMsg
+        this.snackbarColor = '#e53935'
+        this.snackbar = true
+      } finally {
+        this.submitting = false
       }
     },
-
-    openDeleteDialog(item) {
-      this.itemToDelete = { ...item }
+    handleDelete(item) {
+      this.selectedItemToDelete = item
       this.deleteDialog = true
     },
-
     async confirmDelete() {
-      if (!this.itemToDelete || !this.itemToDelete.id) return
-
-      this.deleteLoading = true
+      if (!this.selectedItemToDelete) return
+      this.deleting = true
       try {
-        await examServices.deleteExam(this.itemToDelete.id)
-        this.showToast('Xóa thông tin thành công', '#4caf50')
-        this.fetchData()
-      } catch (error) {
-        console.error('Lỗi khi xóa:', error)
-        this.showToast('Xóa thông tin thất bại', '#f44336')
-      } finally {
-        this.deleteLoading = false
+        await examService.deleteExam(this.selectedItemToDelete.id, 'CMS')
         this.deleteDialog = false
+        this.snackbarText = 'Xóa thành công'
+        this.snackbarColor = '#4caf50'
+        this.snackbar = true
+        await this.loadData()
+      } catch (err) {
+        console.error('Lỗi xóa kỳ thi:', err)
+        const errorMsg = err.response?.data?.message || err.message || 'Có lỗi xảy ra khi xóa'
+        this.snackbarText = errorMsg
+        this.snackbarColor = '#e53935'
+        this.snackbar = true
+      } finally {
+        this.deleting = false
+      }
+    },
+    handleSearch() {
+      this.activeFilters = { ...this.filters }
+      this.currentPage = 1
+      this.loadData()
+    },
+    refreshData() {
+      this.filters = { search: '', fromTime: '', toTime: '', status: '' }
+      this.activeFilters = { search: '', fromTime: '', toTime: '', status: '' }
+      this.currentPage = 1
+      this.loadData()
+    },
+    changePage(page) {
+      if (page < 1 || page > this.totalPages) return
+      this.currentPage = page
+      this.pageInput = page
+      this.loadData()
+    },
+    goToPage() {
+      const p = parseInt(this.pageInput)
+      if (p >= 1 && p <= this.totalPages) this.changePage(p)
+      else this.pageInput = this.currentPage
+    },
+    handlePerPageChange(size) {
+      this.itemsPerPage = Number(size)
+      this.currentPage = 1
+      this.loadData()
+    },
+    async handleStatusChange(item, selectedItem) {
+      try {
+        const val = selectedItem.value || selectedItem
+        await examService.changeExamStatus(item.id, { status: val }, 'CMS')
+        item.status = val
+        await this.loadData()
+      } catch (err) {
+        console.error('Lỗi đổi trạng thái:', err)
+      }
+    },
+    async handleView(item) {
+      try {
+        // Gọi API chi tiết chuẩn qua /api/exam/detail/{id}
+        const res = await examService.getExamDetail(item.id, 'CMS')
+        const detail = res.data !== undefined ? res.data : res
+        this.viewItem = detail || item
+        this.viewDialog = true
+      } catch (err) {
+        console.error('Lỗi lấy chi tiết kỳ thi:', err)
+        const errorMsg = err.response?.data?.message || err.message || 'Lỗi hệ thống'
+        this.snackbarText = errorMsg
+        this.snackbarColor = '#e53935'
+        this.snackbar = true
       }
     },
 
-    viewDetail(item) {
-      this.selectedItem = { ...item }
-      this.detailDialog = true
-    },
+    async handleEdit(item) {
+      this.isEdit = true
+      this.editId = item.id
+      try {
+        const res = await examService.getExamDetail(item.id, 'CMS')
+        const detail = res.data !== undefined ? res.data : res
 
-    showToast(message, color) {
-      this.toast.message = message
-      this.toast.color = color
-      this.toast.show = true
+        this.formModel = {
+          name: detail.name || item.name || '',
+          code: detail.code || item.code || '',
+          semesterId: detail.semesterId || (detail.semester ? detail.semester.id : null) || item.semesterId || null,
+          fromTime: detail.fromTime || item.fromTime || '',
+          toTime: detail.toTime || item.toTime || '',
+          status: detail.status || item.status || 'ACTIVE'
+        }
+
+        // Tách ngày giờ đổ lại vào Date & Time Picker
+        if (this.formModel.fromTime) {
+          const [d, t] = this.formModel.fromTime.split(' ')
+          if (d) {
+            const p = d.split('/')
+            this.tempFromDate = `${p[2]}-${p[1]}-${p[0]}`
+          }
+          if (t) this.tempFromTime = t.substring(0, 5)
+        }
+        if (this.formModel.toTime) {
+          const [d, t] = this.formModel.toTime.split(' ')
+          if (d) {
+            const p = d.split('/')
+            this.tempToDate = `${p[2]}-${p[1]}-${p[0]}`
+          }
+          if (t) this.tempToTime = t.substring(0, 5)
+        }
+
+        this.fromMode = 'DATE'
+        this.toMode = 'DATE'
+        this.dialog = true
+      } catch (err) {
+        console.error('Lỗi lấy thông tin khi sửa:', err)
+        const errorMsg = err.response?.data?.message || err.message || 'Lỗi hệ thống'
+        this.snackbarText = errorMsg
+        this.snackbarColor = '#e53935'
+        this.snackbar = true
+      }
     },
-  },
+  }
 }
 </script>
 
 <style scoped>
-.page-container {
-  min-height: calc(100vh - 60px);
-  overflow-x: hidden !important;
+.exam-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 64px);
+  max-height: calc(100vh - 64px);
+  overflow: hidden;
+  padding: 16px;
   box-sizing: border-box;
-  font-size: 14px;
-  background-color: #f8f9fa;
-  padding-bottom: 90px !important;
 }
-
-.table-container-wrapper {
-  background-color: #fff;
-}
-
-.gap-1 {
-  gap: 4px;
-}
-.gap-2 {
-  gap: 8px;
-}
-.gap-3 {
-  gap: 12px;
-}
-
-.custom-filter-input {
-  width: 100% !important;
-  max-width: 180px !important;
-}
-
-@media (max-width: 600px) {
-  .custom-filter-input {
-    max-width: 100% !important;
-    flex: 1 1 100% !important;
-  }
-}
-
-.custom-filter-input >>> .v-input__slot {
-  min-height: 38px !important;
-  height: 38px !important;
-  padding: 0 10px !important;
-}
-
-.custom-filter-input >>> input,
-.custom-filter-input >>> .v-select__selection {
-  font-size: 0.85rem !important;
-}
-
-.action-btn {
-  height: 38px !important;
-  min-height: 38px !important;
-}
-
-.status-select-btn {
-  min-width: 125px !important;
-  width: 125px !important;
-  border-radius: 14px !important;
-  margin: 0 auto !important;
-}
-
-.status-select-btn >>> .v-input__slot {
-  min-height: 28px !important;
-  height: 28px !important;
-  padding: 0 10px !important;
-  border-radius: 14px !important;
-}
-
-.status-select-btn >>> .v-select__selection {
-  color: #ffffff !important;
-  font-size: 0.76rem !important;
-  font-weight: 600 !important;
-  margin: 0 !important;
-  white-space: nowrap !important;
-}
-
-.status-select-btn >>> .v-icon {
-  color: #ffffff !important;
-  font-size: 16px !important;
-}
-
-.status-active >>> .v-input__slot {
-  background-color: #a2212b !important;
-}
-
-.status-inactive >>> .v-input__slot {
-  background-color: #757575 !important;
-}
-
-.fixed-footer-pagination {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 99;
+.fixed-top-section {
+  flex-shrink: 0;
   background-color: #ffffff;
-  border-top: none !important;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05) !important;
+  z-index: 5;
+}
+.scrollable-table-section {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  min-height: 0;
+  background-color: #ffffff;
+}
+.fixed-bottom-section {
+  flex-shrink: 0;
+  background-color: #ffffff;
+  padding: 8px 16px;
+  z-index: 5;
   justify-content: flex-end !important;
 }
+.scrollable-table-section >>> th {
+  position: sticky !important;
+  top: 0;
+  z-index: 3;
+  background-color: #f5f5f5 !important;
+}
+.text-red-bold { color: #A62229 !important; }
+.filter-input >>> .v-input__slot { border-radius: 6px !important; min-height: 38px !important; }
+.btn-square-action { border-radius: 6px !important; height: 38px !important; min-width: 38px !important; }
+::v-deep .v-data-footer { display: none !important; }
 
-.fixed-footer-pagination-drawer-open {
-  left: 0;
-  right: 0;
-  width: auto;
+.pagination-custom >>> .v-text-field--outlined.v-input--dense >>> .v-label,
+.pagination-custom >>> .v-select--outlined.v-input--dense >>> .v-label {
+  top: -2px !important;
+  background-color: #ffffff;
+  padding: 0 4px;
+  font-size: 13px;
+  color: #666666 !important;
 }
 
-@media (max-width: 600px) {
-  .fixed-footer-pagination-drawer-open {
+.pagination-custom >>> .v-select .v-input__slot,
+.pagination-custom >>> .v-select.v-input--is-focused .v-input__slot,
+.pagination-custom >>> .v-select.v-select--is-menu-active .v-input__slot {
+  box-shadow: none !important;
+}
+
+.pagination-custom >>> fieldset {
+  border-color: #9e9e9e !important;
+}
+
+.pagination-custom >>> .v-select.v-input--is-focused fieldset,
+.pagination-custom >>> .v-select.v-select--is-menu-active fieldset {
+  border-color: #9e9e9e !important;
+  border-width: 1px !important;
+}
+
+.pagination-custom >>> *:focus,
+.pagination-custom >>> *:focus-visible {
+  outline: none !important;
+}
+
+.custom-snackbar >>> .v-snack__wrapper {
+  top: 20px !important;
+  right: 20px !important;
+  position: fixed !important;
+}
+
+@media (max-width: 768px) {
+  .fixed-bottom-section {
     justify-content: center !important;
-    padding: 6px 4px !important;
-    gap: 3px !important;
-  }
-
-  .fixed-footer-pagination-drawer-open > div {
     flex-wrap: wrap;
-    justify-content: center;
-    gap: 3px !important;
+    gap: 8px;
+    padding: 8px 4px;
   }
-
-  .fixed-footer-pagination-drawer-open .text-caption {
-    font-size: 0.68rem !important;
-  }
-}
-
-.size-select {
-  width: 70px !important;
-}
-
-.page-input {
-  width: 45px !important;
-}
-
-.dense-input >>> .v-input__slot {
-  min-height: 28px !important;
-  height: 28px !important;
-  padding: 0 6px !important;
-}
-
-.dense-input >>> input,
-.dense-input >>> .v-select__selection {
-  font-size: 0.82rem !important;
-  text-align: center;
-}
-
-.pagination-square-btn {
-  min-width: 28px !important;
-  width: 28px !important;
-  height: 28px !important;
-  min-height: 28px !important;
-  padding: 0 !important;
-  border-radius: 6px !important;
-}
-
-.border-btn {
-  border: 1px solid #d0d0d0 !important;
-}
-
-.red-header {
-  background-color: #a2212b !important;
-}
-
-.custom-field >>> .v-input__slot {
-  min-height: 38px !important;
-}
-
-.italic-text {
-  font-style: italic;
 }
 </style>

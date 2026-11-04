@@ -4,6 +4,15 @@ export default {
   getList(params) {
     return Api.get('/api/term/', params)
   },
+  getDetail(id, channel = 'CMS') {
+    return Api.get(`/api/term/${id}`, { channel })
+  },
+  update(id, data, channel = 'CMS') {
+    return Api.put(`/api/term/${id}`, { ...data, channel })
+  },
+  getEducationProgramList(params) {
+    return Api.get('/api/educationProgram/list', params)
+  },
   getMajorList(params) {
     return Api.get('/api/major/list', params)
   },

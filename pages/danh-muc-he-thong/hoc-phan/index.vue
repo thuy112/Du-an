@@ -8,7 +8,6 @@
     <!-- BỘ LỌC TÌM KIẾM CỐ ĐỊNH PHÍA TRÊN -->
     <div class="filter-container mb-3 sticky-filter">
       <div class="d-flex align-center flex-wrap" style="gap: 8px; padding: 6px;">
-        <!-- Ô tìm kiếm Tên/Mã -->
         <v-text-field
           v-model="filters.search"
           placeholder="Tên/Mã"
@@ -21,7 +20,6 @@
           @keyup.enter="handleSearch"
         ></v-text-field>
 
-        <!-- Trạng thái -->
         <v-select
           v-model="filters.status"
           :items="statusList"
@@ -36,7 +34,6 @@
           style="min-width: 160px;"
         ></v-select>
 
-        <!-- Nút thao tác (Làm mới, Tìm kiếm) -->
         <div class="d-flex align-center" style="gap: 5px;">
           <v-btn icon color="#A62229" class="btn-square-action" @click="refreshData" title="Làm mới">
             <v-icon size="22">mdi-refresh</v-icon>
@@ -49,7 +46,7 @@
       </div>
     </div>
 
-    <!-- KHUNG BASETABLE HIỂN THỊ DỮ LIỆU (CHỈ PHẦN NÀY LƯỚT CUỘN) -->
+    <!-- KHUNG BASETABLE CUỘN LƯỚT Ở GIỮA -->
     <div class="table-scroll-container">
       <BaseTable
         :headers="tableHeaders"
@@ -62,52 +59,42 @@
         @page-change="changePage"
         @per-page-change="handleItemsPerPageChange"
       >
-        <!-- Cột STT -->
         <template #[`item.stt`]="{ index }">
           <span>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</span>
         </template>
 
-        <!-- Mã học phần -->
         <template #[`item.code`]="{ item }">
           <span class="font-weight-medium">{{ item.code || '-' }}</span>
         </template>
 
-        <!-- Tên học phần -->
         <template #[`item.name`]="{ item }">
           <span>{{ item.name || '-' }}</span>
         </template>
 
-        <!-- Số tín chỉ học phí -->
-        <template #[`item.tuitionCredits`]="{ item }">
-          <span class="text-center">{{ item.tuitionCredits ?? item.credit ?? '-' }}</span>
+        <template #[`item.creditTraining`]="{ item }">
+          <span class="text-center">{{ item.creditTraining ?? '-' }}</span>
         </template>
 
-        <!-- Số tín chỉ học tập -->
-        <template #[`item.studyCredits`]="{ item }">
-          <span class="text-center">{{ item.studyCredits ?? item.credits ?? '-' }}</span>
+        <template #[`item.creditHours`]="{ item }">
+          <span class="text-center">{{ item.creditHours ?? '-' }}</span>
         </template>
 
-        <!-- Thời lượng -->
-        <template #[`item.duration`]="{ item }">
-          <span>{{ item.duration || '-' }}</span>
+        <template #[`item.workload`]="{ item }">
+          <span>{{ item.workload || '-' }}</span>
         </template>
 
-        <!-- Khoa/Trường -->
-        <template #[`item.department`]="{ item }">
-          <span>{{ item.department || item.faculty || '-' }}</span>
+        <template #[`item.address`]="{ item }">
+          <span>{{ item.address || '-' }}</span>
         </template>
 
-        <!-- Tên chương trình -->
-        <template #[`item.educationProgramName`]="{ item }">
-          <span>{{ item.educationProgramName || '-' }}</span>
+        <template #[`item.educationNames`]="{ item }">
+          <span>{{ formatArrayField(item.educationNames) }}</span>
         </template>
 
-        <!-- Mã chương trình -->
-        <template #[`item.educationProgramCode`]="{ item }">
-          <span>{{ item.educationProgramCode || '-' }}</span>
+        <template #[`item.educationCodes`]="{ item }">
+          <span>{{ formatArrayField(item.educationCodes) }}</span>
         </template>
 
-        <!-- Trạng thái -->
         <template #[`item.status`]="{ item }">
           <ChangeableStatus
             :status="item.status"
@@ -121,16 +108,14 @@
           </ChangeableStatus>
         </template>
 
-        <!-- Ngày cập nhật -->
-        <template #[`item.updatedAt`]="{ item }">
-          <span>{{ formatDateTime(item.updatedAt || item.updatedDate) }}</span>
+        <template #[`item.updateTime`]="{ item }">
+          <span>{{ item.updateTime || '-' }}</span>
         </template>
 
-        <!-- Cột Chức năng -->
         <template #[`item.actions`]="{ item }">
           <div class="d-flex align-center justify-center" style="gap: 4px;">
             <v-btn icon small color="amber darken-2" @click="handleEdit(item)" title="Sửa">
-              <v-icon size="18">mdi-pencil</v-icon>
+              <v-icon size="24">mdi-pencil</v-icon>
             </v-btn>
           </div>
         </template>
@@ -199,7 +184,10 @@
       </div>
     </div>
 
-    <!-- THÔNG BÁO TOAST CÓ NÚT X VÀ PROGRESS LINEAR CHẠY Ở DƯỚI -->
+    <!-- MODAL CẬP NHẬT HỌC PHẦN -->
+    <TermModal v-model="isModalOpen" :edit-id="selectedEditId" @success="onModalSuccess" />
+
+    <!-- THÔNG BÁO TOAST MÀU XANH LÁ -->
     <v-snackbar
       v-model="snackbar.show"
       top
@@ -234,6 +222,7 @@
 <script>
 import BaseTable from '~/components/Base/BaseTable.vue'
 import ChangeableStatus from '~/components/Base/ChangeableStatus.vue'
+import TermModal from '~/components/TermModal.vue'
 import termService from '~/services/termService'
 
 export default {
@@ -241,49 +230,39 @@ export default {
   components: {
     BaseTable,
     ChangeableStatus,
+    TermModal,
   },
   data() {
     return {
       isMobileDevice: false,
       loading: false,
-      filters: {
-        search: '',
-        status: '',
-      },
-      activeFilters: {
-        search: '',
-        status: '',
-      },
-      snackbar: {
-        show: false,
-        text: '',
-        progress: 100,
-        timer: null
-      },
+      isModalOpen: false,
+      selectedEditId: null,
+      filters: { search: '', status: '' },
+      activeFilters: { search: '', status: '' },
+      snackbar: { show: false, text: '', progress: 100, timer: null },
       statusList: [
         { text: 'Kích hoạt', value: 'ACTIVE', color: '#a2212b' },
         { text: 'Chưa kích hoạt', value: 'INACTIVE', color: '#9e9e9e' },
       ],
-
       itemList: [],
       totalRecords: 0,
       totalPages: 1,
       currentPage: 1,
       pageInput: 1,
       itemsPerPage: 50,
-
       tableHeaders: [
         { text: 'STT', value: 'stt', align: 'center', width: '60px', sortable: false },
         { text: 'Mã học phần', value: 'code', align: 'left', minWidth: '130px', sortable: false },
         { text: 'Tên học phần', value: 'name', align: 'left', minWidth: '180px', sortable: true },
-        { text: 'Số tín chỉ học phí', value: 'tuitionCredits', align: 'center', width: '100px', sortable: false },
-        { text: 'Số tín chỉ học tập', value: 'studyCredits', align: 'center', width: '100px', sortable: false },
-        { text: 'Thời lượng', value: 'duration', align: 'center', width: '90px', sortable: false },
-        { text: 'Khoa/Trường', value: 'department', align: 'left', minWidth: '140px', sortable: false },
-        { text: 'Tên chương trình', value: 'educationProgramName', align: 'left', minWidth: '160px', sortable: false },
-        { text: 'Mã chương trình', value: 'educationProgramCode', align: 'left', minWidth: '130px', sortable: false },
+        { text: 'Số tín chỉ học phí', value: 'creditTraining', align: 'center', width: '100px', sortable: false },
+        { text: 'Số tín chỉ học tập', value: 'creditHours', align: 'center', width: '100px', sortable: false },
+        { text: 'Thời lượng', value: 'workload', align: 'center', width: '90px', sortable: false },
+        { text: 'Khoa/Trường', value: 'address', align: 'left', minWidth: '140px', sortable: false },
+        { text: 'Tên chương trình', value: 'educationNames', align: 'left', minWidth: '160px', sortable: false },
+        { text: 'Mã chương trình', value: 'educationCodes', align: 'left', minWidth: '130px', sortable: false },
         { text: 'Trạng thái', value: 'status', align: 'center', width: '130px', sortable: false },
-        { text: 'Ngày cập nhật', value: 'updatedAt', align: 'center', width: '140px', sortable: false },
+        { text: 'Ngày cập nhật', value: 'updateTime', align: 'center', width: '140px', sortable: false },
         { text: 'Chức năng', value: 'actions', align: 'center', width: '90px', sortable: false },
       ],
     }
@@ -299,15 +278,14 @@ export default {
     async initPagePermissions() {
       try {
         await Promise.all([
-          termService.getMajorList ? termService.getMajorList({ status: 'ACTIVE', channel: 'CMS' }).catch(() => null) : null,
-          termService.getPageRole ? termService.getPageRole({ channel: 'CMS' }).catch(() => null) : null,
-          termService.getUserInfo ? termService.getUserInfo({ channel: 'CMS' }).catch(() => null) : null,
+          termService.getMajorList({ status: 'ACTIVE', channel: 'CMS' }).catch(() => null),
+          termService.getPageRole({ channel: 'CMS' }).catch(() => null),
+          termService.getUserInfo({ channel: 'CMS' }).catch(() => null),
         ])
       } catch (error) {
         console.error('Lỗi khởi tạo quyền trang:', error)
       }
     },
-
     extractValue(val) {
       if (val === null || val === undefined || val === '') return ''
       if (typeof val === 'object') {
@@ -315,13 +293,10 @@ export default {
       }
       return val
     },
-
-    formatDateTime(dateStr) {
-      if (!dateStr) return '-'
-      // Định dạng lại hiển thị ngày giờ thành DD/MM/YYYY HH:mm:ss nếu cần
-      return dateStr
+    formatArrayField(arr) {
+      if (!Array.isArray(arr) || arr.length === 0) return '-'
+      return arr.join(', ')
     },
-
     handleSearch() {
       this.activeFilters = {
         search: this.extractValue(this.filters.search),
@@ -331,7 +306,6 @@ export default {
       this.pageInput = 1
       this.loadData()
     },
-
     refreshData() {
       this.filters = { search: '', status: '' }
       this.activeFilters = { search: '', status: '' }
@@ -339,7 +313,6 @@ export default {
       this.pageInput = 1
       this.loadData()
     },
-
     async loadData() {
       this.loading = true
       try {
@@ -348,24 +321,15 @@ export default {
           pageSize: this.itemsPerPage,
           channel: 'CMS',
         }
-
-        if (this.activeFilters.search !== '') {
-          baseParams.search = this.activeFilters.search
-          baseParams.name = this.activeFilters.search
-          baseParams.code = this.activeFilters.search
-        }
-        if (this.activeFilters.status !== '') {
-          baseParams.status = this.activeFilters.status
-        }
+        if (this.activeFilters.search !== '') baseParams.search = this.activeFilters.search
+        if (this.activeFilters.status !== '') baseParams.status = this.activeFilters.status
 
         const res = await termService.getList(baseParams)
         if (res) {
           const rootData = res.data !== undefined ? res.data : res
           const allItems = Array.isArray(rootData) ? rootData : (rootData.data || rootData.content || rootData.items || [])
-          
           const rawTotal = rootData.totalElements ?? rootData.totalRecords ?? rootData.total ?? (res.totalElements || res.totalRecords || res.total)
           this.totalRecords = rawTotal !== undefined ? Number(rawTotal) : allItems.length
-
           this.itemList = allItems
           this.totalPages = Math.ceil(this.totalRecords / this.itemsPerPage) || 1
         }
@@ -378,14 +342,12 @@ export default {
         this.loading = false
       }
     },
-
     changePage(page) {
       if (page < 1 || page > this.totalPages) return
       this.currentPage = page
       this.pageInput = page
       this.loadData()
     },
-
     goToPage() {
       const page = parseInt(this.pageInput)
       if (page >= 1 && page <= this.totalPages) {
@@ -394,17 +356,14 @@ export default {
         this.pageInput = this.currentPage
       }
     },
-
     handleItemsPerPageChange(size) {
       this.itemsPerPage = size
       this.currentPage = 1
       this.pageInput = 1
       this.loadData()
     },
-
     showSuccessToast(message) {
       this.snackbar.show = false
-      
       this.$nextTick(() => {
         this.snackbar.text = message
         this.snackbar.show = true
@@ -420,23 +379,24 @@ export default {
         }, 50)
       })
     },
-
     async handleStatusChange(item, selectedItem) {
       try {
         const newStatusValue = selectedItem.value || selectedItem
-        if (termService.changeStatus) {
-          await termService.changeStatus(item.id, newStatusValue, 'CMS')
-        }
+        await termService.changeStatus(item.id, newStatusValue, 'CMS')
         item.status = newStatusValue
         await this.loadData()
         this.showSuccessToast('Cập nhật trạng thái thành công')
       } catch (error) {
-        console.error('Lỗi khi đổi trạng thái học phần:', error)
+        console.error('Lỗi đổi trạng thái:', error)
       }
     },
-
     handleEdit(item) {
-      // Xử lý khi bấm nút sửa (icon bút chì)
+      this.selectedEditId = item.id
+      this.isModalOpen = true
+    },
+    async onModalSuccess(message) {
+      this.showSuccessToast(message)
+      await this.loadData()
     }
   }
 }
@@ -450,16 +410,12 @@ export default {
   overflow: hidden;
   background-color: #ffffff !important;
 }
-
 .text-red-bold {
   color: #A62229 !important;
 }
-
 .bg-white {
   background-color: #ffffff !important;
 }
-
-/* Cố định bộ lọc phía trên */
 .sticky-filter {
   position: sticky;
   top: 0;
@@ -467,23 +423,18 @@ export default {
   background-color: #ffffff;
   flex-shrink: 0;
 }
-
-/* Khung chứa bảng cuộn lướt ở giữa */
 .table-scroll-container {
   flex-grow: 1;
   overflow-y: auto;
   overflow-x: auto;
   max-height: calc(100vh - 220px);
 }
-
 .table-scroll-container >>> th {
   position: sticky !important;
   top: 0;
   z-index: 2;
   background-color: #f5f5f5 !important;
 }
-
-/* Cố định thanh phân trang phía dưới */
 .sticky-bottom-bar {
   position: sticky;
   bottom: 0;
@@ -491,18 +442,15 @@ export default {
   background-color: #ffffff;
   flex-shrink: 0;
 }
-
 .filter-input >>> .v-input__slot {
   border-radius: 6px !important;
   min-height: 38px !important;
 }
-
 .btn-square-action {
   border-radius: 6px !important;
   height: 38px !important;
   min-width: 38px !important;
 }
-
 ::v-deep .v-data-footer {
   display: none !important;
 }
