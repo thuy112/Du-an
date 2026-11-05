@@ -245,6 +245,81 @@
       </div>
     </div>
 
+    <!-- MODAL XÁC NHẬN XÓA -->
+    <v-dialog v-model="deleteDialog" max-width="500px" persistent>
+      <v-card class="rounded-lg overflow-hidden">
+        <div class="px-6 py-4 text-white font-weight-bold d-flex justify-space-between align-items-center" style="background-color: #A62229; font-size: 18px;">
+          <span>Xác nhận</span>
+          <v-btn icon dark @click="deleteDialog = false"><v-icon>mdi-close</v-icon></v-btn>
+        </div>
+        <v-card-text class="pa-6 text-body-1">
+          Bạn có chắc chắn muốn xóa sinh viên được đăng ký này không?
+        </v-card-text>
+        <v-divider></v-divider>
+        <v-card-actions class="pa-4 justify-end" style="gap: 8px;">
+          <v-btn text class="text-none px-4" @click="deleteDialog = false">Đóng</v-btn>
+          <v-btn color="#A2212B" dark depressed class="text-none px-6" :loading="deleting" @click="confirmDelete">Xác Nhận</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- MODAL NHẬP FILE EXCEL -->
+    <v-dialog v-model="importDialog" max-width="600px" persistent>
+      <v-card class="rounded-lg overflow-hidden">
+        <div class="px-6 py-4 text-white font-weight-bold d-flex justify-space-between align-items-center" style="background-color: #A62229; font-size: 18px;">
+          <span>Nhập file excel</span>
+          <v-btn icon dark @click="importDialog = false"><v-icon>mdi-close</v-icon></v-btn>
+        </div>
+
+        <v-card-text class="pa-6">
+          <div class="mb-4">
+            Tải file mẫu ở đây: 
+            <a href="#" class="red--text font-weight-medium text-decoration-none" @click.prevent="downloadTemplate">
+              template_danh_sach_thi.xlsx
+            </a>
+          </div>
+
+          <v-file-input
+            v-model="selectedFile"
+            label="Chọn tệp đính kèm"
+            outlined
+            dense
+            prepend-icon="mdi-plus"
+            show-size
+            accept=".xlsx, .xls"
+            class="custom-file-input"
+          ></v-file-input>
+        </v-card-text>
+
+        <v-divider></v-divider>
+
+        <v-card-actions class="pa-4 justify-end" style="gap: 8px;">
+          <v-btn text class="text-none px-4" @click="importDialog = false">Đóng</v-btn>
+          <v-btn color="#A2212B" dark depressed class="text-none px-6" :loading="importing" @click="handleImportSubmit">Import</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- SNACKBAR THÔNG BÁO -->
+    <v-snackbar
+      v-model="snackbar"
+      :color="snackbarColor"
+      top
+      right
+      timeout="3000"
+      class="custom-snackbar"
+    >
+      <div class="d-flex align-center">
+        <v-icon left dark>{{ snackbarColor === '#4caf50' ? 'mdi-check-circle' : 'mdi-alert-circle' }}</v-icon>
+        <span>{{ snackbarText }}</span>
+      </div>
+      <template v-slot:action="{ attrs }">
+        <v-btn text dark v-bind="attrs" @click="snackbar = false">
+          <v-icon small>mdi-close</v-icon>
+        </v-btn>
+      </template>
+    </v-snackbar>
+
     <!-- MODAL THÊM SINH VIÊN ĐƯỢC PHÉP THI LẠI -->
     <AddStudentModal v-model="isAddModalOpen" @success="loadData" />
   </div>
@@ -283,11 +358,22 @@ export default {
       semesterOptions: [],
       examOptions: [],
       termOptions: [],
+
+      importDialog: false,
+      selectedFile: null,
+      importing: false,
       
       statusList: [
         { value: 'REGISTERED', text: 'Đã đăng ký' },
         { value: 'UNREGISTERED', text: 'Chưa đăng ký' },
       ],
+
+      deleteDialog: false,
+      selectedItemToDelete: null,
+      deleting: false,
+      snackbar: false,
+      snackbarText: '',
+      snackbarColor: '#4caf50',
 
       itemList: [],
       totalRecords: 0,
@@ -479,15 +565,139 @@ export default {
     },
 
     handleDelete(item) {
-      console.log('Xóa bản ghi:', item)
+      this.selectedItemToDelete = item
+      this.deleteDialog = true
+    },
+
+    async confirmDelete() {
+      if (!this.selectedItemToDelete) return
+      this.deleting = true
+      try {
+        // Lấy chính xác id của item cần xóa (hỗ trợ cả id hoặc code nếu backend dùng khóa chính khác)
+        const recordId = this.selectedItemToDelete.id || this.selectedItemToDelete.code
+        
+        await authorizeService.delete(recordId, 'CMS')
+        
+        this.deleteDialog = false
+        this.snackbarText = 'Xóa thành công'
+        this.snackbarColor = '#4caf50'
+        this.snackbar = true
+        
+        // Tải lại danh sách sau khi xóa thành công
+        await this.loadData()
+      } catch (error) {
+        console.error('Lỗi khi xóa:', error)
+        const errorMsg = error.response?.data?.message || error.message || 'Có lỗi xảy ra khi xóa'
+        this.snackbarText = errorMsg
+        this.snackbarColor = '#e53935'
+        this.snackbar = true
+      } finally {
+        this.deleting = false
+      }
     },
 
     // Mở Modal Thêm mới khi bấm vào nút dấu cộng (+)
     openAddDialog() {
       this.isAddModalOpen = true
     },
-    exportReportFile() {},
-    openImportDialog() {}
+    // 1. Sửa hàm xuất file báo cáo để mở đúng link hoặc tải file
+    async exportReportFile() {
+      try {
+        const params = {
+          channel: 'CMS',
+          search: this.activeFilters.search || '',
+          semesterId: this.activeFilters.semesterId || ''
+        }
+        const res = await authorizeService.exportReport(params)
+        
+        // Trích xuất chính xác chuỗi URL từ response của API
+        const responseData = res?.data !== undefined ? res.data : res
+        const downloadUrl = typeof responseData === 'string' ? responseData : (responseData?.url || responseData?.fileUrl || '')
+
+        if (downloadUrl) {
+          window.open(downloadUrl, '_blank')
+        } else {
+          this.snackbarText = 'Xuất file báo cáo thành công'
+          this.snackbarColor = '#4caf50'
+          this.snackbar = true
+        }
+      } catch (error) {
+        console.error('Lỗi xuất file:', error)
+        const errorMsg = error.response?.data?.message || error.message || 'Chưa chọn kỳ học hoặc lỗi xuất file'
+        this.snackbarText = errorMsg
+        this.snackbarColor = '#e53935'
+        this.snackbar = true
+      }
+    },
+
+    // Mở modal nhập file
+    openImportDialog() {
+      this.selectedFile = null
+      this.importDialog = true
+    },
+
+    // Tải file template mẫu
+    async downloadTemplate() {
+      try {
+        const res = await authorizeService.getTemplate({ channel: 'CMS' })
+        const templateUri = res?.data?.url || res?.url || res
+        if (templateUri) {
+          window.open(templateUri, '_blank')
+        }
+      } catch (error) {
+        console.error('Lỗi tải template:', error)
+      }
+    },
+
+    // 2. Sửa hàm xử lý Import: Chỉ Import khi API check trả về hợp lệ
+    async handleImportSubmit() {
+      if (!this.selectedFile) {
+        this.snackbarText = 'Vui lòng chọn tệp đính kèm'
+        this.snackbarColor = '#e53935'
+        this.snackbar = true
+        return
+      }
+
+      this.importing = true
+      try {
+        const formData = new FormData()
+        formData.append('file', this.selectedFile)
+
+        // 1. Gọi API check trước
+        const checkRes = await authorizeService.checkImportFile(formData, 'CMS')
+        const checkData = checkRes?.data !== undefined ? checkRes.data : checkRes
+
+        // Kiểm tra kỹ các trường hợp báo lỗi từ API check
+        // (Ví dụ: code khác 0/200, hoặc có thuộc tính error/message lỗi)
+        if (checkData) {
+          if (checkData.code && checkData.code !== 0 && checkData.code !== 200) {
+            throw new Error(checkData.message || 'File không hợp lệ')
+          }
+          if (checkData.error || checkData.success === false) {
+            throw new Error(checkData.message || checkData.error || 'Lỗi kiểm tra file')
+          }
+        }
+
+        // 2. CHỈ KHI check thành công không có lỗi thì mới gọi API import chính thức
+        await authorizeService.importFile(formData, 'CMS')
+
+        this.importDialog = false
+        this.snackbarText = 'Import file thành công'
+        this.snackbarColor = '#4caf50'
+        this.snackbar = true
+        
+        await this.loadData()
+      } catch (error) {
+        console.error('Lỗi import file:', error)
+        // Lấy chính xác thông báo lỗi từ backend trả về khi check file thất bại
+        const errorMsg = error.response?.data?.message || error.message || 'Lỗi import file'
+        this.snackbarText = errorMsg
+        this.snackbarColor = '#e53935'
+        this.snackbar = true
+      } finally {
+        this.importing = false
+      }
+    },
   }
 }
 </script>

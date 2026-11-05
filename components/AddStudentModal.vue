@@ -1,147 +1,158 @@
 <template>
-  <v-dialog v-model="dialog" max-width="850px" width="100%" persistent scrollable>
-    <v-card class="rounded-lg">
-      <!-- Tiêu đề Modal -->
-      <v-card-title class="pa-4 text-white" style="background-color: #A62229; color: white;">
-        <span class="text-h6 font-weight-bold">Thêm sinh viên được phép thi lại</span>
-        <v-spacer></v-spacer>
-        <v-btn icon dark @click="closeDialog">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
-      </v-card-title>
+  <v-dialog v-model="dialog" max-width="750px" persistent>
+    <v-card class="rounded-lg overflow-hidden">
+      <!-- TIÊU ĐỀ MODAL -->
+      <div class="px-6 py-4 text-white font-weight-bold d-flex justify-space-between align-items-center" style="background-color: #A62229; font-size: 18px;">
+        <span>Thêm sinh viên được phép thi lại</span>
+        <v-btn icon dark @click="closeModal"><v-icon>mdi-close</v-icon></v-btn>
+      </div>
 
-      <v-card-text class="pa-4 pa-sm-5 modal-body-scroll">
+      <v-card-text class="pa-6" style="max-height: 75vh; overflow-y: auto;">
         <!-- BƯỚC 1: THÔNG TIN CÁ NHÂN -->
-        <div class="mb-4">
-          <div class="d-flex align-center mb-3">
-            <v-avatar color="#A62229" size="28" class="white--text font-weight-bold mr-2">1</v-avatar>
-            <span class="text-subtitle-1 font-weight-bold black--text">Thông tin cá nhân</span>
-          </div>
+        <div class="d-flex align-center mb-3">
+          <v-avatar :color="step2Active ? 'grey' : '#A62229'" size="24" class="white--text font-weight-bold mr-2 text-caption">1</v-avatar>
+          <span class="font-weight-bold text-subtitle-1 text-dark">Thông tin cá nhân</span>
+        </div>
 
-          <div class="pl-0 pl-sm-8">
-            <!-- Ô tìm kiếm / chọn sinh viên -->
+        <div class="mb-4 pl-7">
+          <!-- Khi chưa bấm tiếp tục: Cho phép chọn sinh viên -->
+          <template v-if="!step2Active">
+            <div class="text-caption grey--text mb-1">Nhập Mã Số Sinh Viên</div>
             <v-autocomplete
               v-model="selectedStudent"
               :items="studentOptions"
               :loading="loadingStudents"
-              :search-input.sync="searchStudentQuery"
+              :search-input.sync="searchStudentText"
               item-text="fullName"
               item-value="id"
-              label="Nhập Mã Số Sinh Viên hoặc Họ tên"
-              placeholder="Nhập Mã Số Sinh Viên"
+              return-object
+              placeholder="Sinh viên"
               outlined
               dense
-              return-object
               clearable
               hide-details
               class="mb-3"
+              @change="handleStudentSelect"
             >
               <template v-slot:item="{ item }">
-                <v-list-item-content>
-                  <v-list-item-title class="font-weight-bold">
-                    {{ item.code }} - {{ item.fullName }}
-                  </v-list-item-title>
-                  <v-list-item-subtitle>Lớp: {{ item.classes?.name || item.className || '---' }}</v-list-item-subtitle>
-                </v-list-item-content>
+                <span>{{ item.fullName }} - {{ item.code }} (Lớp: {{ item.className || item.classes?.name || '---' }})</span>
               </template>
             </v-autocomplete>
+          </template>
 
-            <!-- Hiển thị chi tiết thông tin cá nhân khi đã chọn sinh viên -->
-            <v-card v-if="selectedStudent" outlined class="pa-3 grey lighten-4 rounded-lg mb-3">
-              <div class="text-subtitle-2 font-weight-bold mb-2 text-danger">Thông tin cá nhân</div>
-              <v-row dense>
-                <v-col cols="12" sm="6"><strong>Họ tên:</strong> {{ selectedStudent.fullName || '---' }}</v-col>
-                <v-col cols="12" sm="6"><strong>Mã SV:</strong> {{ selectedStudent.code || '---' }}</v-col>
-                <v-col cols="12" sm="6"><strong>Giới tính:</strong> {{ selectedStudent.gender || '---' }}</v-col>
-                <v-col cols="12" sm="6"><strong>Email trường:</strong> {{ selectedStudent.email || '---' }}</v-col>
-                <v-col cols="12" sm="6"><strong>Khóa:</strong> {{ selectedStudent.courseName || selectedStudent.classes?.courseName || '---' }}</v-col>
-                <v-col cols="12" sm="6"><strong>Lớp:</strong> {{ selectedStudent.classes?.name || selectedStudent.className || '---' }}</v-col>
-                <v-col cols="12" sm="6"><strong>Ngành:</strong> {{ selectedStudent.classes?.majorName || '---' }}</v-col>
-                <v-col cols="12" sm="6"><strong>Loại hình đào tạo:</strong> {{ selectedStudent.classes?.trainingMethodName || '---' }}</v-col>
-              </v-row>
-            </v-card>
+          <!-- Hiển thị thông tin chi tiết sinh viên (khi đã chọn hoặc đã bấm tiếp tục) -->
+          <template v-if="selectedStudent">
+            <div class="pa-4 rounded bg-grey-lighten-4 border mt-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="font-weight-bold" style="color: #A62229; font-size: 15px;">Thông tin cá nhân</div>
+                <v-btn v-if="step2Active" text x-small color="#A62229" class="text-none font-weight-bold" @click="handleEditStudent">
+                  Thay đổi
+                </v-btn>
+              </div>
+              <div class="d-flex flex-column text-body-2" style="gap: 6px;">
+                <div><strong>Họ tên:</strong> {{ selectedStudent.fullName || '---' }}</div>
+                <div><strong>Mã SV:</strong> {{ selectedStudent.code || '---' }}</div>
+                <div><strong>Giới tính:</strong> {{ formatGender(selectedStudent.gender) }}</div>
+                <div><strong>Email trường:</strong> {{ selectedStudent.email || '---' }}</div>
+                <div><strong>Khóa:</strong> {{ parseObjectValue(selectedStudent.course || selectedStudent.cohort || selectedStudent.khoa) }}</div>
+                <div><strong>Lớp:</strong> {{ selectedStudent.className || selectedStudent.classes?.name || '---' }}</div>
+                <div><strong>Ngành:</strong> {{ parseObjectValue(selectedStudent.major || selectedStudent.nganh) }}</div>
+                <div><strong>Loại hình đào tạo:</strong> {{ parseObjectValue(selectedStudent.trainingType || selectedStudent.loaiHinhDaoTao) }}</div>
+              </div>
+            </div>
 
-            <!-- Nút tiếp tục sang bước 2 -->
-            <div class="d-flex justify-end" v-if="selectedStudent && currentStep === 1">
-              <v-btn color="#A62229" dark class="text-none px-4" depressed @click="currentStep = 2">
+            <!-- Nút Tiếp tục (Ẩn đi khi đã sang bước 2) -->
+            <div v-if="!step2Active" class="d-flex justify-end mt-3">
+              <v-btn color="#A2212B" dark depressed class="text-none px-6" height="36" @click="handleContinue">
                 Tiếp tục
               </v-btn>
             </div>
-          </div>
+          </template>
         </div>
 
         <v-divider class="my-4"></v-divider>
 
-        <!-- BƯỚC 2: THÔNG TIN LỚP THI -->
-        <div class="mb-2">
-          <div class="d-flex align-center mb-3">
-            <v-avatar :color="currentStep === 2 ? '#A62229' : 'grey'" size="28" class="white--text font-weight-bold mr-2">2</v-avatar>
-            <span class="text-subtitle-1 font-weight-bold black--text">Thông tin lớp thi</span>
+        <!-- BƯỚC 2: THÔNG TIN LỚP THI (Chỉ hiện khi bấm Tiếp tục) -->
+        <div class="d-flex align-center mb-3">
+          <v-avatar :color="step2Active ? '#A62229' : 'grey'" size="24" class="white--text font-weight-bold mr-2 text-caption">2</v-avatar>
+          <span class="font-weight-bold text-subtitle-1 text-dark">Thông tin lớp thi</span>
+        </div>
+
+        <div class="pl-7" v-if="step2Active">
+          <div class="mb-3">
+            <div class="text-caption grey--text mb-1">Kỳ thi *</div>
+            <v-select
+              v-model="form.examId"
+              :items="examOptions"
+              :loading="loadingExams"
+              item-text="text"
+              item-value="value"
+              placeholder="Chọn kỳ thi"
+              outlined
+              dense
+              hide-details
+              class="mb-3"
+              @change="fetchExamSessions"
+            ></v-select>
+
+            <div class="text-caption grey--text mb-1">Kỳ học *</div>
+            <v-select
+              v-model="form.semesterId"
+              :items="semesterOptions"
+              :loading="loadingSemesters"
+              item-text="text"
+              item-value="value"
+              placeholder="Chọn kỳ học"
+              outlined
+              dense
+              hide-details
+              @change="fetchExamSessions"
+            ></v-select>
           </div>
 
-          <div class="pl-0 pl-sm-8" v-if="currentStep >= 2">
-            <v-row>
-              <v-col cols="12" sm="6">
-                <v-select
-                  v-model="filters.examId"
-                  :items="examOptions"
-                  item-text="text"
-                  item-value="value"
-                  label="Kỳ thi *"
-                  outlined
-                  dense
-                  clearable
-                  @change="loadRegisterClasses"
-                ></v-select>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-select
-                  v-model="filters.semesterId"
-                  :items="semesterOptions"
-                  item-text="text"
-                  item-value="value"
-                  label="Kỳ học *"
-                  outlined
-                  dense
-                  clearable
-                  @change="loadRegisterClasses"
-                ></v-select>
-              </v-col>
-            </v-row>
-
-            <!-- Bảng danh sách lớp đăng ký -->
-            <div class="text-subtitle-2 font-weight-bold mb-2">
-              Danh sách lớp đăng ký ({{ registerClasses.length }})
-            </div>
+          <!-- Danh sách lớp đăng ký -->
+          <div class="mt-4">
+            <div class="font-weight-bold mb-2">Danh sách lớp đăng ký ({{ sessionList.length }})</div>
             
-            <div class="table-responsive-wrapper">
-              <BaseTable
-                :headers="classHeaders"
-                :items="registerClasses"
-                :loading="loadingClasses"
-                show-select
-                v-model="selectedClasses"
-                item-key="id"
-                hide-default-footer
-              >
-                <template #[`item.stt`]="{ index }">
-                  <span>{{ index + 1 }}</span>
-                </template>
-              </BaseTable>
-            </div>
+            <v-data-table
+              :headers="sessionHeaders"
+              :items="sessionList"
+              :loading="loadingSessions"
+              hide-default-footer
+              class="elevation-1 rounded border"
+              no-data-text="Không có dữ liệu"
+            >
+              <template #[`item.select`]="{ item }">
+                <v-checkbox
+                  v-model="form.selectedSessions"
+                  :value="item"
+                  hide-details
+                  dense
+                ></v-checkbox>
+              </template>
+
+              <template #[`item.stt`]="{ index }">
+                <span>{{ index + 1 }}</span>
+              </template>
+            </v-data-table>
           </div>
         </div>
       </v-card-text>
 
       <v-divider></v-divider>
 
-      <!-- Footer Modal -->
-      <v-card-actions class="pa-3">
-        <v-spacer></v-spacer>
-        <v-btn outlined color="grey darken-1" class="text-none px-4" @click="closeDialog">
-          Đóng
-        </v-btn>
-        <v-btn color="#A62229" dark class="text-none px-5" :disabled="selectedClasses.length === 0" @click="handleSave">
+      <!-- FOOTER ACTIONS -->
+      <v-card-actions class="pa-4 justify-end" style="gap: 8px;">
+        <v-btn text class="text-none px-4" @click="closeModal">Đóng</v-btn>
+        <v-btn 
+          color="#A2212B" 
+          dark 
+          depressed 
+          class="text-none px-6" 
+          :loading="submitting"
+          :disabled="!step2Active || form.selectedSessions.length === 0"
+          @click="handleSave"
+        >
           Lưu
         </v-btn>
       </v-card-actions>
@@ -151,49 +162,46 @@
 
 <script>
 import authorizeService from '~/services/authorizeRegistrationService'
-import BaseTable from '~/components/Base/BaseTable.vue'
 
 export default {
   name: 'AddStudentModal',
-  components: {
-    BaseTable,
-  },
   props: {
-    value: {
-      type: Boolean,
-      default: false,
-    },
+    value: { type: Boolean, default: false }
   },
   data() {
     return {
       dialog: this.value,
-      currentStep: 1,
       loadingStudents: false,
-      loadingClasses: false,
-      searchStudentQuery: '',
+      loadingExams: false,
+      loadingSemesters: false,
+      loadingSessions: false,
+      submitting: false,
+      step2Active: false,
+
       studentOptions: [],
+      searchStudentText: '',
       selectedStudent: null,
-      
+
       examOptions: [],
       semesterOptions: [],
-      
-      filters: {
+
+      form: {
         examId: null,
         semesterId: null,
+        selectedSessions: []
       },
-      
-      registerClasses: [],
-      selectedClasses: [],
 
-      classHeaders: [
-        { text: 'STT', value: 'stt', align: 'center', width: '50px', sortable: false },
-        { text: 'Tên lớp thi', value: 'examClass', sortable: false, minWidth: '130px' },
-        { text: 'Tên kỳ thi', value: 'examName', sortable: false, minWidth: '150px' },
-        { text: 'Tên kỳ học', value: 'semesterName', sortable: false, minWidth: '140px' },
-        { text: 'Mã học phần', value: 'termCode', sortable: false, minWidth: '110px' },
-        { text: 'Tên học phần', value: 'termName', sortable: false, minWidth: '150px' },
-        { text: 'Số tín chỉ', value: 'credits', align: 'center', sortable: false, width: '90px' },
-      ],
+      sessionList: [],
+      sessionHeaders: [
+        { value: 'select', text: '', width: '50px', align: 'center', sortable: false },
+        { value: 'stt', text: 'STT', align: 'center', width: '60px', sortable: false },
+        { value: 'className', text: 'Tên lớp thi', align: 'left', sortable: false },
+        { value: 'examName', text: 'Tên kỳ đăng ký thi lại', align: 'left', sortable: false },
+        { value: 'semesterName', text: 'Học kỳ', align: 'left', sortable: false },
+        { value: 'termCode', text: 'Mã học phần', align: 'left', sortable: false },
+        { value: 'termName', text: 'Tên học phần', align: 'left', sortable: false },
+        { value: 'credit', text: 'Số tín chỉ học phí', align: 'center', sortable: false },
+      ]
     }
   },
   watch: {
@@ -201,43 +209,62 @@ export default {
       this.dialog = val
       if (val) {
         this.resetForm()
-        this.fetchCatalogs()
+        this.fetchStudents()
       }
     },
     dialog(val) {
       this.$emit('input', val)
     },
-    searchStudentQuery(val) {
-      if (val !== null && val !== undefined) {
+    searchStudentText(val) {
+      if (val !== null && !this.step2Active) {
         this.fetchStudents(val)
       }
-    },
+    }
   },
   methods: {
     resetForm() {
-      this.currentStep = 1
       this.selectedStudent = null
-      this.searchStudentQuery = ''
-      this.filters.examId = null
-      this.filters.semesterId = null
-      this.registerClasses = []
-      this.selectedClasses = []
+      this.step2Active = false
+      this.form = {
+        examId: null,
+        semesterId: null,
+        selectedSessions: []
+      }
+      this.sessionList = []
+      this.examOptions = []
+      this.semesterOptions = []
     },
-    closeDialog() {
+
+    closeModal() {
       this.dialog = false
     },
-    // Gọi API lấy danh sách sinh viên thông qua authorizeService
-    async fetchStudents(searchKeyword = '') {
+
+    formatGender(gender) {
+      if (gender === 'MALE' || gender === 'NAM') return 'Nam'
+      if (gender === 'FEMALE' || gender === 'NỮ') return 'Nữ'
+      return 'Khác'
+    },
+
+    // Xử lý bóc tách khi dữ liệu trả về dạng object thay vì string
+    parseObjectValue(val) {
+      if (!val) return '---'
+      if (typeof val === 'object') {
+        return val.name || val.code || val.title || JSON.stringify(val)
+      }
+      return val
+    },
+
+    async fetchStudents(searchQuery = '') {
       this.loadingStudents = true
       try {
         const res = await authorizeService.getStudents({
           pageIndex: 1,
           pageSize: 50,
-          search: searchKeyword,
-          channel: 'CMS',
+          search: searchQuery,
+          channel: 'CMS'
         })
-        const rootData = res.data !== undefined ? res.data : res
-        const list = Array.isArray(rootData) ? rootData : (rootData.data || rootData.content || [])
+        const data = res?.data !== undefined ? res.data : res
+        const list = Array.isArray(data) ? data : (data.data || data.content || [])
         this.studentOptions = list
       } catch (error) {
         console.error('Lỗi tải danh sách sinh viên:', error)
@@ -245,76 +272,104 @@ export default {
         this.loadingStudents = false
       }
     },
-    // Gọi API lấy danh mục Kỳ thi & Học kỳ qua authorizeService
+
+    handleStudentSelect() {
+      this.step2Active = false
+      this.form.examId = null
+      this.form.semesterId = null
+      this.sessionList = []
+    },
+
+    // Bấm nút "Thay đổi" sinh viên ở bước 2
+    handleEditStudent() {
+      this.step2Active = false
+      this.form.examId = null
+      this.form.semesterId = null
+      this.sessionList = []
+    },
+
+    // Bấm nút "Tiếp tục" -> Gom nội dung số 1, kích hoạt gọi API danh mục và mở bước 2
+    async handleContinue() {
+      if (!this.selectedStudent) return
+      this.step2Active = true
+      await this.fetchCatalogs()
+    },
+
     async fetchCatalogs() {
+      this.loadingExams = true
+      this.loadingSemesters = true
       try {
         const [examRes, semesterRes] = await Promise.all([
-          authorizeService.getExams({ status: 'ACTIVE', channel: 'CMS' }).catch(() => null),
-          authorizeService.getSemesters({ status: 'ACTIVE', channel: 'CMS' }).catch(() => null),
+          authorizeService.getExams({ status: 'ACTIVE', channel: 'CMS' }),
+          authorizeService.getSemesters({ status: 'ACTIVE', channel: 'CMS' })
         ])
 
-        if (examRes) {
-          const rootData = examRes.data !== undefined ? examRes.data : examRes
-          const list = Array.isArray(rootData) ? rootData : (rootData.data || rootData.content || [])
-          this.examOptions = list.map(item => ({ text: item.name || item.code, value: item.id }))
+        const exams = examRes?.data !== undefined ? examRes.data : examRes
+        const semesters = semesterRes?.data !== undefined ? semesterRes.data : semesterRes
+
+        const examList = Array.isArray(exams) ? exams : (exams.data || exams.content || [])
+        const semesterList = Array.isArray(semesters) ? semesters : (semesters.data || semesters.content || [])
+
+        this.examOptions = examList.map(item => ({ text: item.name || item.code, value: item.id }))
+        this.semesterOptions = semesterList.map(item => ({ text: item.name || item.code, value: item.id }))
+      } catch (error) {
+        console.error('Lỗi tải danh mục kỳ thi/học kỳ:', error)
+      } finally {
+        this.loadingExams = false
+        this.loadingSemesters = false
+      }
+    },
+
+    async fetchExamSessions() {
+      if (!this.selectedStudent || !this.selectedStudent.code || !this.form.examId || !this.form.semesterId) return
+
+      this.loadingSessions = true
+      try {
+        const res = await authorizeService.getExamSessions({
+          code: this.selectedStudent.code,
+          examId: this.form.examId,
+          semesterId: this.form.semesterId,
+          channel: 'CMS'
+        })
+        const data = res?.data !== undefined ? res.data : res
+        this.sessionList = Array.isArray(data) ? data : (data.data || data.content || [])
+      } catch (error) {
+        console.error('Lỗi lấy danh sách lớp đăng ký:', error)
+        this.sessionList = []
+      } finally {
+        this.loadingSessions = false
+      }
+    },
+
+    async handleSave() {
+      if (!this.selectedStudent || this.form.selectedSessions.length === 0) return
+
+      this.submitting = true
+      try {
+        const payload = {
+          studentId: this.selectedStudent.id,
+          studentCode: this.selectedStudent.code,
+          examId: this.form.examId,
+          semesterId: this.form.semesterId,
+          sessions: this.form.selectedSessions
         }
 
-        if (semesterRes) {
-          const rootData = semesterRes.data !== undefined ? semesterRes.data : semesterRes
-          const list = Array.isArray(rootData) ? rootData : (rootData.data || rootData.content || [])
-          this.semesterOptions = list.map(item => ({ text: item.name || item.code, value: item.id }))
-        }
+        await authorizeService.createAuthorizeRegistration(payload, 'CMS')
+
+        this.$emit('success')
+        this.closeModal()
       } catch (error) {
-        console.error('Lỗi tải danh mục:', error)
-      }
-    },
-    // Gọi API danh sách lớp đăng ký tương ứng
-    async loadRegisterClasses() {
-      if (!this.filters.examId || !this.filters.semesterId) return
-      this.loadingClasses = true
-      try {
-        const res = await authorizeService.getRegisterClasses({
-          examId: this.filters.examId,
-          semesterId: this.filters.semesterId,
-          channel: 'CMS',
-        })
-        const rootData = res.data !== undefined ? res.data : res
-        const list = Array.isArray(rootData) ? rootData : (rootData.data || rootData.content || [])
-        
-        this.registerClasses = list.map(item => ({
-          ...item,
-          examClass: item.examClass || item.className || item.classes?.code || '---',
-          examName: item.examName || item.exam?.name || '---',
-          semesterName: item.semesterName || item.semester?.name || '---',
-          termCode: item.termCode || item.courseCode || '---',
-          termName: item.termName || item.courseName || '---',
-          credits: item.credits || item.credit || 0,
-        }))
-      } catch (error) {
-        console.error('Lỗi tải danh sách lớp đăng ký:', error)
-        this.registerClasses = []
+        console.error('Lỗi lưu:', error)
       } finally {
-        this.loadingClasses = false
+        this.submitting = false
       }
-    },
-    handleSave() {
-      this.$emit('success')
-      this.closeDialog()
-    },
-  },
+    }
+  }
 }
 </script>
 
 <style scoped>
-.text-danger {
-  color: #A62229;
-}
-.modal-body-scroll {
-  max-height: 75vh;
-  overflow-y: auto;
-}
-.table-responsive-wrapper {
-  width: 100%;
-  overflow-x: auto;
+.border {
+  border: 1px solid #e0e0e0 !important;
 }
 </style>

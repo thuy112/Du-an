@@ -9,15 +9,21 @@ export default {
             type: Boolean,
             default: false,
         },
+        editData: {
+            type: Object,
+            default: null,
+        },
     },
     data() {
         return {
+            menuDate: false,
             open: this.value,
             loading: false,
             semesterList: [],
             trainingMethodList: [],
             list: [],
             body: {
+                id: null,
                 name: "",
                 timeInform: "",
                 fileInform: "",
@@ -25,6 +31,7 @@ export default {
                 status: "ACTIVE",
                 decisionFeeType: "REDEFENCES",
                 defaultFee: null,
+                defaultFeeDisplay: "",
             },
             fileName: "",
             statusList,
@@ -48,7 +55,11 @@ export default {
         value(val) {
             this.open = val;
             if (val) {
-                this.initData();
+                if (this.editData && this.editData.id) {
+                    this.initDataForEdit(this.editData.id);
+                } else {
+                    this.initData();
+                }
             }
         },
         open(val) {
@@ -65,16 +76,43 @@ export default {
                 this.body.fileInform = "";
             }
         },
-        "body.defaultFee"(val) {
-            if (val !== null && val !== '' && this.checkbox) {
+        "body.defaultFeeDisplay"(val) {
+            const num = this.parseCurrency(val);
+            this.body.defaultFee = num;
+            if (num !== null && this.checkbox) {
                 this.applyDefaultFeeToAll();
             }
         }
     },
     methods: {
+        // --- ĐỔI PHÂN CÁCH HÀNG NGHÌN THÀNH DẤU PHẨY (,) ---
+        formatCurrency(val) {
+            if (val === null || val === undefined || val === '') return '';
+            const cleaned = String(val).replace(/\D/g, '');
+            if (!cleaned) return '';
+            // Thay dấu chấm mặc định thành dấu phẩy (,)
+            return Number(cleaned).toLocaleString('de-DE'); // 'de-DE' mặc định dùng dấu phẩy cho hàng nghìn
+        },
+        parseCurrency(val) {
+            if (!val) return null;
+            const cleaned = String(val).replace(/\D/g, '');
+            return cleaned ? Number(cleaned) : null;
+        },
+        onFeeInput(trainingMethod, val) {
+            const formatted = this.formatCurrency(val);
+            trainingMethod.feeDisplay = formatted;
+            trainingMethod.fee = this.parseCurrency(formatted);
+        },
+        // Hàm xóa nhanh số tiền khi bấm icon 'x'
+        clearSingleFee(trainingMethod) {
+            trainingMethod.feeDisplay = '';
+            trainingMethod.fee = null;
+        },
+
         closeDialog() {
             this.open = false;
         },
+
         async initData() {
             this.loading = true;
             try {
@@ -82,13 +120,54 @@ export default {
                     this.getSemesters(),
                     this.getTrainingMethod(),
                 ]);
-                await this.getMajors();
+                await this.getMajors([]);
             } catch (e) {
                 console.log(e);
             } finally {
                 this.loading = false;
             }
         },
+
+        async initDataForEdit(id) {
+            this.loading = true;
+            try {
+                const [detailRes, semesterRes, methodRes] = await Promise.all([
+                    decisionFeeService.getDetail(id, "CMS").catch(() => null),
+                    decisionFeeService.getSemesterList({ status: "ACTIVE", channel: "CMS" }).catch(() => []),
+                    decisionFeeService.getTrainingMethodList({ status: "ACTIVE", channel: "CMS" }).catch(() => [])
+                ]);
+
+                const semData = semesterRes?.data !== undefined ? semesterRes.data : semesterRes;
+                this.semesterList = Array.isArray(semData) ? semData : (semData?.data || semData?.content || []);
+
+                const methodData = methodRes?.data !== undefined ? methodRes.data : methodRes;
+                this.trainingMethodList = Array.isArray(methodData) ? methodData : (methodData?.data || methodData?.content || methodData?.items || []);
+
+                if (detailRes) {
+                    const detail = detailRes.data !== undefined ? detailRes.data : detailRes;
+                    
+                    this.body.id = detail.id;
+                    this.body.name = detail.name || '';
+                    this.body.timeInform = detail.timeInform || detail.issueDate || '';
+                    this.body.fileInform = detail.fileInform || '';
+                    this.fileName = detail.fileInform || '';
+                    this.body.semesterId = detail.semester?.id || detail.semesterId || null;
+                    this.body.status = detail.status || 'ACTIVE';
+                    this.body.decisionFeeType = detail.decisionFeeType || 'REDEFENCES';
+                    this.body.defaultFee = detail.defaultFee || null;
+                    this.body.defaultFeeDisplay = this.formatCurrency(detail.defaultFee);
+                    this.checkbox = !!detail.applyAllMajor;
+
+                    const savedFeesData = detail.feeTrainingmethodsDtos || detail.trainingmethodCreates || detail.trainingMethods || [];
+                    await this.getMajors(savedFeesData);
+                }
+            } catch (e) {
+                console.log(e);
+            } finally {
+                this.loading = false;
+            }
+        },
+
         async getSemesters() {
             try {
                 const res = await decisionFeeService.getSemesterList({ status: "ACTIVE", channel: "CMS" });
@@ -98,6 +177,7 @@ export default {
                 console.log(e);
             }
         },
+
         async getTrainingMethod() {
             try {
                 const res = decisionFeeService.getTrainingMethodList 
@@ -110,8 +190,8 @@ export default {
                 console.log(e);
             }
         },
-        async getMajors() {
-            this.loading = true;
+
+        async getMajors(savedFeesData = []) {
             try {
                 const res = decisionFeeService.getMajorList 
                     ? await decisionFeeService.getMajorList({ status: "ACTIVE", channel: "CMS" })
@@ -120,24 +200,56 @@ export default {
                 const dataItems = res?.data !== undefined ? res.data : res;
                 const majors = Array.isArray(dataItems) ? dataItems : (dataItems?.data || dataItems?.content || dataItems?.items || []);
 
-                this.list = majors.map((item) => ({
-                    name: item.name || item.code || '',
-                    majorId: item.id,
-                    educationProgram: item?.educationProgram?.name || item.educationProgramName || item.programName || "-",
-                    trainingMethods: this.trainingMethodList.length > 0 
-                        ? this.trainingMethodList.map((i) => ({
-                            trainingMethodId: i.id,
-                            name: i.name || i.code,
-                            fee: this.checkbox ? this.body.defaultFee : null,
-                        }))
-                        : [{ trainingMethodId: null, name: 'Chính quy', fee: this.checkbox ? this.body.defaultFee : null }]
-                }));
+                this.list = majors.map((item) => {
+                    const majorId = item.id;
+                    const majorCode = item.code || '';
+                    const educationProgram = item?.educationProgram?.name || item.educationProgramName || item.programName || "-";
+
+                    const trainingMethods = this.trainingMethodList.length > 0 
+                        ? this.trainingMethodList.map((i) => {
+                            let foundFee = this.checkbox ? this.body.defaultFee : null;
+
+                            if (savedFeesData && savedFeesData.length > 0) {
+                                const matchedGroup = savedFeesData.find((g) => 
+                                    (g.trainingMethod && (g.trainingMethod.id === i.id || g.trainingMethod.code === i.code)) ||
+                                    (g.trainingMethodId && g.trainingMethodId === i.id) ||
+                                    (g.id && g.id === i.id)
+                                );
+
+                                if (matchedGroup) {
+                                    const reqList = matchedGroup.estimationFees || matchedGroup.estimationRequests || matchedGroup.details || [];
+                                    const matchedReq = reqList.find((r) => 
+                                        (r.majorId && r.majorId === majorId) ||
+                                        (r.majorCode && r.majorCode === majorCode)
+                                    );
+
+                                    if (matchedReq && matchedReq.fee !== undefined && matchedReq.fee !== null) {
+                                        foundFee = matchedReq.fee;
+                                    }
+                                }
+                            }
+
+                            return {
+                                trainingMethodId: i.id,
+                                name: i.name || i.code,
+                                fee: foundFee,
+                                feeDisplay: this.formatCurrency(foundFee),
+                            };
+                        })
+                        : [{ trainingMethodId: null, name: 'Chính quy', fee: this.checkbox ? this.body.defaultFee : null, feeDisplay: this.formatCurrency(this.body.defaultFee) }];
+
+                    return {
+                        name: item.name || item.code || '',
+                        majorId,
+                        educationProgram,
+                        trainingMethods
+                    };
+                });
             } catch (e) {
                 console.log(e);
-            } finally {
-                this.loading = false;
             }
         },
+
         handleCheckboxClick() {
             if (this.checkbox) {
                 this.cancelConfirmDialog = true;
@@ -166,6 +278,7 @@ export default {
                 i.trainingMethods = i.trainingMethods.map((j) => ({
                     ...j,
                     fee: this.body.defaultFee,
+                    feeDisplay: this.formatCurrency(this.body.defaultFee),
                 }));
             });
             this.list = JSON.parse(JSON.stringify(this.list));
@@ -175,6 +288,7 @@ export default {
                 i.trainingMethods = i.trainingMethods.map((j) => ({
                     ...j,
                     fee: null,
+                    feeDisplay: "",
                 }));
             });
             this.list = JSON.parse(JSON.stringify(this.list));
@@ -199,9 +313,22 @@ export default {
                 this.body.fileInform = data.name;
             }
         },
+
+        // Thêm hàm format ngày sang DD/MM/YYYY nếu cần, hoặc giữ nguyên tùy backend
+        formatDateForApi(dateStr) {
+            if (!dateStr) return ''
+            if (dateStr.includes('-')) {
+                const parts = dateStr.split('-')
+                if (parts.length === 3) {
+                    return `${parts[2]}/${parts[1]}/${parts[0]}`
+                }
+            }
+            return dateStr
+        },
+
         async handleAdd() {
             const isFormValid = this.$refs.form.validate();
-            const missingFees = this.list.some((item) => item.trainingMethods.some((i) => !i.fee && i.fee !== 0));
+            const missingFees = this.list.some((item) => item.trainingMethods.some((i) => i.fee === null || i.fee === undefined));
 
             if (!isFormValid) {
                 if (typeof this.$showError === 'function') this.$showError("Vui lòng kiểm tra các trường bắt buộc!");
@@ -213,6 +340,7 @@ export default {
                 return;
             }
 
+            this.loading = true;
             try {
                 const trainingmethodCreates = [];
 
@@ -230,25 +358,44 @@ export default {
 
                 const payload = {
                     ...this.body,
+                    timeInform: this.formatDateForApi(this.body.timeInform), // Chuẩn hóa lại định dạng ngày gửi lên
                     defaultFee: this.body.defaultFee ? Number(this.body.defaultFee) : 0,
                     applyAllMajor: this.checkbox,
                     trainingmethodCreates,
                     channel: "CMS"
                 };
 
-                const res = decisionFeeService.createItem 
-                    ? await decisionFeeService.createItem(payload, "CMS") 
-                    : await decisionFeeService.add(payload);
+                let res;
+                if (this.body.id) {
+                    res = decisionFeeService.updateItem 
+                        ? await decisionFeeService.updateItem(this.body.id, payload, "CMS") 
+                        : await decisionFeeService.update(this.body.id, payload);
+                } else {
+                    res = decisionFeeService.createItem 
+                        ? await decisionFeeService.createItem(payload, "CMS") 
+                        : await decisionFeeService.add(payload);
+                }
                 
-                if (res && (res.success || res.code === 0 || res)) {
+                if (res && (res.success || res.code === 0 || res.error?.code === 0 || res.id)) {
                     this.open = false;
-                    if (typeof this.$showSuccess === 'function') this.$showSuccess("Thêm mới thành công");
-                    if (this.$parent && typeof this.$parent.getList === 'function') {
+                    if (typeof this.$showSuccess === 'function') {
+                        this.$showSuccess(this.body.id ? "Cập nhật định mức phí thành công" : "Thêm mới thành công");
+                    }
+                    if (this.$parent && typeof this.$parent.loadData === 'function') {
+                        this.$parent.loadData();
+                    } else if (this.$parent && typeof this.$parent.getList === 'function') {
                         this.$parent.getList();
                     }
+                } else if (typeof this.$showError === 'function') {
+                    this.$showError(res?.message || "Có lỗi xảy ra, vui lòng thử lại!");
                 }
             } catch (er) {
-                console.log(er);
+                console.error("Lỗi:", er);
+                if (typeof this.$showError === 'function') {
+                    this.$showError("Yêu cầu không hợp lệ hoặc lỗi kết nối!");
+                }
+            } finally {
+                this.loading = false;
             }
         },
     },
@@ -260,7 +407,7 @@ export default {
         <v-card class="rounded-lg">
             <!-- Header Modal -->
             <v-card-title class="pa-4 text-white" style="background-color: #A62229; color: white;">
-                <span class="text-h6 font-weight-bold">Thêm định mức phí</span>
+                <span class="text-h6 font-weight-bold">{{ body.id ? 'Cập nhật định mức phí' : 'Thêm định mức phí' }}</span>
                 <v-spacer></v-spacer>
                 <v-btn icon dark @click="closeDialog">
                     <v-icon>mdi-close</v-icon>
@@ -282,14 +429,32 @@ export default {
                         </v-col>
 
                         <v-col cols="12" lg="6" md="6">
-                            <v-text-field
-                                v-model="body.timeInform"
-                                label="Ngày ban hành (*)"
-                                outlined
-                                dense
-                                placeholder="DD/MM/YYYY"
-                                :rules="[v => !!v || 'Ngày ban hành không được để trống']"
-                            />
+                            <v-menu
+                                v-model="menuDate"
+                                :close-on-content-click="false"
+                                transition="scale-transition"
+                                offset-y
+                                min-width="auto"
+                            >
+                                <template #activator="{ on, attrs }">
+                                    <v-text-field
+                                        v-model="body.timeInform"
+                                        label="Ngày ban hành (*)"
+                                        outlined
+                                        dense
+                                        readonly
+                                        v-bind="attrs"
+                                        v-on="on"
+                                        :rules="[v => !!v || 'Ngày ban hành không được để trống']"
+                                    ></v-text-field>
+                                </template>
+                                <v-date-picker
+                                    v-model="body.timeInform"
+                                    color="#A62229"
+                                    locale="vi"
+                                    @input="menuDate = false"
+                                ></v-date-picker>
+                            </v-menu>
                         </v-col>
 
                         <v-col cols="12" lg="6" md="6">
@@ -347,13 +512,13 @@ export default {
                         <v-col cols="12" md="12" class="d-flex align-center flex-wrap pt-2">
                             <div style="flex: 1; min-width: 260px;" class="mr-4">
                                 <v-text-field
-                                    v-model="body.defaultFee"
+                                    v-model="body.defaultFeeDisplay"
                                     label="Phí mặc định"
                                     outlined
                                     dense
-                                    type="number"
                                     suffix="VNĐ"
                                     hide-details
+                                    @input="body.defaultFeeDisplay = formatCurrency($event)"
                                 />
                             </div>
                             <div class="d-flex align-center mt-2">
@@ -431,14 +596,26 @@ export default {
                                             <div
                                                 v-for="(trainingMethod, index) in item.trainingMethods"
                                                 :key="index"
-                                                style="height: 36px; display: flex; align-items: center; border-bottom: 1px solid #eee;"
+                                                style="height: 36px; display: flex; align-items: center; justify-content: flex-end; border-bottom: 1px solid #eee;"
                                             >
-                                                <input
-                                                    v-model="trainingMethod.fee"
-                                                    type="text"
-                                                    class="line-underline-input text-right pr-2"
-                                                    placeholder=""
-                                                />
+                                                <div class="input-with-clear">
+                                                    <input
+                                                        :value="trainingMethod.feeDisplay"
+                                                        type="text"
+                                                        class="line-underline-input text-right pr-6"
+                                                        placeholder=""
+                                                        @input="onFeeInput(trainingMethod, $event.target.value)"
+                                                    />
+                                                    <!-- ICON DẤU X ĐỂ XÓA NHANH -->
+                                                    <span
+                                                        v-if="trainingMethod.feeDisplay"
+                                                        class="clear-btn"
+                                                        title="Xóa"
+                                                        @click="clearSingleFee(trainingMethod)"
+                                                    >
+                                                        &times;
+                                                    </span>
+                                                </div>
                                                 <span class="grey--text text--darken-1 pl-1 font-weight-medium">VNĐ</span>
                                             </div>
                                         </div>
@@ -492,17 +669,37 @@ export default {
     z-index: 2;
     background-color: #f5f5f5 !important;
 }
+.input-with-clear {
+    position: relative;
+    display: inline-block;
+}
 
 .line-underline-input {
-    width: 130px;
+    width: 140px;
     border: none;
     border-bottom: 1px solid #c0c0c0;
     outline: none;
-    padding: 4px 2px;
+    padding: 4px 18px 4px 2px;
     background: transparent;
     transition: border-color 0.2s ease;
 }
 .line-underline-input:focus {
     border-bottom: 1.5px solid #A62229;
+}
+
+.clear-btn {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #999;
+    font-size: 16px;
+    font-weight: bold;
+    line-height: 1;
+    user-select: none;
+}
+.clear-btn:hover {
+    color: #A62229;
 }
 </style>
