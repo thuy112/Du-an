@@ -11,7 +11,6 @@
     <div class="filter-container mb-3 sticky-filter">
       <div class="d-flex align-center flex-wrap justify-space-between" style="gap: 8px; padding: 6px;">
         <div class="d-flex align-center flex-wrap flex-grow-1" style="gap: 8px;">
-          <!-- Kỳ thi -->
           <v-select
             v-model="filters.examId"
             :items="examList"
@@ -24,14 +23,15 @@
             clearable
             class="filter-input"
             style="min-width: 170px;"
+            @change="handleExamChange"
           ></v-select>
 
           <!-- Học phần -->
           <v-select
             v-model="filters.subjectId"
             :items="subjectList"
-            item-text="name"
-            item-value="id"
+            :item-text="item => item.subjectName || item.name || item.subjectCode || item.code || '-'"
+            :item-value="item => item.subjectId || item.id || item.code"
             placeholder="Học phần"
             outlined
             dense
@@ -39,14 +39,17 @@
             clearable
             class="filter-input"
             style="min-width: 170px;"
+            :no-data-text="!filters.examId ? 'Vui lòng chọn kỳ thi trước' : 'Không có dữ liệu'"
+            @click.native="checkExamBeforeClick"
+            @change="handleSubjectChange"
           ></v-select>
 
           <!-- Phòng thi -->
           <v-select
             v-model="filters.roomExamId"
             :items="roomList"
-            item-text="name"
-            item-value="id"
+            :item-text="item => item.roomName || item.name || item.roomCode || item.code || '-'"
+            :item-value="item => item.roomId || item.id || item.roomExamId"
             placeholder="Phòng thi"
             outlined
             dense
@@ -54,6 +57,8 @@
             clearable
             class="filter-input"
             style="min-width: 160px;"
+            :no-data-text="!filters.subjectId ? 'Vui lòng chọn học phần trước' : 'Không có dữ liệu'"
+            @click.native="checkSubjectBeforeClick"
           ></v-select>
 
           <!-- Tìm kiếm theo sinh viên (Họ tên / Mã SV) -->
@@ -71,7 +76,7 @@
 
           <!-- Nút thao tác (Làm mới, Tìm kiếm) -->
           <div class="d-flex align-center" style="gap: 5px;">
-            <v-btn icon color="#A62229" class="btn-square-action" @click="refreshData" title="Làm mới">
+            <v-btn icon color="#A62229" @click="refreshData" title="Làm mới">
               <v-icon size="22">mdi-refresh</v-icon>
             </v-btn>
 
@@ -264,21 +269,7 @@ export default {
     await this.loadData()
   },
   methods: {
-    async initPageData() {
-      try {
-        const [examRes] = await Promise.all([
-          resultService.getExamList({ status: 'ACTIVE', channel: 'CMS' }).catch(() => null),
-          resultService.getPageRole({ channel: 'CMS' }).catch(() => null),
-          resultService.getUserInfo({ channel: 'CMS' }).catch(() => null),
-        ])
-        if (examRes) {
-          const examData = examRes.data !== undefined ? examRes.data : examRes
-          this.examList = Array.isArray(examData) ? examData : (examData.data || examData.content || [])
-        }
-      } catch (error) {
-        console.error('Lỗi khởi tạo dữ liệu trang:', error)
-      }
-    },
+    
 
     extractValue(val) {
       if (val === null || val === undefined || val === '') return ''
@@ -365,12 +356,79 @@ export default {
       this.pageInput = 1
       this.loadData()
     },
+    // 1. Tải danh sách Kỳ thi ban đầu
+    async initPageData() {
+      try {
+        const res = await resultService.getExamList({ status: 'ACTIVE', channel: 'CMS' })
+        if (res) {
+          const rawData = res.data !== undefined ? res.data : res
+          this.examList = Array.isArray(rawData) 
+            ? rawData 
+            : (rawData.data || rawData.content || rawData.items || [])
+        }
+      } catch (error) {
+        console.error('Lỗi khởi tạo kỳ thi:', error)
+        this.examList = []
+      }
+    },
+
+    // 2. Khi chọn Kỳ thi -> Gọi API Học phần tương ứng
+    async handleExamChange(examId) {
+      this.filters.subjectId = ''
+      this.filters.roomExamId = ''
+      this.subjectList = []
+      this.roomList = []
+
+      if (!examId) return
+
+      try {
+        const res = await resultService.getTermList(examId, 'CMS')
+        if (res) {
+          const rawData = res.data !== undefined ? res.data : res
+          this.subjectList = Array.isArray(rawData) ? rawData : (rawData.data || rawData.content || rawData.items || [])
+        }
+      } catch (error) {
+        console.error('Lỗi tải danh sách học phần:', error)
+        this.subjectList = []
+      }
+    },
+
+    // Khi thay đổi Học phần -> Reset phòng thi và tải danh sách phòng thi tương ứng
+    async handleSubjectChange(subjectId) {
+      this.filters.roomExamId = ''
+      this.roomList = []
+
+      if (!subjectId) return
+
+      try {
+        const res = await resultService.getRoomList(subjectId, 'CMS')
+        if (res) {
+          const rawData = res.data !== undefined ? res.data : res
+          this.roomList = Array.isArray(rawData) ? rawData : (rawData.data || rawData.content || rawData.items || [])
+        }
+      } catch (error) {
+        console.error('Lỗi tải danh sách phòng thi:', error)
+        this.roomList = []
+      }
+    },
+    // Khi bấm vào học phần mà chưa chọn kỳ thi
+    checkExamBeforeClick() {
+      if (!this.filters.examId) {
+        this.subjectList = [] // Đảm bảo danh sách rỗng để v-select hiển thị no-data-text
+      }
+    },
+
+    // Khi bấm vào phòng thi mà chưa chọn học phần
+    checkSubjectBeforeClick() {
+      if (!this.filters.subjectId) {
+        this.roomList = [] // Đảm bảo danh sách rỗng để v-select hiển thị no-data-text
+      }
+    },
   },
 }
 </script>
 <style scoped>
 .filter-container {
-  border: 1px solid #e0e0e0;
   background-color: #fff;
 }
 

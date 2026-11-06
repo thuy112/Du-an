@@ -78,31 +78,75 @@
         </div>
       </div>
 
-      <!-- Hàng phụ: Từ ngày & Đến ngày dùng kiểu chọn lịch (type="date") -->
+      <!-- Hàng phụ: Từ ngày & Đến ngày -->
       <div class="d-flex align-center flex-wrap px-2 pb-2" style="gap: 8px;">
-        <v-text-field
-          v-model="filters.fromTime"
-          label="Từ ngày"
-          type="date"
-          outlined
-          dense
-          hide-details
-          clearable
-          class="filter-item"
-          style="max-width: 250px;"
-        ></v-text-field>
+        <v-menu
+          v-model="menuFromDate"
+          :close-on-content-click="false"
+          transition="scale-transition"
+          offset-y
+          min-width="auto"
+        >
+          <template v-slot:activator="{ on, attrs }">
+            <v-text-field
+              :value="formatDisplayDate(filters.fromTime)"
+              label="Từ ngày"
+              readonly
+              outlined
+              dense
+              hide-details
+              clearable
+              class="filter-item"
+              style="max-width: 250px;"
+              v-bind="attrs"
+              v-on="on"
+              @click:clear="filters.fromTime = ''"
+            ></v-text-field>
+          </template>
+          <v-date-picker
+            v-model="filters.fromTime"
+            :max="filters.toTime || undefined"
+            color="#A62229"
+            locale="vi"
+            no-title
+            scrollable
+            @input="menuFromDate = false"
+          ></v-date-picker>
+        </v-menu>
 
-        <v-text-field
-          v-model="filters.toTime"
-          label="Đến ngày"
-          type="date"
-          outlined
-          dense
-          hide-details
-          clearable
-          class="filter-item"
-          style="max-width: 250px;"
-        ></v-text-field>
+        <v-menu
+          v-model="menuToDate"
+          :close-on-content-click="false"
+          transition="scale-transition"
+          offset-y
+          min-width="auto"
+        >
+          <template v-slot:activator="{ on, attrs }">
+            <v-text-field
+              :value="formatDisplayDate(filters.toTime)"
+              label="Đến ngày"
+              readonly
+              outlined
+              dense
+              hide-details
+              clearable
+              class="filter-item"
+              style="max-width: 250px;"
+              v-bind="attrs"
+              v-on="on"
+              @click:clear="filters.toTime = ''"
+            ></v-text-field>
+          </template>
+          <v-date-picker
+            v-model="filters.toTime"
+            :min="filters.fromTime || undefined"
+            color="#A62229"
+            locale="vi"
+            no-title
+            scrollable
+            @input="menuToDate = false"
+          ></v-date-picker>
+        </v-menu>
       </div>
     </div>
 
@@ -120,12 +164,10 @@
         @page-change="changePage"
         @per-page-change="handleItemsPerPageChange"
       >
-        <!-- Cột STT -->
         <template #[`item.stt`]="{ index }">
           <span>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</span>
         </template>
 
-        <!-- Các cột dữ liệu -->
         <template #[`item.className`]="{ item }">
           <span class="font-weight-medium" style="color: #A62229;">{{ item.className || item.name || '---' }}</span>
         </template>
@@ -160,7 +202,6 @@
           <span>{{ item.scoreStatus || '---' }}</span>
         </template>
 
-        <!-- Cột Chức năng -->
         <template #[`item.actions`]="{ item }">
           <div class="d-flex justify-center" style="gap: 4px;">
             <v-btn icon small color="primary" @click="handleEdit(item)" title="Sửa">
@@ -247,20 +288,83 @@
         </v-btn>
       </div>
     </div>
+
+    <!-- MODAL THÊM MỚI -->
+    <ExamSessionAddModal
+      v-model="addModalVisible"
+      @success="handleCreateSuccess"
+    />
+
+    <!-- MODAL NHẬP FILE EXCEL -->
+    <v-dialog v-model="importModalVisible" max-width="550px" persistent @click:outside="closeImportModal">
+      <v-card class="rounded-lg">
+        <v-card-title class="headline px-6 py-4" style="background-color: #A62229; color: white;">
+          <span>Nhập file excel</span>
+          <v-spacer></v-spacer>
+          <v-btn icon dark @click="closeImportModal">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+
+        <v-card-text class="px-6 py-4">
+          <div class="mb-3 text-body-2">
+            Tải file mẫu ở đây: 
+            <a href="#" class="text-decoration-underline font-weight-medium" style="color: #A62229;" @click.prevent="downloadTemplate">
+              template_danh_sach_thi_lai.xlsx
+            </a>
+          </div>
+
+          <div v-if="!selectedFile" class="upload-drop-zone pa-6 text-center rounded-lg" @click="$refs.fileInput.click()">
+            <v-icon size="48" color="#A62229">mdi-plus-circle-outline</v-icon>
+            <div class="text-subtitle-2 font-weight-medium mt-2" style="color: #333;">Chọn tệp đính kèm</div>
+            <input 
+              ref="fileInput" 
+              type="file" 
+              accept=".xlsx, .xls" 
+              style="display: none;" 
+              @change="onFileSelected"
+            >
+          </div>
+
+          <div v-else class="d-flex align-center justify-space-between px-4 py-3 rounded-lg" style="background-color: #e8f5e9; border: 1px solid #c8e6c9;">
+            <div class="d-flex align-center text-truncate" style="gap: 8px;">
+              <v-icon color="green darken-2">mdi-file-excel</v-icon>
+              <span class="text-body-2 font-weight-medium text-truncate" style="color: #2e7d32;">{{ selectedFile.name }}</span>
+            </div>
+            <v-btn icon small color="grey darken-1" @click="removeFile">
+              <v-icon size="18">mdi-close</v-icon>
+            </v-btn>
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="px-6 pb-4">
+          <v-spacer></v-spacer>
+          <v-btn color="#A62229" dark depressed :disabled="!selectedFile || loading" @click="handleImport">
+            Import
+          </v-btn>
+          <v-btn outlined color="grey darken-1" text @click="closeImportModal">Đóng</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script>
 import BaseTable from '~/components/Base/BaseTable.vue'
 import examSessionService from '~/services/examSessionService'
+import ExamSessionAddModal from '~/components/ExamSessionAddModal.vue'
 
 export default {
   name: 'ExamSessionPage',
   components: {
     BaseTable,
+    ExamSessionAddModal,
   },
   data() {
     return {
+      addModalVisible: false,
+      importModalVisible: false,
+      selectedFile: null,
       isMobileDevice: false,
       loading: false,
       filters: {
@@ -282,6 +386,8 @@ export default {
       classOptions: [],
       examOptions: [],
       termOptions: [],
+      menuFromDate: false,
+      menuToDate: false,
 
       itemList: [],
       totalRecords: 0,
@@ -351,8 +457,8 @@ export default {
         classId: this.extractValue(this.filters.classId),
         examId: this.extractValue(this.filters.examId),
         termId: this.extractValue(this.filters.termId),
-        fromTime: this.filters.fromTime,
-        toTime: this.filters.toTime,
+        fromTime: this.filters.fromTime ? this.formatApiDateTime(this.filters.fromTime) : '',
+        toTime: this.filters.toTime ? this.formatApiDateTime(this.filters.toTime, true) : '',
       }
       this.currentPage = 1
       this.pageInput = 1
@@ -392,36 +498,53 @@ export default {
         }
 
         const res = await examSessionService.getList(baseParams)
-        
-        if (res) {
-          const rootData = res.data !== undefined ? res.data : res
-          const allItems = Array.isArray(rootData) ? rootData : (rootData.data || rootData.content || rootData.items || [])
-          
-          const rawTotal = rootData.totalElements ?? rootData.totalRecords ?? rootData.total ?? (res.totalElements || res.totalRecords || res.total)
-          this.totalRecords = rawTotal !== undefined ? Number(rawTotal) : allItems.length
 
-          this.itemList = (Array.isArray(allItems) ? allItems : []).map(item => ({
-            ...item,
-            className: item.className || item.classes?.name || '---',
-            examName: item.examName || item.exam?.name || '---',
-            termName: item.termName || item.courseName || '---',
-            semester: item.semester || item.term?.semester || '---',
-            totalRegistered: item.totalRegistered || item.total || 0,
-            timeStr: item.timeStr || item.time || '---',
-            status: item.status || 'ACTIVE',
-            scoreStatus: item.scoreStatus || '---',
-          }))
-
-          this.totalPages = Math.ceil(this.totalRecords / this.itemsPerPage) || 1
+        if (!res || res.success === false || res.response) {
+          console.error('API tải danh sách lớp thi không thành công:', res)
+          return
         }
+
+        const rootData = res.data !== undefined ? res.data : res
+        const allItems = Array.isArray(rootData) ? rootData : (rootData?.data || rootData?.content || rootData?.items || [])
+
+        const rawTotal = rootData?.totalElements ?? rootData?.totalRecords ?? rootData?.total ?? (res.totalElements || res.totalRecords || res.total)
+        this.totalRecords = rawTotal !== undefined ? Number(rawTotal) : allItems.length
+
+        this.itemList = (Array.isArray(allItems) ? allItems : []).map(item => ({
+          ...item,
+          className: item.className || item.classes?.name || '---',
+          examName: item.examName || item.exam?.name || '---',
+          termName: item.termName || item.courseName || '---',
+          semester: item.semester || item.term?.semester || '---',
+          totalRegistered: item.totalRegistered || item.total || 0,
+          timeStr: item.timeStr || item.time || '---',
+          status: item.status || 'ACTIVE',
+          scoreStatus: item.scoreStatus || '---',
+        }))
+
+        this.totalPages = Math.ceil(this.totalRecords / this.itemsPerPage) || 1
       } catch (error) {
         console.error('Lỗi tải danh sách lớp thi lại:', error)
-        this.itemList = []
-        this.totalRecords = 0
-        this.totalPages = 1
       } finally {
         this.loading = false
       }
+    },
+
+    formatDisplayDate(dateStr) {
+      if (!dateStr) return ''
+      const date = dateStr.split(/[ T]/)[0]
+      const parts = date.split('-')
+      if (parts.length !== 3) return dateStr
+      const [year, month, day] = parts
+      return `${day}/${month}/${year}`
+    },
+
+    formatApiDateTime(date, isEndOfDay = false) {
+      if (!date) return ''
+      const dateOnly = date.split(/[ T]/)[0]
+      const [year, month, day] = dateOnly.split('-')
+      if (!year || !month || !day) return ''
+      return `${day}/${month}/${year} ${isEndOfDay ? '23:59:59' : '00:00:00'}`
     },
 
     changePage(page) {
@@ -448,7 +571,12 @@ export default {
     },
 
     openAddDialog() {
-      console.log('Mở modal thêm mới lớp thi lại')
+      this.addModalVisible = true
+    },
+    async handleCreateSuccess() {
+      this.currentPage = 1
+      this.pageInput = 1
+      await this.loadData()
     },
     handleEdit(item) {
       console.log('Sửa bản ghi:', item)
@@ -456,12 +584,91 @@ export default {
     handleDelete(item) {
       console.log('Xóa bản ghi:', item)
     },
-    openImportModal() {
-      console.log('Mở modal nhập file excel')
+
+    // --- XUẤT BẢNG ĐIỂM TỔNG HỢP ---
+    async exportReportFile() {
+      try {
+        this.loading = true
+        const params = {
+          name: this.activeFilters.search || '',
+          ...this.activeFilters
+        }
+        const response = await examSessionService.exportAllNoScore(params)
+        const blob = new Blob([response.data || response], { 
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        })
+        const link = document.createElement('a')
+        link.href = window.URL.createObjectURL(blob)
+        link.download = `Bang-dien-tong-hop-${new Date().toISOString().slice(0, 10)}.xlsx`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(link.href)
+      } catch (error) {
+        console.error('Lỗi khi xuất bảng điểm tổng hợp:', error)
+      } finally {
+        this.loading = false
+      }
     },
-    exportReportFile() {
-      if (this.totalRecords === 0) return
-      console.log('Xuất bảng điểm tổng hợp...')
+
+    // --- NHẬP FILE EXCEL ---
+    openImportModal() {
+      this.selectedFile = null
+      this.importModalVisible = true
+    },
+    closeImportModal() {
+      this.selectedFile = null
+      this.importModalVisible = false
+    },
+    onFileSelected(event) {
+      const files = event.target.files
+      if (files && files[0]) {
+        this.selectedFile = files[0]
+      }
+    },
+    removeFile() {
+      this.selectedFile = null
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = ''
+      }
+    },
+    async downloadTemplate() {
+      try {
+        const res = await examSessionService.downloadImportTemplate()
+        const blob = new Blob([res.data || res], { 
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        })
+        const link = document.createElement('a')
+        link.href = window.URL.createObjectURL(blob)
+        link.download = 'template_danh_sach_thi_lai.xlsx'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        window.URL.revokeObjectURL(link.href)
+      } catch (error) {
+        console.error('Lỗi tải file mẫu:', error)
+      }
+    },
+    async handleImport() {
+      if (!this.selectedFile) return
+      this.loading = true
+      const formData = new FormData()
+      formData.append('file', this.selectedFile)
+
+      try {
+        // Bước kiểm tra file trước khi import
+        const checkRes = await examSessionService.checkImportExamSession(formData)
+        if (checkRes && (checkRes.success !== false || checkRes.code === 0)) {
+          // Gọi API import chính thức
+          await examSessionService.importExamSession(formData)
+          this.closeImportModal()
+          await this.loadData()
+        }
+      } catch (error) {
+        console.error('Lỗi khi import file:', error)
+      } finally {
+        this.loading = false
+      }
     }
   }
 }
@@ -500,6 +707,15 @@ export default {
   overflow-x: auto;
   overflow-y: auto;
   position: relative;
+}
+.upload-drop-zone {
+  border: 2px dashed #A62229;
+  background-color: #fafafa;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.upload-drop-zone:hover {
+  background-color: #fce4e4;
 }
 ::v-deep .v-data-footer {
   display: none !important;

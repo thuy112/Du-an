@@ -14,18 +14,18 @@ class Api {
             .catch((err) => err);
     }
 
-    async post(url, data) {
+    async post(url, data, config = {}) {
         return await this.$axios
-            .post(url, data)
+            .post(url, data, config)
             .then((res) => res)
             .catch((error) => {
                 throw error;
             });
     }
 
-    async put(url, data) {
+    async put(url, data, config = {}) {
         return await this.$axios
-            .put(url, data)
+            .put(url, data, config)
             .then((res) => res)
             .catch((error) => {
                 throw error;

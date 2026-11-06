@@ -27,5 +27,38 @@ export default {
 
     deleteExamSession(id) {
         return Api.delete(`/api/examSession/${id}`, { params: { channel: 'CMS' } })
+    },
+
+    getSemesters() {
+        return Api.get("/api/semester/list", { status: 'ACTIVE', channel: 'CMS' })
+    },
+
+    // Thêm hàm export bảng điểm tổng hợp
+    exportAllNoScore(params) {
+        return Api.get("/api/examSession/exportAllNoScore", { 
+            channel: 'CMS', 
+            ...params 
+        }, { 
+            responseType: 'blob' 
+        })
+    },
+    downloadImportTemplate(params) {
+        return Api.get("/api/examSession/templateImport", { channel: 'CMS', ...params }, { responseType: 'blob' })
+    },
+
+    // Kiểm tra file trước khi import
+    checkImportExamSession(formData, params) {
+        return Api.post("/api/examSession/checkImport", formData, { 
+            params: { channel: 'CMS', ...params },
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
+    },
+
+    // Thực hiện import chính thức
+    importExamSession(formData, params) {
+        return Api.post("/api/examSession/import", formData, { 
+            params: { channel: 'CMS', ...params },
+            headers: { 'Content-Type': 'multipart/form-data' }
+        })
     }
 }
