@@ -49,7 +49,7 @@
             label="Học kỳ (*)"
             outlined
             dense
-            :rules="[v => !!v || 'Học kỳ không được để trống']"
+            :rules="[v => v !== null && v !== undefined && v !== '' || 'Học kỳ không được để trống']"
             class="mb-3"
           ></v-select>
           <v-text-field
@@ -232,7 +232,12 @@ export default {
         const res = await redefenseExamService.getSemesters({ status: 'ACTIVE', channel: 'CMS' })
         if (res) {
           const rootData = res.data !== undefined ? res.data : res
-          this.semesterList = Array.isArray(rootData) ? rootData : (rootData.data || rootData.content || [])
+          const list = Array.isArray(rootData) ? rootData : (rootData.data || rootData.content || rootData.items || [])
+          this.semesterList = list.map(item => ({
+            ...item,
+            id: item.id ?? item.semesterId ?? item.semester?.id ?? null,
+            name: item.name || item.code,
+          }))
         }
       } catch (error) {
         console.error('Lỗi tải danh sách học kỳ:', error)
@@ -259,9 +264,12 @@ export default {
     },
     formatApiDateTime(dateStr, isEndOfDay = false) {
       if (!dateStr) return null
-      const [year, month, day] = dateStr.split(/[ T]/)[0].split('-')
+      const dateOnly = String(dateStr).split(/[ T]/)[0]
+      const [year, month, day] = dateOnly.includes('/')
+        ? dateOnly.split('/').reverse()
+        : dateOnly.split('-')
       if (!year || !month || !day) return null
-      return `${year}-${month}-${day} ${isEndOfDay ? '23:59:59' : '00:00:00'}`
+      return `${day}/${month}/${year} ${isEndOfDay ? '23:59:59' : '00:00:00'}`
     },
     async fetchDetail(id) {
       this.loadingDetail = true
@@ -276,7 +284,7 @@ export default {
           this.form = {
             name: data.name || '',
             code: data.code || '',
-            semesterId: semObj.id || data.semesterId || null,
+            semesterId: semObj.id ?? semObj.semesterId ?? data.semesterId ?? data.semester?.id ?? null,
             semesterName: semObj.name || semObj.code || (typeof data.semester === 'string' ? data.semester : ''),
             fromTime: this.formatPickerDate(data.fromTime),
             toTime: this.formatPickerDate(data.toTime),
@@ -290,25 +298,34 @@ export default {
       }
     },
     async handleSave() {
-      if (!this.$refs.form.validate()) return
+      if (this.loading || !this.$refs.form.validate()) return
       this.loading = true
       try {
         const payload = {
-            name: this.form.name,
-            code: this.form.code,
-            semester: {
-                id: this.form.semesterId
-            },
-            fromTime: this.formatApiDateTime(this.form.fromTime),
-            toTime: this.formatApiDateTime(this.form.toTime, true),
-            status: this.form.status,
-            channel: 'CMS',
+          name: this.form.name,
+          code: this.form.code,
+          semesterId: this.form.semesterId,
+          semester: {
+            id: this.form.semesterId,
+          },
+          fromTime: this.formatApiDateTime(this.form.fromTime),
+          toTime: this.formatApiDateTime(this.form.toTime, true),
+          status: this.form.status,
+          channel: 'CMS',
         }
-        await redefenseExamService.update(this.editId, payload)
+        const res = await redefenseExamService.update(this.editId, payload)
+        const responseData = res?.data !== undefined ? res.data : res
+        if (responseData?.code !== undefined && Number(responseData.code) !== 0) {
+          const message = responseData.message || 'Cập nhật thất bại. Vui lòng thử lại.'
+          this.$emit('error', message)
+          return
+        }
         this.$emit('success', 'Cập nhật đợt bảo vệ lại thành công')
         this.closeDialog()
       } catch (error) {
         console.error('Lỗi khi cập nhật:', error)
+        const message = error.response?.data?.message || error.response?.data?.error || 'Cập nhật thất bại. Vui lòng thử lại.'
+        this.$emit('error', message)
       } finally {
         this.loading = false
       }

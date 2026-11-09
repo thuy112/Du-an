@@ -244,9 +244,38 @@
         </v-btn>
       </div>
     </div>
+    <!-- MODAL XÁC NHẬN XÓA -->
+    <v-dialog v-model="isDeleteModalOpen" max-width="450px" persistent>
+      <v-card class="rounded-lg">
+        <v-card-title class="pa-4 text-white" style="background-color: #A62229; color: white;">
+          <span class="text-h6 font-weight-bold">Xác nhận</span>
+          <v-spacer></v-spacer>
+          <v-btn icon dark @click="isDeleteModalOpen = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-5">
+          <span>Xác nhận xóa </span>
+          <span class="font-weight-bold red--text">{{ itemToDelete ? itemToDelete.name : '' }}</span>
+        </v-card-text>
+
+        <v-divider></v-divider>
+
+        <v-card-actions class="pa-3">
+          <v-spacer></v-spacer>
+          <v-btn outlined color="grey darken-1" class="text-none px-4" @click="isDeleteModalOpen = false">
+            Đóng <v-icon right small>mdi-close</v-icon>
+          </v-btn>
+          <v-btn color="#A62229" dark class="text-none px-5" :loading="deleting" @click="confirmDelete">
+            Xác Nhận
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- MODAL THÊM MỚI -->
-    <AddRedefenseModal v-model="isAddModalOpen" @success="onAddSuccess" />
+    <AddRedefenseModal v-model="isAddModalOpen" @success="onAddSuccess" @error="onAddError" />
     
     <!-- MODAL CẬP NHẬT / XEM CHI TIẾT -->
     <RedefenseModal 
@@ -254,6 +283,7 @@
       :edit-id="selectedEditId" 
       :is-view-only="isViewOnlyMode"
       @success="onModalSuccess" 
+      @error="onAddError"
     />
 
     <!-- TOAST THÔNG BÁO -->
@@ -262,7 +292,7 @@
       top
       right
       timeout="3000"
-      color="#4caf50"
+      :color="snackbar.color"
       elevation="4"
     >
       <div class="d-flex align-center">
@@ -290,6 +320,10 @@ export default {
   },
   data() {
     return {
+      isDeleteModalOpen: false,
+      itemToDelete: null,
+      deleting: false,
+
       isMobileDevice: false,
       loading: false,
       isAddModalOpen: false,
@@ -313,6 +347,7 @@ export default {
       snackbar: {
         show: false,
         text: '',
+        color: '#4caf50',
       },
       statusList: [
         { text: 'Kích hoạt', value: 'ACTIVE', color: '#A62229' },
@@ -365,7 +400,7 @@ export default {
         ? datePart.split('/').reverse()
         : datePart.split('-')
       if (!year || !month || !day) return null
-      return `${year}-${month}-${day} ${isEndOfDay ? '23:59:59' : '00:00:00'}`
+      return `${day}/${month}/${year} ${isEndOfDay ? '23:59:59' : '00:00:00'}`
     },
     handleSearch() {
       this.activeFilters = {
@@ -433,8 +468,9 @@ export default {
       this.pageInput = 1
       this.loadData()
     },
-    showToast(text) {
+    showToast(text, color = '#4caf50') {
       this.snackbar.text = text
+      this.snackbar.color = color
       this.snackbar.show = true
     },
     async handleStatusChange(item, selectedItem) {
@@ -453,6 +489,9 @@ export default {
     onAddSuccess(msg) {
       this.showToast(msg)
       this.loadData()
+    },
+    onAddError(message) {
+      this.showToast(message, '#d32f2f')
     },
     async handleView(item) {
       try {
@@ -480,17 +519,24 @@ export default {
       }
     },
 
-    async handleDelete(item) {
-      if (confirm(`Bạn có chắc chắn muốn xóa đợt bảo vệ lại "${item.name}" không?`)) {
-        try {
-          const res = await redefenseExamService.delete(item.id);
-          if (res) {
-            this.showToast('Xóa thành công');
-            await this.loadData();
-          }
-        } catch (error) {
-          console.error('Lỗi khi xóa:', error);
-        }
+    handleDelete(item) {
+      this.itemToDelete = item
+      this.isDeleteModalOpen = true
+    },
+
+    async confirmDelete() {
+      if (!this.itemToDelete) return
+      this.deleting = true
+      try {
+        await redefenseExamService.delete(this.itemToDelete.id)
+        this.showToast('Xóa thông tin thành công')
+        this.isDeleteModalOpen = false
+        await this.loadData()
+      } catch (error) {
+        console.error('Lỗi khi xóa:', error)
+      } finally {
+        this.deleting = false
+        this.itemToDelete = null
       }
     },
     async onModalSuccess(msg) {

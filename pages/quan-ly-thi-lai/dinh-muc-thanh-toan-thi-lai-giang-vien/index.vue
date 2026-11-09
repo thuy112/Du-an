@@ -1,5 +1,5 @@
 <template>
-  <div class="decision-teacher-fee-page pa-3 pa-md-4 bg-white">
+  <div class="result-management-page pa-3 pa-md-4 bg-white">
     <!-- TIÊU ĐỀ TRANG -->
     <div class="d-flex align-center justify-space-between mb-3">
       <div class="text-h6 font-weight-bold black--text">
@@ -253,6 +253,63 @@
       </div>
     </div>
 
+    <!-- MODAL NHẬP FILE EXCEL -->
+    <v-dialog v-model="importDialogVisible" max-width="550px" persistent>
+      <v-card class="rounded-lg">
+        <v-card-title class="white--text py-3 px-4 d-flex justify-space-between align-center" style="background-color: #A62229;">
+          <span class="text-h6 font-weight-bold">Nhập file excel</span>
+          <v-btn icon dark @click="importDialogVisible = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-5 text-center">
+          <div 
+            class="upload-dropzone pa-5 rounded-lg mb-2" 
+            @click="triggerFileInput"
+            @dragover.prevent 
+            @drop.prevent="handleFileDrop"
+          >
+            <input 
+              ref="fileInput" 
+              type="file" 
+              accept=".xlsx, .xls" 
+              class="d-none" 
+              @change="handleFileChange"
+            />
+
+            <div v-if="!selectedFile" class="py-3 d-flex flex-column align-center" style="gap: 6px;">
+              <div class="upload-icon-circle">
+                <v-icon color="#A62229" size="24">mdi-plus</v-icon>
+              </div>
+              <span class="text-subtitle-2 grey--text text--darken-2">Chọn tệp đính kèm</span>
+            </div>
+
+            <div v-else class="d-flex align-center justify-space-between pa-2 bg-file-selected rounded">
+              <div class="d-flex align-center">
+                <v-icon color="green" class="mr-2" small>mdi-file-excel</v-icon>
+                <span class="font-weight-medium text-truncate text-body-2" style="max-width: 380px;">{{ selectedFile.name }}</span>
+              </div>
+              <v-btn icon x-small @click.stop="resetFile">
+                <v-icon size="16">mdi-close</v-icon>
+              </v-btn>
+            </div>
+          </div>
+        </v-card-text>
+
+        <v-divider></v-divider>
+
+        <v-card-actions class="px-4 py-3 justify-end" style="gap: 8px;">
+          <v-btn color="#A62229" dark class="text-none px-5" elevation="0" :disabled="!selectedFile" @click="uploadExcelFile">
+            Import
+          </v-btn>
+          <v-btn text class="text-none" @click="importDialogVisible = false">
+            Đóng
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- MODAL XÁC NHẬN ĐỔI TRẠNG THÁI -->
     <v-dialog v-model="confirmDialog" max-width="500px" persistent>
       <v-card class="rounded-lg">
@@ -282,11 +339,43 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- MODAL XÁC NHẬN XÓA -->
+    <v-dialog v-model="deleteDialogVisible" max-width="500px" persistent>
+      <v-card class="rounded-lg">
+        <v-card-title class="red-dialog-header white--text py-3 px-4 d-flex justify-space-between align-center" style="background-color: #a62229;">
+          <span class="text-h6 font-weight-bold">Xác nhận</span>
+          <v-btn icon dark @click="deleteDialogVisible = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-4 text-body-1 black--text">
+          Xác nhận xóa <span class="font-weight-bold red--text text--darken-3">{{ itemToDelete ? itemToDelete.name : '' }}</span>
+        </v-card-text>
+
+        <v-divider></v-divider>
+
+        <v-card-actions class="px-4 py-3 justify-end" style="gap: 8px;">
+          <v-btn text class="text-none" @click="deleteDialogVisible = false">
+            Đóng <v-icon right small>mdi-close</v-icon>
+          </v-btn>
+          <v-btn color="#A62229" dark class="text-none px-4" elevation="0" @click="confirmDelete">
+            Xác Nhận
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <DecisionTeacherJobFeeAddModal v-model="addModalVisible" />
     <DecisionTeacherJobFeeDetailModal 
       v-model="detailDialogVisible" 
       :item-data="selectedItem" 
     />  
+    <DecisionTeacherJobFeeUpdateModal 
+      v-model="updateDialogVisible" 
+      :item-data="selectedItemForEdit" 
+    />
   </div>
 </template>
 
@@ -295,16 +384,28 @@ import BaseTable from '~/components/Base/BaseTable.vue'
 import decisionTeacherJobFeeService from '~/services/decisionTeacherJobFeeService'
 import DecisionTeacherJobFeeAddModal from '~/components/DecisionTeacherJobFeeAddModal.vue'
 import DecisionTeacherJobFeeDetailModal from '~/components/DecisionTeacherJobFeeDetailModal.vue'
+import DecisionTeacherJobFeeUpdateModal from '~/components/DecisionTeacherJobFeeUpdateModal.vue'
 
 export default {
   name: 'DecisionTeacherJobFeePage',
-  components: { BaseTable, DecisionTeacherJobFeeAddModal, DecisionTeacherJobFeeDetailModal },
+  components: { BaseTable, DecisionTeacherJobFeeAddModal, DecisionTeacherJobFeeDetailModal, DecisionTeacherJobFeeUpdateModal },
   data() {
     return {
-      detailDialogVisible: false, // Sửa từ true thành false
+      deleteDialogVisible: false,
+      itemToDelete: null,
+
+      updateDialogVisible: false, 
+      selectedItemForEdit: {},
+
+      detailDialogVisible: false, 
       selectedItemId: null,
       addModalVisible: false,
       loading: false,
+
+      // State cho Modal Nhập file excel
+      importDialogVisible: false,
+      selectedFile: null,
+
       filters: {
         name: '',
         semesterId: '',
@@ -338,7 +439,6 @@ export default {
         { value: 'actions', text: 'Chức năng', align: 'center', width: '110px', sortable: false },
       ],
 
-      // Biến điều khiển Modal Xác nhận
       confirmDialog: false,
       pendingItem: null,
       pendingNewStatus: null,
@@ -425,7 +525,6 @@ export default {
       return dateOnly
     },
 
-    // Bước 1: Khi chọn trạng thái trong menu -> bật Popup xác nhận
     onSelectStatus(item, newStatus) {
       if (item.status === newStatus) return
       this.pendingItem = item
@@ -433,7 +532,6 @@ export default {
       this.confirmDialog = true
     },
 
-    // Bước 2: Khi bấm "Xác Nhận" trong popup -> Gọi API changeStatus qua service
     async executeChangeStatus() {
       if (!this.pendingItem) return
       const item = this.pendingItem
@@ -442,7 +540,6 @@ export default {
 
       try {
         await decisionTeacherJobFeeService.changeStatus(item.id, { status: newStatus }, 'CMS')
-
         item.status = newStatus
         if (typeof this.$showSuccess === 'function') {
           this.$showSuccess('Cập nhật trạng thái thành công')
@@ -485,22 +582,79 @@ export default {
     openAddModal() {
       this.addModalVisible = true;
     },
-    openImportModal() {},
+
+    // Mở Modal Nhập file excel và gọi API template ngầm hệt như video mẫu 1
+    async openImportModal() {
+      this.selectedFile = null
+      this.importDialogVisible = true
+      try {
+        // Gọi API template ngầm để khớp đúng luồng chuẩn như video mẫu
+        await decisionTeacherJobFeeService.getTemplate({ channel: 'CMS' })
+      } catch (error) {
+        console.error('Lỗi khi tải template chuẩn:', error)
+      }
+    },
+
+    triggerFileInput() {
+      this.$refs.fileInput.click()
+    },
+
+    handleFileChange(e) {
+      const file = e.target.files[0]
+      if (file) {
+        this.selectedFile = file
+      }
+    },
+
+    handleFileDrop(e) {
+      const file = e.dataTransfer.files[0]
+      if (file) {
+        this.selectedFile = file
+      }
+    },
+
+    resetFile() {
+      this.selectedFile = null
+    },
+
+    async uploadExcelFile() {
+      if (!this.selectedFile) return
+      try {
+        const formData = new FormData()
+        formData.append('file', this.selectedFile)
+
+        // Gọi API confirmImport hệt như video mẫu
+        const res = await decisionTeacherJobFeeService.confirmImport(formData, 'CMS')
+        const data = res.data !== undefined ? res.data : res
+
+        if (data && data.code !== undefined && data.code !== 0) {
+          if (typeof this.$showError === 'function') {
+            this.$showError(data.message || 'Lỗi hệ thống khi import file')
+          }
+          return
+        }
+
+        this.importDialogVisible = false
+      } catch (error) {
+        console.error('Lỗi khi import file excel:', error)
+        if (typeof this.$showError === 'function') {
+          this.$showError('Nhập file thất bại, vui lòng kiểm tra lại định dạng file.')
+        }
+      }
+    },
+
     handleDetail(item) {
-      this.selectedItem = item; // Lưu nguyên object dòng dữ liệu
+      this.selectedItem = item;
       this.detailDialogVisible = true;
     },
     async handleExportExcel(item) {
       try {
         const id = item.id;
         const res = await decisionTeacherJobFeeService.exportExcel(id, 'CMS');
-        
-        // Tạo đường dẫn tải file từ Blob trả về
         const link = document.createElement('a');
         link.href = window.URL.createObjectURL(res.data);
         link.download = `dinh-muc-thanh-toan-${id}.xlsx`;
         link.click();
-      
       } catch (error) {
         console.error("Lỗi xuất Excel:", error);
         if (typeof this.$showError === 'function') {
@@ -508,9 +662,32 @@ export default {
         }
       }
     },
-    handleEdit(item) {},
-    handleTeacherListBySemester(item) {},
-    handleDelete(item) {}
+    handleEdit(item) {
+      this.selectedItemForEdit = item;
+      this.updateDialogVisible = true;
+    },
+    handleTeacherListBySemester(item) {
+        if (!item || !item.id) return;
+        this.$router.push(`/quan-ly-thi-lai/dinh-muc-thanh-toan-thi-lai-giang-vien/${item.id}`);
+    },
+    
+    handleDelete(item) {
+      this.itemToDelete = item
+      this.deleteDialogVisible = true
+    },
+
+    async confirmDelete() {
+      if (!this.itemToDelete) return
+      try {
+        const deleteId = this.itemToDelete.id
+        await decisionTeacherJobFeeService.deleteItem(deleteId, 'CMS')
+        this.deleteDialogVisible = false
+        this.itemToDelete = null
+        await this.loadData()
+      } catch (error) {
+        console.error('Lỗi khi xóa bản ghi:', error)
+      }
+    }
   }
 }
 </script>
@@ -542,5 +719,27 @@ export default {
   min-height: 38px !important;
   display: flex;
   align-items: center;
+}
+.upload-dropzone {
+  border: 2px dashed #A62229;
+  background-color: #fafafa;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.upload-dropzone:hover {
+  background-color: #f5f5f5;
+}
+.bg-file-selected {
+  background-color: #f1f8e9;
+  border: 1px solid #c8e6c9;
+}
+.upload-icon-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: #ffebee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

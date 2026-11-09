@@ -1,5 +1,6 @@
 <script>
 import decisionTeacherJobFeeService from "~/services/decisionTeacherJobFeeService";
+import uploadServices from "~/services/uploadServices";
 
 export default {
     name: "DecisionTeacherJobFeeAddModal",
@@ -160,15 +161,26 @@ export default {
 
         this.loading = true;
         try {
-            // Chuẩn hóa định dạng ngày tháng sang YYYY-MM-DD nếu cần hoặc giữ nguyên chuỗi ngày từ v-date-picker
-            const formattedDate = this.form.timeInform.includes('T') 
-                ? this.form.timeInform 
-                : `${this.form.timeInform}T00:00:00`;
+            let fileInform = this.form.fileInform || "";
+            if (fileInform instanceof File) {
+                const formData = new FormData();
+                formData.append("file", fileInform);
+                const uploadRes = await uploadServices.upload(formData);
+
+                if (uploadRes?.success !== true || !uploadRes.data?.url) {
+                    if (uploadRes?.success === true) {
+                        this.$showError("Tải file ban hành thất bại");
+                    }
+                    return;
+                }
+
+                fileInform = uploadRes.data.url;
+            }
 
             const payload = {
                 name: this.form.name,
-                timeInform: formattedDate,
-                fileInform: this.form.fileInform || "",
+                timeInform: this.formatTimeInformForApi(this.form.timeInform),
+                fileInform,
                 semesterId: this.form.semesterId,
                 // Chuyển đổi danh sách chi tiết phí của từng học phần gửi lên đúng chuẩn backend
                 details: this.itemList.map(item => ({
@@ -183,12 +195,15 @@ export default {
             };
 
             const res = await decisionTeacherJobFeeService.createItem(payload, "CMS");
-            
-            // Xử lý khi API trả về mã lỗi (ví dụ trùng tên ban hành)
-            if (res && res.code !== undefined && res.code !== 0) {
-                if (typeof this.$showError === 'function') {
-                    this.$showError(res.message || 'Yêu cầu không hợp lệ');
-                }
+
+            if (res?.success !== true) {
+                return;
+            }
+
+            const responseData = res.data;
+            const responseCode = responseData?.error?.code ?? responseData?.code;
+            if (responseCode !== undefined && Number(responseCode) !== 0 && Number(responseCode) !== 200) {
+                this.$showError(responseData?.error?.message || responseData?.message || "Yêu cầu không hợp lệ");
                 return;
             }
 
@@ -203,7 +218,8 @@ export default {
             }
         } catch (error) {
             console.error("Lỗi thêm mới:", error);
-            const errorMsg = error?.response?.data?.message || error?.message || "Thêm mới thất bại";
+            const responseBody = error?.response?.data;
+            const errorMsg = responseBody?.error?.message || responseBody?.message || error?.message || "Thêm mới thất bại";
             if (typeof this.$showError === 'function') {
                 this.$showError(errorMsg);
             }

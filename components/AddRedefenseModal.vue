@@ -38,7 +38,7 @@
             ></v-text-field>
           </div>
 
-          <!-- Học kỳ (Đúng vị trí thứ 3, gọi API /api/semester/list) -->
+          <!-- Học kỳ -->
           <div class="mb-4">
             <v-select
               v-model="form.semesterId"
@@ -50,7 +50,7 @@
               dense
               hide-details="auto"
               :loading="loadingSemesters"
-              :rules="[v => !!v || 'Học kỳ không được để trống']"
+              :rules="[v => v !== null && v !== undefined && v !== '' || 'Học kỳ không được để trống']"
               class="custom-input"
             ></v-select>
           </div>
@@ -212,13 +212,13 @@ export default {
     async fetchSemesters() {
       this.loadingSemesters = true
       try {
-        const res = await redefenseExamService.getSemesters()
+        const res = await redefenseExamService.getSemesters({ status: 'ACTIVE', channel: 'CMS' })
         const rootData = res.data !== undefined ? res.data : res
         const list = Array.isArray(rootData) ? rootData : (rootData.data || rootData.content || rootData.items || [])
         
         this.semesterOptions = list.map(item => ({
           text: item.name || item.code,
-          value: item.id
+          value: item.id ?? item.semesterId ?? item.semester?.id ?? null
         }))
       } catch (error) {
         console.error('Lỗi tải danh mục học kỳ:', error)
@@ -237,10 +237,10 @@ export default {
 
     formatApiDateTime(dateStr, isEndOfDay = false) {
       if (!dateStr) return null
-      const dateOnly = dateStr.split(/[ T]/)[0]
+      const dateOnly = String(dateStr).split(/[ T]/)[0]
       const [year, month, day] = dateOnly.split('-')
       if (!year || !month || !day) return null
-      return `${year}-${month}-${day} ${isEndOfDay ? '23:59:59' : '00:00:00'}`
+      return `${day}/${month}/${year} ${isEndOfDay ? '23:59:59' : '00:00:00'}`
     },
 
     resetForm() {
@@ -261,42 +261,38 @@ export default {
       this.dialog = false
     },
 
-    async handleAdd() {
-            if (this.isLoading) return;
-            
-            // Tạm thời bỏ qua validate của v-form để kiểm tra xem có gọi được API không
-            // if (this.$refs.form && !this.$refs.form.validate()) return;
+    async handleSave() {
+      if (this.loading) return
+      if (this.$refs.form && !this.$refs.form.validate()) return
 
-            this.isLoading = true;
-            try {
-                const payload = {
-                    name: this.body.name,
-                    code: this.body.code,
-                    status: this.body.status,
-                    fromTime: this.body.fromTime,
-                    toTime: this.body.toTime,
-                    semester: {
-                        id: this.body.semesterId
-                    },
-                    channel: 'CMS'
-                };
+      this.loading = true
+      try {
+        const payload = {
+          name: this.form.name,
+          code: this.form.code,
+          status: this.form.status,
+          semesterId: this.form.semesterId,
+          fromTime: this.formatApiDateTime(this.form.fromTime),
+          toTime: this.formatApiDateTime(this.form.toTime, true),
+          semester: {
+            id: this.form.semesterId
+          },
+          channel: 'CMS'
+        }
 
-                console.log("Payload chuẩn bị gửi:", payload);
-
-                const res = await redefenseExamService.add(payload);
-                console.log("Kết quả trả về:", res);
-
-                if (res && (res.success || res.code === 0)) {
-                    this.open = false;
-                    this.$showSuccess("Thêm mới thành công");
-                    this.$parent.getList();
-                }
-            } catch (er) {
-                console.log("Lỗi catch:", er);
-            } finally {
-                this.isLoading = false;
-            }
-        },
+        const res = await redefenseExamService.add(payload)
+        if (res) {
+          this.dialog = false
+          this.$emit('success', 'Thêm mới thành công')
+        }
+      } catch (error) {
+        console.error('Lỗi khi thêm mới:', error)
+        const message = error.response?.data?.message || error.response?.data?.error || 'Thêm mới thất bại. Vui lòng thử lại.'
+        this.$emit('error', message)
+      } finally {
+        this.loading = false
+      }
+    },
   },
 }
 </script>
