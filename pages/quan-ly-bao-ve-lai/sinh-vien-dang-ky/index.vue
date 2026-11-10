@@ -45,7 +45,7 @@
             <v-col cols="12" sm="6" md="3">
               <v-select
                 v-model="filters.tuitionStatus"
-                :items="tuitionStatusList"
+                :items="payStatusList"
                 item-text="text"
                 item-value="value"
                 placeholder="Trạng thái trả học phí"
@@ -60,7 +60,7 @@
             <v-col cols="12" sm="6" md="3">
               <v-select
                 v-model="filters.emailStatus"
-                :items="emailStatusList"
+                :items="sendMailStatusList"
                 item-text="text"
                 item-value="value"
                 placeholder="Trạng thái gửi email"
@@ -77,7 +77,7 @@
             <v-tooltip bottom>
               <template #activator="{ on, attrs }">
                 <v-btn v-bind="attrs" icon text class="btn-reload border-btn" v-on="on" @click="resetFilters">
-                  <v-icon size="20" color="#a61c1c">mdi-refresh</v-icon>
+                  <v-icon size="24" color="#a61c1c">mdi-refresh</v-icon>
                 </v-btn>
               </template>
               <span>Reset bộ lọc</span>
@@ -86,7 +86,7 @@
             <v-tooltip bottom>
               <template #activator="{ on, attrs }">
                 <button v-bind="attrs" class="action-btn btn-dark-red" v-on="on" @click="handleSearch">
-                  <v-icon size="18" color="#ffffff">mdi-magnify</v-icon>
+                  <v-icon size="24" color="#ffffff">mdi-magnify</v-icon>
                 </button>
               </template>
               <span>Tìm kiếm</span>
@@ -94,8 +94,8 @@
 
             <v-tooltip bottom>
               <template #activator="{ on, attrs }">
-                <button v-bind="attrs" class="action-btn btn-dark-red" v-on="on" @click="openAddModal">
-                  <v-icon size="18" color="#ffffff">mdi-plus</v-icon>
+                <button v-bind="attrs" class="action-btn btn-dark-red" v-on="on" @click="isAddModalOpen = true">
+                  <v-icon size="24" color="#ffffff">mdi-plus</v-icon>
                 </button>
               </template>
               <span>Thêm mới</span>
@@ -104,7 +104,7 @@
             <v-tooltip bottom>
               <template #activator="{ on, attrs }">
                 <button v-bind="attrs" class="action-btn btn-orange" v-on="on" @click="openMailTuition">
-                  <v-icon size="18" color="#ffffff">mdi-email-outline</v-icon>
+                  <v-icon size="24" color="#ffffff"> mdi-email-plus-outline</v-icon>
                 </button>
               </template>
               <span>Gửi mail học phí</span>
@@ -113,7 +113,7 @@
             <v-tooltip bottom>
               <template #activator="{ on, attrs }">
                 <button v-bind="attrs" class="action-btn btn-red" v-on="on" @click="openMailNotification">
-                  <v-icon size="18" color="#ffffff">mdi-email-send-outline</v-icon>
+                  <v-icon size="24" color="#ffffff">mdi-email-remove-outline</v-icon>
                 </button>
               </template>
               <span>Gửi mail thông báo</span>
@@ -131,7 +131,7 @@
                       :disabled="!isActionActive"
                       @click="changeStatus"
                     >
-                      <v-icon size="18" :color="isActionActive ? '#ffffff' : '#8e8e8e'">mdi-send</v-icon>
+                      <v-icon size="24" :color="isActionActive ? '#ffffff' : '#8e8e8e'">mdi-send</v-icon>
                     </button>
                   </div>
                 </template>
@@ -149,7 +149,7 @@
                       :disabled="!isActionActive"
                       @click="openHistory"
                     >
-                      <v-icon size="18" :color="isActionActive ? '#ffffff' : '#8e8e8e'">mdi-history</v-icon>
+                      <v-icon size="24" :color="isActionActive ? '#ffffff' : '#8e8e8e'">mdi-calendar-clock</v-icon>
                     </button>
                   </div>
                 </template>
@@ -169,6 +169,7 @@
           :loading="loading"
           :items-per-page="pageSize"    
           :page="pageIndex"             
+          item-key="id"
           show-select
           hide-default-footer
           class="elevation-0"
@@ -183,13 +184,13 @@
             ></v-checkbox>
           </template>
 
-          <template #[`item.data-table-select`]="{ item }">
+          <template #[`item.data-table-select`]="{ isSelected, select }">
             <v-checkbox
-              v-model="selectedRows"
-              :value="item"
-              hide-details
+              :input-value="isSelected"
               dense
+              hide-details
               class="ma-0 pa-0"
+              @change="(val) => select(val)"
             ></v-checkbox>
           </template>
 
@@ -205,33 +206,32 @@
             <span>{{ formatMoney(item.totalFee) }}đ</span>
           </template>
 
-          <!-- 1. Trạng thái trả học phí -->
-          <template #[`item.tuitionStatus`]="{ item }">
-            <span class="status-badge" :style="{ backgroundColor: item.tuitionStatus === 'PAID' ? '#4caf50' : '#ffa726' }">
-              {{ item.tuitionStatus === 'PAID' ? 'Đã trả học phí' : 'Chưa trả học phí' }}
-            </span>
-          </template>
+          <!-- Trạng thái trả học phí -->
+            <template #[`item.feePaidStatus`]="{ item }">
+                <BaseStatusItem v-if="item.feePaidStatus != null" :status="item.feePaidStatus" :status-list="payStatusList" />
+                <span v-else>-</span>
+            </template>
 
-          <!-- 2. Trạng thái gửi HP -->
-          <template #[`item.paymentSendStatusName`]="{ item }">
-            <span class="status-badge" :style="{ backgroundColor: item.paymentSendStatusName === 'SENT' ? '#4caf50' : '#78909c' }">
-              {{ item.paymentSendStatusName === 'SENT' ? 'Đã gửi' : 'Chưa gửi' }}
-            </span>
-          </template>
+            <!-- Trạng thái gửi HP (Thanh toán) -->
+            <template #[`item.paymentSendStatusName`]="{ item }">
+                <BaseStatusItem v-if="item.paymentSendStatusName != null" :status="item.paymentSendStatusName" :status-list="paymentSendStatusList" />
+                <span v-else>-</span>
+            </template>
 
-          <!-- 3. TT thêm DS ngân hàng -->
-          <template #[`item.bankStatus`]="{ item }">
-            <span class="status-badge" :style="{ backgroundColor: item.bankStatus === 'ADDED' || item.bankStatus === 'YES' ? '#4caf50' : '#ffa726' }">
-              {{ item.bankStatus === 'ADDED' || item.bankStatus === 'YES' ? 'Đã lập danh sách' : 'Chưa lập danh sách' }}
-            </span>
-          </template>
+            <!-- TT thêm DS ngân hàng -->
+            <template #[`item.isListedForBank`]="{ item }">
+                <BaseChangeableStatus v-if="item.isListedForBank === 'YES'" :status="item.isListedForBank"
+                    :status-list="listForBankStatus" @changeStatus="handleChangeBankStatus($event, item)">
+                </BaseChangeableStatus>
+                <base-status-item v-else-if="item.isListedForBank != null" :status-list="listForBankStatus" :status="item.isListedForBank" />
+                <span v-else>-</span>
+            </template>
 
-          <!-- 4. Trạng thái gửi email -->
-          <template #[`item.emailStatus`]="{ item }">
-            <span class="status-badge" :style="{ backgroundColor: item.emailStatus === 'SENT' ? '#4caf50' : '#78909c' }">
-              {{ item.emailStatus === 'SENT' ? 'Đã gửi' : 'Chưa gửi' }}
-            </span>
-          </template>
+            <!-- Trạng thái gửi email -->
+            <template #[`item.sendMailStatus`]="{ item }">
+                <BaseStatusItem v-if="item.sendMailStatus != null" :status="item.sendMailStatus" :status-list="sendMailStatusList" />
+                <span v-else>-</span>
+            </template>
 
           <template #[`item.actions`]="{ item }">
             <v-menu offset-y left transition="slide-y-transition">
@@ -241,32 +241,49 @@
                 </v-btn>
               </template>
               <v-list dense class="py-1" style="min-width: 170px;">
+                <!-- 1. Chi tiết -->
                 <v-list-item @click="handleMenuAction('detail', item)">
                   <v-list-item-icon class="mr-2"><v-icon small color="#00bcd4">mdi-eye</v-icon></v-list-item-icon>
                   <v-list-item-title>Chi tiết</v-list-item-title>
                 </v-list-item>
-                <v-list-item @click="handleMenuAction('edit', item)">
+
+                <!-- 2. Cập nhật -->
+                <v-list-item v-if="!isTuitionPaid(item) && isPaymentNotSent(item)" @click="handleMenuAction('edit', item)">
                   <v-list-item-icon class="mr-2"><v-icon small color="#2196f3">mdi-pencil</v-icon></v-list-item-icon>
                   <v-list-item-title>Cập nhật</v-list-item-title>
                 </v-list-item>
+
+                <!-- 3. Xuất file đăng ký -->
                 <v-list-item @click="handleMenuAction('exportOne', item)">
-                  <v-list-item-icon class="mr-2"><v-icon small color="#a61c24">mdi-file-excel</v-icon></v-list-item-icon>
+                  <v-list-item-icon class="mr-2"><v-icon small color="#a61c24">mdi-microsoft-excel</v-icon></v-list-item-icon>
                   <v-list-item-title>Xuất file đăng ký</v-list-item-title>
                 </v-list-item>
+
+                <!-- 4. Duyệt tín chỉ -->
                 <v-list-item @click="handleMenuAction('approve', item)">
-                  <v-list-item-icon class="mr-2"><v-icon small color="#4caf50">mdi-check-circle</v-icon></v-list-item-icon>
-                  <v-list-item-title>Duyệt tín chỉ</v-list-item-title>
+                  <v-list-item-icon class="mr-2">
+                    <v-icon small color="#a61c24">mdi-check-circle</v-icon>
+                  </v-list-item-icon>
+                  <v-list-item-title>
+                    {{ item.creditManagement === 'CONFIRMED' ? 'Duyệt học phí' : 'Duyệt tín chỉ' }}
+                  </v-list-item-title>
                 </v-list-item>
-                <v-list-item @click="handleMenuAction('reject', item)">
-                  <v-list-item-icon class="mr-2"><v-icon small color="#f93d32">mdi-cancel</v-icon></v-list-item-icon>
+
+                <!-- 5. Từ chối -->
+                <v-list-item v-if="isPaymentNotSent(item)" @click="handleMenuAction('reject', item)">
+                  <v-list-item-icon class="mr-2"><v-icon small color="#a2212b">mdi-cancel</v-icon></v-list-item-icon>
                   <v-list-item-title>Từ chối</v-list-item-title>
                 </v-list-item>
+
+                <!-- 6. Bảng điểm -->
                 <v-list-item @click="handleMenuAction('scoreTable', item)">
-                  <v-list-item-icon class="mr-2"><v-icon small color="#9c27b0">mdi-table-account</v-icon></v-list-item-icon>
+                  <v-list-item-icon class="mr-2"><v-icon small color="#9c27b0">mdi-table</v-icon></v-list-item-icon>
                   <v-list-item-title>Bảng điểm</v-list-item-title>
                 </v-list-item>
-                <v-list-item @click="handleMenuAction('delete', item)">
-                  <v-list-item-icon class="mr-2"><v-icon small color="#f93d32">mdi-delete</v-icon></v-list-item-icon>
+
+                <!-- 7. Xóa -->
+                <v-list-item v-if="isPaymentNotSent(item)" @click="handleMenuAction('delete', item)">
+                  <v-list-item-icon class="mr-2"><v-icon small color="#f93d32">mdi-trash-can</v-icon></v-list-item-icon>
                   <v-list-item-title class="error--text">Xóa</v-list-item-title>
                 </v-list-item>
               </v-list>
@@ -308,9 +325,9 @@
               dense
               hide-details
               class="page-input-field text-center"
-              @keyup.enter="goToPage"
+              @keyup.enter="jumpToPage"
             ></v-text-field>
-            <v-btn color="#A62229" dark x-small class="go-btn" elevation="0" @click="goToPage">Đi</v-btn>
+            <v-btn color="#A62229" dark x-small class="go-btn" elevation="0" @click="jumpToPage">Đi</v-btn>
           </div>
 
           <v-pagination
@@ -324,20 +341,76 @@
         </div>
       </div>
     </div>
+
+    <!-- DIALOG XÁC NHẬN DUYỆT TÍN CHỈ -->
+    <v-dialog v-model="confirmDialog" max-width="500px" persistent>
+      <v-card class="rounded-lg">
+        <v-card-title class="headline text-white px-6 py-3" style="background-color: #a62229;">
+          <span>Xác nhận</span>
+          <v-spacer></v-spacer>
+          <v-btn icon dark @click="confirmDialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+
+        <v-card-text class="py-6 px-6 text-subtitle-1 text--primary">
+          Bạn có chắc chắn muốn duyệt tín chỉ này không ?
+        </v-card-text>
+
+        <v-divider></v-divider>
+
+        <v-card-actions class="px-6 py-3">
+          <v-spacer></v-spacer>
+          <v-btn text color="grey darken-1" @click="confirmDialog = false">
+            Đóng <v-icon right small>mdi-close</v-icon>
+          </v-btn>
+          <v-btn color="#a62229" dark depressed @click="executeApprove">
+            Xác Nhận
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Component Modal Đăng Ký Bảo Vệ Lại -->
+    <register-modal
+      v-model="isAddModalOpen"
+      @success="loadData"
+    />
+    <!-- Component Modal Chi Tiết -->
+    <detail-modal
+      v-model="isDetailModalOpen"
+      :data="selectedDetailData"
+    />
   </div>
 </template>
 
 <script>
+import {
+    listForBankStatus,
+    payStatusList,
+    paymentSendStatusList,
+    sendMailStatusList,
+} from "~/consts/list";
 import BaseTable from '~/components/Base/BaseTable.vue'
 import registerService from '~/services/redefend/registerService'
+import RegisterModal from '@/components/RegisterModal.vue'
+import DetailModal from "~/components/DetailModal.vue";
 
 export default {
   name: 'RegisterStudentPage',
   components: {
-    BaseTable
+    BaseTable,
+    RegisterModal,
+    DetailModal,
   },
   data() {
     return {
+      confirmDialog: false,
+      selectedItem: null,
+
+      isDetailModalOpen: false, 
+      selectedDetailData: {},
+      isAddModalOpen: false,
       loading: false,
       selectedRows: [],
       tableItems: [],
@@ -349,15 +422,11 @@ export default {
 
       classList: [],
       examList: [],
-      tuitionStatusList: [
-        { text: 'Đã trả học phí', value: 'PAID' },
-        { text: 'Chưa trả học phí', value: 'NOT_PAID' }, // hoặc 'UNPAID' tùy theo API của bạn
-      ],
-      emailStatusList: [
-        { text: 'Đã gửi', value: 'SENT' },
-        { text: 'Chưa gửi', value: 'NOT_SENT' },
-        { text: 'Gửi được', value: 'SENDABLE' }
-      ],
+
+      payStatusList,
+      paymentSendStatusList,
+      sendMailStatusList,
+      listForBankStatus,
 
       filters: {
         classId: null,
@@ -376,10 +445,10 @@ export default {
         { text: 'Thời gian đăng ký', value: 'createdDate', sortable: false },
         { text: 'Hạn thanh toán', value: 'paymentDeadline', sortable: false },
         { text: 'Tổng học phí', value: 'totalFee', sortable: false },
-        { text: 'Trạng thái trả học phí', value: 'tuitionStatus', sortable: false },
+        { text: 'Trạng thái trả học phí', value: 'feePaidStatus', sortable: false },
         { text: 'Trạng thái gửi HP', value: 'paymentSendStatusName', sortable: false },
-        { text: 'TT thêm DS ngân hàng', value: 'bankStatus', sortable: false },
-        { text: 'Trạng thái gửi email', value: 'emailStatus', sortable: false },
+        { text: 'TT thêm DS ngân hàng', value: 'isListedForBank', sortable: false },
+        { text: 'Trạng thái gửi email', value: 'sendMailStatus', sortable: false },
         { text: 'Chức năng', value: 'actions', width: '80px', sortable: false, align: 'center' }
       ]
     }
@@ -446,15 +515,16 @@ export default {
           pageIndex: this.pageIndex,
           pageSize: this.pageSize,
           channel: 'CMS',
-          ...this.filters
+          clazzId: this.filters.classId, 
+          examId: this.filters.examId,
+          feePaidStatus: this.filters.tuitionStatus,
+          sendMailStatus: this.filters.emailStatus,
         }
+        
         const response = await registerService.getList(params)
         const payload = response.data || response
 
         const listData = payload.items || payload.data || []
-
-        // IN RA CONSOLE ĐỂ XEM CHÍNH XÁC CÁC TRƯỜNG VÀ GIÁ TRỊ THỰC TẾ
-        console.log('Dữ liệu API trả về:', listData)
 
         this.tableItems = listData.map((item, idx) => ({
           ...item,
@@ -477,7 +547,7 @@ export default {
         this.totalItems = payload.total || payload.totalRecords || payload.totalElements || this.tableItems.length
         this.totalPages = Math.ceil(this.totalItems / this.pageSize) || 1
         this.pageInput = String(this.pageIndex)
-        this.selectedRows = []
+        
       } catch (error) {
         console.error('Lỗi tải danh sách:', error)
       } finally {
@@ -487,7 +557,7 @@ export default {
 
     handleSearch() {
       this.pageIndex = 1
-      this.selectedRows = [] // Xóa sạch các dòng đã tích khi bấm tìm kiếm
+      this.selectedRows = []
       this.loadData()
     },
 
@@ -498,7 +568,7 @@ export default {
         tuitionStatus: null,
         emailStatus: null
       }
-      this.selectedRows = [] // Xóa sạch các dòng đã tích khi reset
+      this.selectedRows = []
       this.handleSearch()
     },
 
@@ -521,41 +591,6 @@ export default {
     changeStatus() {},
     openHistory() {},
 
-    handleMenuAction(action, item) {
-      switch (action) {
-        case 'detail':
-          console.log('Chi tiết:', item)
-          break
-        case 'edit':
-          console.log('Cập nhật:', item)
-          break
-        case 'exportOne':
-          this.exportSingleFile(item.id)
-          break
-        case 'approve':
-          console.log('Duyệt tín chỉ:', item)
-          break
-        case 'reject':
-          console.log('Từ chối:', item)
-          break
-        case 'scoreTable':
-          console.log('Bảng điểm:', item)
-          break
-        case 'delete':
-          console.log('Xóa:', item)
-          break
-      }
-    },
-
-    async exportSingleFile(id) {
-      try {
-        const res = await registerService.exportOne(id, { channel: 'CMS' })
-        this.downloadBlob(res.data || res, `Don_dang_ky_${id}.xlsx`)
-      } catch (error) {
-        console.error('Lỗi xuất file đơn:', error)
-      }
-    },
-
     async handleExport() {
       try {
         const res = await registerService.exportFile({ channel: 'CMS', ...this.filters })
@@ -574,7 +609,162 @@ export default {
       window.URL.revokeObjectURL(link.href)
     },
 
-    handleImport() {}
+    isTuitionPaid(item) {
+      const status = item.feePaidStatus
+      return status === 'PAID' || status === 'Đã trả học phí' || status === 'DA_TRA'
+    },
+
+    handleImport() {},
+
+    canEdit(item) {
+      const emailNotSent = item.sendMailStatus === 'NOT_SENT' || item.sendMailStatus === 'CHUA_GUI' || item.sendMailStatus === 'Chưa gửi'
+      const hpNotSent = item.paymentSendStatusName === 'NOT_SENT' || item.paymentSendStatusName === 'CHUA_GUI' || item.paymentSendStatusName === 'Chưa gửi'
+      return emailNotSent && hpNotSent
+    },
+
+    canApproveOrReject(item) {
+      const isPaid = item.feePaidStatus === 'PAID' || item.feePaidStatus === 'DA_TRA' || item.feePaidStatus === 'Đã trả học phí'
+      const isPending = item.feePaidStatus === 'UNPAID' || item.feePaidStatus === 'CHUA_TRA' || item.feePaidStatus === 'Chưa trả học phí'
+      return isPaid || isPending
+    },
+
+    canDelete(item) {
+      const emailNotSent = item.sendMailStatus === 'NOT_SENT' || item.sendMailStatus === 'CHUA_GUI' || item.sendMailStatus === 'Chưa gửi'
+      return emailNotSent
+    },
+
+    async handleChangeBankStatus(newStatus, item) {
+      try {
+        await registerService.approve(item.id, { isListedForBank: newStatus }, 'CMS')
+        this.$toast.success('Cập nhật trạng thái thành công')
+        this.loadData()
+      } catch (error) {
+        console.error('Lỗi cập nhật trạng thái:', error)
+        this.$toast.error('Cập nhật trạng thái thất bại')
+      }
+    },
+
+    async handleMenuAction(action, item) {
+      switch (action) {
+        case 'detail':
+          try {
+            const recordId = item.id || item.registerId
+            if (!recordId) {
+              this.selectedDetailData = item
+              this.isDetailModalOpen = true
+              break
+            }
+
+            const res = await registerService.getDetail ? await registerService.getDetail(recordId, 'CMS') : item
+            this.selectedDetailData = res.data || res || item
+          } catch (error) {
+            console.error('Không gọi được API chi tiết, dùng dữ liệu dòng:', error)
+            this.selectedDetailData = item
+          }
+          this.isDetailModalOpen = true
+          break
+        case 'edit':
+          console.log('Cập nhật đơn:', item)
+          break
+        case 'exportOne':
+          this.exportSingleFile(item.id)
+          break
+        case 'approve':
+          this.selectedItem = item
+          this.confirmDialog = true
+          break
+        case 'reject':
+          if (confirm(`Bạn có chắc chắn muốn từ chối đơn của sinh viên ${item.studentName}?`)) {
+            try {
+              await registerService.reject(item.id, {}, 'CMS')
+              this.$toast.success('Từ chối thành công')
+              this.loadData()
+            } catch (err) {
+              console.error(err)
+            }
+          }
+          break
+        case 'scoreTable':
+          console.log('Xem bảng điểm:', item)
+          break
+        case 'delete':
+          if (confirm(`Bạn có chắc muốn xóa đơn đăng ký của sinh viên ${item.studentName}?`)) {
+            try {
+              await registerService.delete(item.id, 'CMS')
+              this.$toast.success('Xóa đơn đăng ký thành công')
+              this.loadData()
+            } catch (err) {
+              console.error(err)
+            }
+          }
+          break
+      }
+    },
+
+    isPaymentNotSent(item) {
+      const status = item.paymentSendStatusName
+      if (status === 'SENT' || status === 'Đã gửi' || status === 'DA_GUI' || status === 'Gia hạn') {
+        return false
+      }
+      return true
+    },
+
+    isEmailNotSent(item) {
+      const status = item.sendMailStatus
+      if (status === 'SENT' || status === 'Đã gửi' || status === 'DA_GUI') {
+        return false
+      }
+      return true
+    },
+
+    async exportSingleFile(id) {
+      try {
+        const params = {
+          channel: 'CMS',
+          transid: 'bc977060-234e-47da-8697-f97342d66abd'
+        }
+
+        const response = await registerService.exportByCode(id, params)
+
+        const blob = new Blob([response.data || response], { 
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        })
+        const link = document.createElement('a')
+        link.href = window.URL.createObjectURL(blob)
+        link.download = `Don_dang_ky_hoc_phan_tot_nghiep_BVL_${id}.xlsx`
+        
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+
+      } catch (error) {
+        console.error('Lỗi khi xuất file:', error)
+        this.$toast?.error?.('Có lỗi xảy ra khi xuất file!')
+      }
+    },
+
+    async executeApprove() {
+      if (!this.selectedItem) return
+      try {
+        const res = await registerService.approve(this.selectedItem.id, {}, 'CMS')
+        
+        // Kiểm tra nếu API trả về mã lỗi (tùy cấu trúc backend, ví dụ res.code !== 0)
+        // Nếu backend trả về lỗi mà không văng exception, ta chủ động check ở đây
+        if (res && res.code && res.code !== 0) {
+          this.$toast.error(res.message || 'Có lỗi xảy ra khi duyệt tín chỉ!')
+          return
+        }
+
+        this.$toast.success('Duyệt tín chỉ thành công')
+        this.confirmDialog = false
+        this.loadData()
+      } catch (err) {
+        console.error(err)
+        // Bắt chính xác lỗi từ server hoặc mất kết nối mạng để hiển thị thông báo lỗi phù hợp
+        const errorMsg = err.response?.data?.message || err.message || 'Lỗi kết nối tới server!'
+        this.$toast.error(errorMsg)
+      }
+    },
   }
 }
 </script>
