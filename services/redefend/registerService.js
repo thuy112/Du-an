@@ -92,4 +92,25 @@ export default {
   approveCredit(id, data, channel = 'CMS') {
     return Api.put(`/api/redefense/register/approve/credit/${id}`, data, { params: { channel } })
   },
+  // Duyệt tín chỉ
+  async creditRegister(data) {
+    return await Api.post("/api/redefense/register/approve/credit", data);
+  },
+
+  // Duyệt học phí
+  async tuitionFeeRegister(data) {
+    return await Api.post("/api/redefense/register/approve/tuitionFee", data);
+  },
+
+  // Duyệt sinh viên
+  async studentRegister(data) {
+    return await Api.post("/api/redefense/register/approve/student", data);
+  },
+  async notifyEmail(data) {
+    return await Api.get("/api/redefense/register/mailFee", data);
+  },
+
+  async notifyEmailRefuse(data) {
+    return await Api.get("/api/redefense/register/mailRefused", data);
+  }
 }

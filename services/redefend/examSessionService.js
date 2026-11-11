@@ -69,5 +69,38 @@ export default {
   // Lấy template import bảng điểm (phụ)
   getResultTemplate(channel) {
     return Api.get('/api/redefense/result/template', { params: { channel } })
+  },
+  getResultDetail(id, channel) {
+    return Api.get(`/api/redefense/result/${id}`, { params: { channel } })
+  },
+
+  // Cập nhật kết quả điểm (dùng khi bấm Lưu ở modal sửa)
+  updateResult(id, data, channel) {
+    return Api.put(`/api/redefense/result/${id}`, data, { params: { channel } })
+  },
+  update(params) {
+    return Api.put(`/api/redefense/result/${params.id}`, params, { params: { channel: params.channel || 'CMS' } })
+  },
+  checkImportTranscript(examSessionId, file) {
+    const form = new FormData();
+      form.append("file", file);
+      return Api.postMultipart(`/api/redefense/result/import/${examSessionId}/check`, form);
+  },
+
+  importTranscript(examSessionId, data) {
+    return Api.post(`/api/redefense/result/import/${examSessionId}`, {
+      examResultImports: [...data],
+    });
+  },
+
+  // === BỔ SUNG CHO MÀN HÌNH GÁN GIẢNG VIÊN ===
+  getTeacherList(params) {
+    return Api.get('/api/teacher/list',params)
+  },
+  getStudentAssignTeacher(params) {
+    return Api.get('/api/redefense/studentAssignTeacher',params)
+  },
+  createStudentAssignTeacher(data, channel = 'CMS') {
+    return Api.post('/api/redefense/studentAssignTeacher', data, { params: { channel } })
   }
 }

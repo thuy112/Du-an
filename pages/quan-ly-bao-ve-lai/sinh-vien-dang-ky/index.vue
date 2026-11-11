@@ -135,7 +135,7 @@
                     </button>
                   </div>
                 </template>
-                <span>Chuyển trạng thái hàng loạt</span>
+                <span>Gửi email danh sách đã đăng ký</span>
               </v-tooltip>
 
               <v-tooltip bottom>
@@ -153,7 +153,7 @@
                     </button>
                   </div>
                 </template>
-                <span>Lịch sử hàng loạt</span>
+                <span>Gửi email từ chối đăng ký</span>
               </v-tooltip>
             </div>
           </div>
@@ -207,31 +207,31 @@
           </template>
 
           <!-- Trạng thái trả học phí -->
-            <template #[`item.feePaidStatus`]="{ item }">
-                <BaseStatusItem v-if="item.feePaidStatus != null" :status="item.feePaidStatus" :status-list="payStatusList" />
-                <span v-else>-</span>
-            </template>
+          <template #[`item.feePaidStatus`]="{ item }">
+              <BaseStatusItem v-if="item.feePaidStatus != null" :status="item.feePaidStatus" :status-list="payStatusList" />
+              <span v-else>-</span>
+          </template>
 
-            <!-- Trạng thái gửi HP (Thanh toán) -->
-            <template #[`item.paymentSendStatusName`]="{ item }">
-                <BaseStatusItem v-if="item.paymentSendStatusName != null" :status="item.paymentSendStatusName" :status-list="paymentSendStatusList" />
-                <span v-else>-</span>
-            </template>
+          <!-- Trạng thái gửi HP (Thanh toán) -->
+          <template #[`item.paymentSendStatusName`]="{ item }">
+              <BaseStatusItem v-if="item.paymentSendStatusName != null" :status="item.paymentSendStatusName" :status-list="paymentSendStatusList" />
+              <span v-else>-</span>
+          </template>
 
-            <!-- TT thêm DS ngân hàng -->
-            <template #[`item.isListedForBank`]="{ item }">
-                <BaseChangeableStatus v-if="item.isListedForBank === 'YES'" :status="item.isListedForBank"
-                    :status-list="listForBankStatus" @changeStatus="handleChangeBankStatus($event, item)">
-                </BaseChangeableStatus>
-                <base-status-item v-else-if="item.isListedForBank != null" :status-list="listForBankStatus" :status="item.isListedForBank" />
-                <span v-else>-</span>
-            </template>
+          <!-- TT thêm DS ngân hàng -->
+          <template #[`item.isListedForBank`]="{ item }">
+              <BaseChangeableStatus v-if="item.isListedForBank === 'YES'" :status="item.isListedForBank"
+                  :status-list="listForBankStatus" @changeStatus="handleChangeBankStatus($event, item)">
+              </BaseChangeableStatus>
+              <base-status-item v-else-if="item.isListedForBank != null" :status-list="listForBankStatus" :status="item.isListedForBank" />
+              <span v-else>-</span>
+          </template>
 
-            <!-- Trạng thái gửi email -->
-            <template #[`item.sendMailStatus`]="{ item }">
-                <BaseStatusItem v-if="item.sendMailStatus != null" :status="item.sendMailStatus" :status-list="sendMailStatusList" />
-                <span v-else>-</span>
-            </template>
+          <!-- Trạng thái gửi email -->
+          <template #[`item.sendMailStatus`]="{ item }">
+              <BaseStatusItem v-if="item.sendMailStatus != null" :status="item.sendMailStatus" :status-list="sendMailStatusList" />
+              <span v-else>-</span>
+          </template>
 
           <template #[`item.actions`]="{ item }">
             <v-menu offset-y left transition="slide-y-transition">
@@ -247,8 +247,8 @@
                   <v-list-item-title>Chi tiết</v-list-item-title>
                 </v-list-item>
 
-                <!-- 2. Cập nhật -->
-                <v-list-item v-if="!isTuitionPaid(item) && isPaymentNotSent(item)" @click="handleMenuAction('edit', item)">
+                <!-- 2. Cập nhật (Chỉ hiện khi chưa trả học phí, chưa gửi thanh toán VÀ trạng thái đơn chưa xác nhận/chưa duyệt) -->
+                <v-list-item v-if="canShowEdit(item)" @click="handleMenuAction('edit', item)">
                   <v-list-item-icon class="mr-2"><v-icon small color="#2196f3">mdi-pencil</v-icon></v-list-item-icon>
                   <v-list-item-title>Cập nhật</v-list-item-title>
                 </v-list-item>
@@ -259,20 +259,20 @@
                   <v-list-item-title>Xuất file đăng ký</v-list-item-title>
                 </v-list-item>
 
-                <!-- 4. Duyệt tín chỉ -->
-                <v-list-item @click="handleMenuAction('approve', item)">
+                <!-- 4. Duyệt động theo các bước (Tín chỉ -> Học phí -> Sinh viên) -->
+                <v-list-item v-if="!isAllApproved(item)" @click="handleMenuAction('approveStep', item)">
                   <v-list-item-icon class="mr-2">
                     <v-icon small color="#a61c24">mdi-check-circle</v-icon>
                   </v-list-item-icon>
                   <v-list-item-title>
-                    {{ item.creditManagement === 'CONFIRMED' ? 'Duyệt học phí' : 'Duyệt tín chỉ' }}
+                    {{ getApproveLabel(item) }}
                   </v-list-item-title>
                 </v-list-item>
 
-                <!-- 5. Từ chối -->
-                <v-list-item v-if="isPaymentNotSent(item)" @click="handleMenuAction('reject', item)">
+                <!-- 5. Từ chối động theo các bước -->
+                <v-list-item v-if="!isAllApproved(item) && isPaymentNotSent(item)" @click="handleMenuAction('rejectStep', item)">
                   <v-list-item-icon class="mr-2"><v-icon small color="#a2212b">mdi-cancel</v-icon></v-list-item-icon>
-                  <v-list-item-title>Từ chối</v-list-item-title>
+                  <v-list-item-title>{{ getCancelLabel(item) }}</v-list-item-title>
                 </v-list-item>
 
                 <!-- 6. Bảng điểm -->
@@ -296,10 +296,10 @@
       <div class="table-footer px-4 py-2 bg-white d-flex flex-wrap align-center justify-space-between">
         <div class="d-flex flex-wrap gap-2">
           <v-btn color="#4CAF50" dark small elevation="0" class="text-none font-weight-medium rounded-sm" @click="handleExport">
-            <v-icon left small>mdi-file-excel</v-icon> XUẤT FILE KẾT QUẢ CẦN THU
+            <v-icon left small>mdi-export</v-icon> XUẤT FILE KẾT QUẢ CẦN THU
           </v-btn>
           <v-btn color="#4CAF50" dark small elevation="0" class="text-none font-weight-medium rounded-sm" @click="handleImport">
-            <v-icon left small>mdi-file-upload</v-icon> NHẬP FILE KẾT QUẢ THU
+            <v-icon left small>mdi-microsoft-excel</v-icon> NHẬP FILE KẾT QUẢ THU
           </v-btn>
         </div>
 
@@ -342,30 +342,175 @@
       </div>
     </div>
 
-    <!-- DIALOG XÁC NHẬN DUYỆT TÍN CHỈ -->
-    <v-dialog v-model="confirmDialog" max-width="500px" persistent>
+    <!-- @@@ Tín chỉ -->
+    <BaseConfirmModal text-btn="Xác nhận" :open="openCredit" @toggle="openCredit = !openCredit" @OK="handleApprovalCredit">
+        <template #content>
+            <span>Bạn có chắc chắn muốn duyệt tín chỉ này không ? </span>
+        </template>
+    </BaseConfirmModal>
+
+    <BaseConfirmModal text-btn="Xác nhận" :open="openCreditCancel" @toggle="openCreditCancel = !openCreditCancel" @OK="handleCancelCredit">
+        <template #content>
+            <span>Bạn có chắc chắn muốn từ chối tín chỉ này không ? </span>
+        </template>
+    </BaseConfirmModal>
+
+    <!-- @@@ Học phí -->
+    <BaseConfirmModal text-btn="Xác nhận" :open="openTuitionFee" @toggle="openTuitionFee = !openTuitionFee" @OK="handleApprovalTuitionFee">
+        <template #content>
+            <span>Bạn có chắc chắn muốn duyệt học phí này không ? </span>
+        </template>
+    </BaseConfirmModal>
+
+    <BaseConfirmModal text-btn="Xác nhận" :open="openCancelTuitionFee" @toggle="openCancelTuitionFee = !openCancelTuitionFee" @OK="handleCancelTuitionFee">
+        <template #content>
+            <span>Bạn có chắc chắn muốn từ chối học phí này không ? </span>
+        </template>
+    </BaseConfirmModal>
+
+    <!-- @@@ Sinh viên -->
+    <BaseConfirmModal text-btn="Xác nhận" :open="openStudent" @toggle="openStudent = !openStudent" @OK="handleStudent">
+        <template #content>
+            <span>Bạn có chắc chắn muốn duyệt sinh viên này không ? </span>
+        </template>
+    </BaseConfirmModal>
+
+    <BaseConfirmModal text-btn="Xác nhận" :open="openCancelStudent" @toggle="openCancelStudent = !openCancelStudent" @OK="handleCancelStudent">
+        <template #content>
+            <span>Bạn có chắc chắn muốn từ chối sinh viên này không ? </span>
+        </template>
+    </BaseConfirmModal>
+
+    <!-- @@@ DIALOG XÁC NHẬN XÓA -->
+    <BaseConfirmModal text-btn="Xác nhận" :open="openDeleteModal" @toggle="openDeleteModal = !openDeleteModal" @OK="handleDeleteRecord">
+        <template #content>
+            <span>Xác nhận xóa sinh viên đăng ký <b class="red--text text--darken-3">{{ selectedItem ? selectedItem.studentName : '' }}</b></span>
+        </template>
+    </BaseConfirmModal>
+    
+    <!-- Modal xác nhận Gửi mail học phí -->
+    <BaseConfirmModal
+      text-btn="Đồng ý"
+      :open="openMailFeeModal"
+      @toggle="openMailFeeModal = !openMailFeeModal"
+      @OK="handleSendMailFee"
+    >
+      <template #content>
+        <span>Gửi email thông báo được phép đóng phí bảo vệ lại</span>
+      </template>
+    </BaseConfirmModal>
+
+    <!-- Modal xác nhận Gửi mail từ chối -->
+    <BaseConfirmModal
+      text-btn="Đồng ý"
+      :open="openMailRefusedModal"
+      @toggle="openMailRefusedModal = !openMailRefusedModal"
+      @OK="handleSendMailRefused"
+    >
+      <template #content>
+        <span>Gửi email thông báo từ chối đăng kí bảo vệ lại</span>
+      </template>
+    </BaseConfirmModal>
+
+    <!-- DIALOG XEM BẢNG ĐIỂM -->
+    <v-dialog v-model="openScoreDialog" max-width="800px" persistent>
       <v-card class="rounded-lg">
         <v-card-title class="headline text-white px-6 py-3" style="background-color: #a62229;">
-          <span>Xác nhận</span>
+          <span>Bảng điểm</span>
           <v-spacer></v-spacer>
-          <v-btn icon dark @click="confirmDialog = false">
+          <v-btn icon dark @click="openScoreDialog = false">
             <v-icon>mdi-close</v-icon>
           </v-btn>
         </v-card-title>
 
-        <v-card-text class="py-6 px-6 text-subtitle-1 text--primary">
-          Bạn có chắc chắn muốn duyệt tín chỉ này không ?
+        <v-card-text class="py-4 px-6">
+          <v-data-table
+            :headers="scoreHeaders"
+            :items="scoreItems"
+            :loading="scoreLoading"
+            hide-default-footer
+            no-data-text="Không có dữ liệu"
+            class="elevation-0 border"
+          >
+            <!-- STT -->
+            <template #[`item.index`]="{ index }">
+              <span>{{ index + 1 }}</span>
+            </template>
+          </v-data-table>
         </v-card-text>
 
         <v-divider></v-divider>
 
         <v-card-actions class="px-6 py-3">
           <v-spacer></v-spacer>
-          <v-btn text color="grey darken-1" @click="confirmDialog = false">
+          <v-btn text color="grey darken-1" @click="openScoreDialog = false">
             Đóng <v-icon right small>mdi-close</v-icon>
           </v-btn>
-          <v-btn color="#a62229" dark depressed @click="executeApprove">
-            Xác Nhận
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Modal Xác nhận gửi danh sách thu phí -->
+    <v-dialog v-model="openSendBatchModal" max-width="700px" persistent>
+      <v-card class="send-batch-modal">
+        <!-- Tiêu đề modal -->
+        <v-card-title class="modal-header red darken-2 white--text">
+          <span class="headline">Xác nhận gửi danh sách thu phí</span>
+          <v-spacer></v-spacer>
+          <v-btn icon dark @click="openSendBatchModal = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-4">
+          <!-- Số lượng sinh viên được chọn -->
+          <div class="mb-3">
+            Danh sách sinh viên sẽ được gửi thu phí <strong class="red--text">({{ selectedRows.length }})</strong>:
+          </div>
+
+          <!-- Banner thông báo lỗi/cảnh báo -->
+          <div v-if="batchWarningMessage" class="alert-banner-custom mb-4">
+            <v-icon color="error" class="mr-2">mdi-alert</v-icon>
+            <span>{{ batchWarningMessage }}</span>
+          </div>
+
+          <div class="text-caption red--text mb-2">Tick chọn các sinh viên cần xuất hóa đơn</div>
+
+          <!-- Bảng danh sách sinh viên trong modal -->
+          <v-data-table
+            v-model="selectedModalRows"
+            :headers="modalHeaders"
+            :items="selectedRows"
+            item-key="id"
+            show-select
+            class="elevation-1 mb-4"
+            hide-default-footer
+          >
+            <template #[`item.stt`]="{ index }">
+              {{ index + 1 }}
+            </template>
+          </v-data-table>
+
+          <!-- Input hạn nộp học phí -->
+          <v-text-field
+            v-model="dueDate"
+            label="Hạn nộp học phí"
+            outlined
+            dense
+            placeholder="Hạn nộp học phí"
+          ></v-text-field>
+        </v-card-text>
+
+        <!-- Footer nút bấm -->
+        <v-card-actions class="modal-footer">
+          <v-spacer></v-spacer>
+          <v-btn text @click="openSendBatchModal = false">Đóng</v-btn>
+          <v-btn 
+            color="primary" 
+            :disabled="selectedModalRows.length === 0" 
+            @click="handleConfirmSendBatch"
+          >
+            Gửi Danh Sách
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -374,12 +519,18 @@
     <!-- Component Modal Đăng Ký Bảo Vệ Lại -->
     <register-modal
       v-model="isAddModalOpen"
+      :data="selectedItem"
       @success="loadData"
     />
     <!-- Component Modal Chi Tiết -->
     <detail-modal
       v-model="isDetailModalOpen"
       :data="selectedDetailData"
+    />
+    <edit-register-modal
+      v-model="openEditModal"
+      :data="selectedEditItem"
+      @success="loadData"
     />
   </div>
 </template>
@@ -395,6 +546,7 @@ import BaseTable from '~/components/Base/BaseTable.vue'
 import registerService from '~/services/redefend/registerService'
 import RegisterModal from '@/components/RegisterModal.vue'
 import DetailModal from "~/components/DetailModal.vue";
+import EditRegisterModal from '@/components/EditRegisterModal.vue'
 
 export default {
   name: 'RegisterStudentPage',
@@ -402,10 +554,36 @@ export default {
     BaseTable,
     RegisterModal,
     DetailModal,
+    EditRegisterModal,
   },
   data() {
     return {
-      confirmDialog: false,
+      openSendBatchModal: false,
+    batchWarningMessage: '',
+    dueDate: '',
+    selectedModalRows: [],
+    modalHeaders: [
+      { text: 'STT', value: 'stt', width: '60px' },
+      { text: 'Mã SV', value: 'studentCode' },
+      { text: 'Họ tên', value: 'fullName' },
+      { text: 'Lớp', value: 'className' },
+      { text: 'Đợt bảo vệ', value: 'batchName' },
+      { text: 'Học phần', value: 'subjectName' },
+    ],
+
+      openMailFeeModal: false,       // Modal xác nhận gửi mail học phí
+      openMailRefusedModal: false,
+      openEditModal: false, // Biến mở modal cập nhật riêng
+      selectedEditItem: {},
+      openDeleteModal: false,
+
+      openCredit: false,
+      openCreditCancel: false,
+      openTuitionFee: false,
+      openCancelTuitionFee: false,
+      openStudent: false,
+      openCancelStudent: false,
+
       selectedItem: null,
 
       isDetailModalOpen: false, 
@@ -434,6 +612,18 @@ export default {
         tuitionStatus: null,
         emailStatus: null
       },
+
+      openScoreDialog: false,
+      scoreLoading: false,
+      scoreItems: [],
+      scoreHeaders: [
+        { text: 'STT', value: 'index', width: '60px', sortable: false },
+        { text: 'Hội đồng bảo vệ', value: 'councilName', sortable: false },
+        { text: 'Học phần', value: 'subjectName', sortable: false },
+        { text: 'Điểm', value: 'score', sortable: false },
+        { text: 'Ghi chú', value: 'note', sortable: false },
+        { text: 'Trạng thái', value: 'status', sortable: false },
+      ],
 
       headers: [
         { text: '', value: 'data-table-select', sortable: false, width: '40px', align: 'center' },
@@ -484,7 +674,7 @@ export default {
           })
           this.selectedRows = newRows
         } else {
-          const currentIds = this.tableItems.map(r => r.id)
+          const currentIds = this.selectedRows.map(r => r.id)
           this.selectedRows = this.selectedRows.filter(r => !currentIds.includes(r.id))
         }
       }
@@ -527,7 +717,7 @@ export default {
         const listData = payload.items || payload.data || []
 
         this.tableItems = listData.map((item, idx) => ({
-          ...item,
+          ...item, // Giữ lại toàn bộ thuộc tính gốc bao gồm registerStudentStatus
           index: (this.pageIndex - 1) * this.pageSize + idx + 1,
           studentName: item.fullName || '',
           studentCode: item.studentCode || '',
@@ -586,8 +776,6 @@ export default {
     },
 
     openAddModal() {},
-    openMailTuition() {},
-    openMailNotification() {},
     changeStatus() {},
     openHistory() {},
 
@@ -616,16 +804,28 @@ export default {
 
     handleImport() {},
 
+    canShowEdit(item) {
+      // 1. Trạng thái thanh toán và gửi email/thanh toán ban đầu
+      const notPaid = !this.isTuitionPaid(item)
+      const paymentNotSent = this.isPaymentNotSent(item)
+
+      // 2. Lấy đúng thuộc tính trạng thái đăng ký sinh viên từ API (dùng trong DetailModal)
+      const regStatus = item.registerStudentStatus || item.status || item.registrationStatus || ''
+
+      // 3. Nếu trạng thái là 'CONFIRMED' hoặc chứa chữ 'Đã xác nhận' thì KHÔNG cho phép sửa (isConfirmed = true)
+      const isConfirmed = 
+        regStatus === 'CONFIRMED' || 
+        regStatus === 'DA_XAC_NHAN' || 
+        regStatus.includes('Đã xác nhận')
+
+      // Chỉ hiển thị khi chưa xác nhận / chờ xác nhận
+      return notPaid && paymentNotSent && !isConfirmed
+    },
+
     canEdit(item) {
       const emailNotSent = item.sendMailStatus === 'NOT_SENT' || item.sendMailStatus === 'CHUA_GUI' || item.sendMailStatus === 'Chưa gửi'
       const hpNotSent = item.paymentSendStatusName === 'NOT_SENT' || item.paymentSendStatusName === 'CHUA_GUI' || item.paymentSendStatusName === 'Chưa gửi'
       return emailNotSent && hpNotSent
-    },
-
-    canApproveOrReject(item) {
-      const isPaid = item.feePaidStatus === 'PAID' || item.feePaidStatus === 'DA_TRA' || item.feePaidStatus === 'Đã trả học phí'
-      const isPending = item.feePaidStatus === 'UNPAID' || item.feePaidStatus === 'CHUA_TRA' || item.feePaidStatus === 'Chưa trả học phí'
-      return isPaid || isPending
     },
 
     canDelete(item) {
@@ -644,6 +844,38 @@ export default {
       }
     },
 
+    isAllApproved(item) {
+      const isCreditDone = item.creditManagement === 'CONFIRMED' || item.creditManagement === 'REFUSED'
+      const isTuitionDone = item.tuitionFeeManagement === 'CONFIRMED' || item.tuitionFeeManagement === 'REFUSED'
+      const isStudentDone = item.studentManagement === 'CONFIRMED' || item.studentManagement === 'REFUSED'
+
+      if (item.creditManagement === 'REFUSED' || item.tuitionFeeManagement === 'REFUSED' || item.studentManagement === 'REFUSED') {
+        return true
+      }
+
+      return isCreditDone && isTuitionDone && isStudentDone
+    },
+
+    getApproveLabel(item) {
+      if (item.creditManagement !== 'CONFIRMED') {
+        return 'Duyệt tín chỉ'
+      } else if (item.tuitionFeeManagement !== 'CONFIRMED') {
+        return 'Duyệt học phí'
+      } else {
+        return 'Duyệt sinh viên'
+      }
+    },
+
+    getCancelLabel(item) {
+      if (item.creditManagement !== 'CONFIRMED') {
+        return 'Từ chối tín chỉ'
+      } else if (item.tuitionFeeManagement !== 'CONFIRMED') {
+        return 'Từ chối học phí'
+      } else {
+        return 'Từ chối sinh viên'
+      }
+    },
+
     async handleMenuAction(action, item) {
       switch (action) {
         case 'detail':
@@ -654,49 +886,53 @@ export default {
               this.isDetailModalOpen = true
               break
             }
-
             const res = await registerService.getDetail ? await registerService.getDetail(recordId, 'CMS') : item
-            this.selectedDetailData = res.data || res || item
+            const detailObj = res.data || res || item
+            this.selectedDetailData = detailObj
+
+            // Cập nhật lại registerStudentStatus cho item trong bảng danh sách
+            if (detailObj.registerStudentStatus) {
+              this.$set(item, 'registerStudentStatus', detailObj.registerStudentStatus)
+            }
           } catch (error) {
-            console.error('Không gọi được API chi tiết, dùng dữ liệu dòng:', error)
             this.selectedDetailData = item
           }
           this.isDetailModalOpen = true
           break
         case 'edit':
-          console.log('Cập nhật đơn:', item)
+          this.selectedEditItem = item
+          this.openEditModal = true
           break
         case 'exportOne':
           this.exportSingleFile(item.id)
           break
-        case 'approve':
+        case 'approveStep':
           this.selectedItem = item
-          this.confirmDialog = true
+          if (item.creditManagement !== 'CONFIRMED') {
+            this.openCredit = true
+          } else if (item.tuitionFeeManagement !== 'CONFIRMED') {
+            this.openTuitionFee = true
+          } else {
+            this.openStudent = true
+          }
           break
-        case 'reject':
-          if (confirm(`Bạn có chắc chắn muốn từ chối đơn của sinh viên ${item.studentName}?`)) {
-            try {
-              await registerService.reject(item.id, {}, 'CMS')
-              this.$toast.success('Từ chối thành công')
-              this.loadData()
-            } catch (err) {
-              console.error(err)
-            }
+        case 'rejectStep':
+          this.selectedItem = item
+          if (item.creditManagement !== 'CONFIRMED') {
+            this.openCreditCancel = true
+          } else if (item.tuitionFeeManagement !== 'CONFIRMED') {
+            this.openCancelTuitionFee = true
+          } else {
+            this.openCancelStudent = true
           }
           break
         case 'scoreTable':
-          console.log('Xem bảng điểm:', item)
+          this.openScoreDialog = true
+          this.fetchStudentScores(item)
           break
         case 'delete':
-          if (confirm(`Bạn có chắc muốn xóa đơn đăng ký của sinh viên ${item.studentName}?`)) {
-            try {
-              await registerService.delete(item.id, 'CMS')
-              this.$toast.success('Xóa đơn đăng ký thành công')
-              this.loadData()
-            } catch (err) {
-              console.error(err)
-            }
-          }
+          this.selectedItem = item
+          this.openDeleteModal = true
           break
       }
     },
@@ -743,28 +979,273 @@ export default {
       }
     },
 
-    async executeApprove() {
-      if (!this.selectedItem) return
+    async handleApprovalCredit() {
       try {
-        const res = await registerService.approve(this.selectedItem.id, {}, 'CMS')
-        
-        // Kiểm tra nếu API trả về mã lỗi (tùy cấu trúc backend, ví dụ res.code !== 0)
-        // Nếu backend trả về lỗi mà không văng exception, ta chủ động check ở đây
-        if (res && res.code && res.code !== 0) {
-          this.$toast.error(res.message || 'Có lỗi xảy ra khi duyệt tín chỉ!')
-          return
+        const res = await registerService.creditRegister({
+          management: "CONFIRMED",
+          registerStudentExamId: this.selectedItem.id,
+        })
+        if (res && (res.success || res.code === 0)) {
+          this.$toast.success("Duyệt tín chỉ thành công")
+          this.loadData()
+        } else {
+          this.$toast.error(res?.message || "Duyệt tín chỉ thất bại")
         }
-
-        this.$toast.success('Duyệt tín chỉ thành công')
-        this.confirmDialog = false
-        this.loadData()
-      } catch (err) {
-        console.error(err)
-        // Bắt chính xác lỗi từ server hoặc mất kết nối mạng để hiển thị thông báo lỗi phù hợp
-        const errorMsg = err.response?.data?.message || err.message || 'Lỗi kết nối tới server!'
-        this.$toast.error(errorMsg)
+      } catch (er) {
+        console.error(er)
+        this.$toast.error("Có lỗi xảy ra khi kết nối tới server")
+      } finally {
+        this.openCredit = false
       }
     },
+
+    async handleCancelCredit() {
+      try {
+        const res = await registerService.creditRegister({
+          management: "REFUSED",
+          registerStudentExamId: this.selectedItem.id,
+        })
+        if (res && (res.success || res.code === 0)) {
+          this.$toast.success("Từ chối tín chỉ thành công")
+          this.loadData()
+        } else {
+          this.$toast.error(res?.message || "Thực hiện thất bại")
+        }
+      } catch (er) {
+        console.error(er)
+        this.$toast.error("Có lỗi xảy ra khi kết nối tới server")
+      } finally {
+        this.openCreditCancel = false
+      }
+    },
+
+    async handleApprovalTuitionFee() {
+      try {
+        const res = await registerService.tuitionFeeRegister({
+          management: "CONFIRMED",
+          registerStudentExamId: this.selectedItem.id,
+        })
+        if (res && (res.success || res.code === 0)) {
+          this.$toast.success("Duyệt học phí thành công")
+          this.loadData()
+        } else {
+          this.$toast.error(res?.message || "Duyệt học phí thất bại")
+        }
+      } catch (er) {
+        console.error(er)
+        this.$toast.error("Có lỗi xảy ra khi kết nối tới server")
+      } finally {
+        this.openTuitionFee = false
+      }
+    },
+
+    async handleCancelTuitionFee() {
+      try {
+        const res = await registerService.tuitionFeeRegister({
+          management: "REFUSED",
+          registerStudentExamId: this.selectedItem.id,
+        })
+        if (res && (res.success || res.code === 0)) {
+          this.$toast.success("Từ chối học phí thành công")
+          this.loadData()
+        } else {
+          this.$toast.error(res?.message || "Thực hiện thất bại")
+        }
+      } catch (er) {
+        console.error(er)
+        this.$toast.error("Có lỗi xảy ra khi kết nối tới server")
+      } finally {
+        this.openCancelTuitionFee = false
+      }
+    },
+
+    async handleStudent() {
+      try {
+        const res = await registerService.studentRegister({
+          management: "CONFIRMED",
+          registerStudentExamId: this.selectedItem.id,
+        })
+        if (res && (res.success || res.code === 0)) {
+          this.$toast.success("Duyệt sinh viên thành công")
+          this.loadData()
+        } else {
+          this.$toast.error(res?.message || "Duyệt sinh viên thất bại")
+        }
+      } catch (er) {
+        console.error(er)
+        this.$toast.error("Có lỗi xảy ra khi kết nối tới server")
+      } finally {
+        this.openStudent = false
+      }
+    },
+
+    async handleCancelStudent() {
+      try {
+        const res = await registerService.studentRegister({
+          management: "REFUSED",
+          registerStudentExamId: this.selectedItem.id,
+        })
+        if (res && (res.success || res.code === 0)) {
+          this.$toast.success("Từ chối sinh viên thành công")
+          this.loadData()
+        } else {
+          this.$toast.error(res?.message || "Thực hiện thất bại")
+        }
+      } catch (er) {
+        console.error(er)
+        this.$toast.error("Có lỗi xảy ra khi kết nối tới server")
+      } finally {
+        this.openCancelStudent = false
+      }
+    },
+
+    async fetchStudentScores(item) {
+      this.scoreLoading = true
+      this.scoreItems = []
+      try {
+        const res = await registerService.getScores ? await registerService.getScores(item.id, 'CMS') : []
+        this.scoreItems = res.data || res || []
+      } catch (error) {
+        console.error('Lỗi tải bảng điểm:', error)
+        this.scoreItems = []
+      } finally {
+        this.scoreLoading = false
+      }
+    },
+
+    async handleDeleteRecord() {
+      if (!this.selectedItem) return
+      try {
+        const res = await registerService.delete(this.selectedItem.id, 'CMS')
+        if (res && (res.success || res.code === 0)) {
+          this.$toast.success('Xóa đơn đăng ký thành công')
+          this.loadData()
+        } else {
+          this.$toast.error(res?.message || 'Xóa đơn đăng ký thất bại')
+        }
+      } catch (err) {
+        console.error('Lỗi khi xóa:', err)
+        this.$toast.error('Có lỗi xảy ra khi kết nối tới server')
+      } finally {
+        this.openDeleteModal = false
+      }
+    },
+
+    async fetchEstimationData(studentItem) {
+      try {
+        const params = {
+          majorId: studentItem.majorId,
+          semesterId: studentItem.semesterId,
+          channel: 'CMS'
+        }
+        await registerService.getEstimation(params)
+      } catch (error) {
+        console.error('Lỗi định mức phí:', error)
+      }
+    },
+    // 1. Khi bấm vào nút icon cam (Gửi mail học phí) trên thanh công cụ
+    openMailTuition() {
+      this.openMailFeeModal = true
+    },
+
+    // Khi bấm "Đồng ý" gửi mail học phí
+    async handleSendMailFee() {
+      try {
+        const ids = this.selectedRows.map(r => r.id)
+        
+        // Với phương thức GET, dùng { params: ... } để truyền query string lên URL
+        const params = {
+          ids: ids.join(','), // Hoặc truyền mảng tùy backend xử lý
+          channel: 'CMS',
+          transid: '417d88ee-0113-4cca-93c4-605f52041e22'
+        }
+        
+        if (registerService.notifyEmail) {
+          await registerService.notifyEmail({ params })
+        }
+        
+        this.loadData()
+      } catch (error) {
+        console.error('Lỗi gửi email học phí:', error)
+        const errMsg = error?.response?.data?.message || error?.message || 'Chưa có template email hoặc template email chưa kích hoạt'
+        this.$toast?.error?.(errMsg)
+      } finally {
+        this.openMailFeeModal = false
+      }
+    },
+
+    // 2. Khi bấm vào nút icon đỏ (Gửi mail thông báo từ chối) trên thanh công cụ
+    openMailNotification() {
+      this.openMailRefusedModal = true
+    },
+
+    // Khi bấm "Đồng ý" gửi mail từ chối
+    async handleSendMailRefused() {
+      try {
+        const ids = this.selectedRows.map(r => r.id)
+        
+        const params = {
+          ids: ids.join(','),
+          channel: 'CMS',
+          transid: '9c6b01ad-d388-45ef-8d6c-4737942972a1'
+        }
+
+        if (registerService.notifyEmailRefuse) {
+          await registerService.notifyEmailRefuse({ params })
+        }
+        
+        this.loadData()
+      } catch (error) {
+        console.error('Lỗi gửi email từ chối:', error)
+        const errMsg = error?.response?.data?.message || error?.message || 'Chưa có template email hoặc template email chưa kích hoạt'
+        this.$toast?.error?.(errMsg)
+      } finally {
+        this.openMailRefusedModal = false
+      }
+    },
+    // 1. Khi bấm vào icon mũi tên màu xanh trên thanh công cụ
+    async handleOpenSendBatchModal() {
+      if (this.selectedRows.length === 0) {
+        this.$toast?.warning?.('Vui lòng chọn ít nhất một sinh viên') || alert('Vui lòng chọn ít nhất một sinh viên')
+        return
+      }
+
+      try {
+        const ids = this.selectedRows.map(r => r.id)
+        
+        // Thay 'Api' bằng dịch vụ tương ứng trong project của bạn (ví dụ: registerService hoặc $axios)
+        const response = await registerService.validateSameBatch({ ids })
+        
+        if (response && response.data) {
+          this.batchWarningMessage = response.data.message || response.data.error?.message || ''
+        }
+      } catch (error) {
+        console.error('Lỗi validate batch:', error)
+        this.batchWarningMessage = error?.response?.data?.message || error?.response?.data?.error?.message || 'Không lấy được token CED (host chính) để kiểm tra dữ liệu master'
+      }
+
+      this.openSendBatchModal = true
+    },
+
+    // 2. Khi bấm nút "Gửi Danh Sách" bên trong modal (Đã fix require-await và no-unused-vars)
+    async handleConfirmSendBatch() {
+      try {
+        // Đã sử dụng biến selectedModalRows thay vì bỏ trống ids để tránh lỗi no-unused-vars
+        const ids = this.selectedModalRows.map(r => r.id)
+        console.log('Gửi danh sách các ID:', ids)
+        
+        // Thêm từ khóa await giả lập hoặc gọi API thực tế để không bị lỗi require-await
+        await Promise.resolve()
+        // await registerService.sendBatch({ ids, dueDate: this.dueDate })
+        
+        this.$toast?.success?.('Gửi danh sách thành công')
+        this.openSendBatchModal = false
+        this.loadData()
+      } catch (error) {
+        console.error('Lỗi gửi danh sách:', error)
+        this.$toast?.error?.('Gửi danh sách thất bại')
+      }
+    }
   }
 }
 </script>

@@ -314,8 +314,8 @@
           <v-icon left small>mdi-microsoft-excel</v-icon> Nhập file excel
         </v-btn>
 
-        <v-btn color="#2e7d32" dark class="text-none px-3" height="38" elevation="0" @click="openImportTeacherModal">
-          <v-icon left small>mdi-account-group</v-icon> Import giảng viên hội đồng
+        <v-btn color="#4caf50" dark class="text-none px-3" height="38" elevation="0" @click="openImportTeacherModal">
+          <v-icon left small>mdi-microsoft-excel</v-icon> Import giảng viên hội đồng
         </v-btn>
       </div>
 
@@ -376,6 +376,116 @@
         </v-btn>
       </div>
     </div>
+
+    <!-- MODAL THÊM MỚI HỘI ĐỒNG -->
+    <v-dialog v-model="addExamDialog" max-width="700px" persistent>
+      <v-card class="rounded-lg">
+        <v-card-title class="white--text py-3 px-4 d-flex justify-space-between align-center" style="background-color: #A62229;">
+          <span class="text-h6 font-weight-bold">Thêm mới hội đồng</span>
+          <v-btn icon dark @click="addExamDialog = false"><v-icon>mdi-close</v-icon></v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-4" style="max-height: 75vh; overflow-y: auto;">
+          <!-- Tên hội đồng -->
+          <v-text-field
+            v-model="examForm.examClass"
+            label="Hội đồng bảo vệ (*)"
+            outlined
+            dense
+            class="mb-3"
+            placeholder="Nhập tên hội đồng"
+          ></v-text-field>
+
+          <!-- Hình thức đào tạo -->
+          <v-select
+            v-model="examForm.trainingMethodId"
+            :items="trainingMethodList"
+            item-text="name"
+            item-value="id"
+            label="Hình thức đào tạo (*)"
+            outlined
+            dense
+            class="mb-3"
+            placeholder="Chọn hình thức đào tạo"
+          ></v-select>
+
+          <!-- Đợt bảo vệ -->
+          <v-select
+            v-model="examForm.examId"
+            :items="examList"
+            item-text="name"
+            item-value="id"
+            label="Đợt bảo vệ (*)"
+            outlined
+            dense
+            class="mb-3"
+            placeholder="Chọn đợt bảo vệ"
+            @change="onAddExamChange"
+          ></v-select>
+
+          <!-- Học phần -->
+          <v-select
+            v-model="examForm.termId"
+            :items="termList"
+            item-text="name"
+            item-value="id"
+            label="Học phần (*)"
+            outlined
+            dense
+            class="mb-3"
+            placeholder="Chọn học phần"
+            @change="onAddTermOrExamChange"
+          ></v-select>
+
+          <!-- Sinh viên (Chọn nhiều) -->
+          <v-autocomplete
+            v-model="examForm.studentIds"
+            :items="studentAddList"
+            item-text="fullName"
+            item-value="id"
+            label="Sinh viên (*)"
+            placeholder="Chọn sinh viên"
+            outlined
+            dense
+            multiple
+            chips
+            small-chips
+            class="mb-3"
+          >
+            <template v-slot:item="{ item }">
+              <span>{{ item.fullName || item.name }} ({{ item.code || item.studentCode }})</span>
+            </template>
+          </v-autocomplete>
+
+          <!-- Thời gian bắt đầu -->
+          <v-text-field
+            v-model="examForm.fromTime"
+            label="Thời gian bắt đầu (*)"
+            placeholder="YYYY-MM-DD HH:mm:ss"
+            outlined
+            dense
+            class="mb-3"
+          ></v-text-field>
+
+          <!-- Thời gian kết thúc -->
+          <v-text-field
+            v-model="examForm.toTime"
+            label="Thời gian kết thúc (*)"
+            placeholder="YYYY-MM-DD HH:mm:ss"
+            outlined
+            dense
+            class="mb-0"
+          ></v-text-field>
+        </v-card-text>
+
+        <v-divider></v-divider>
+
+        <v-card-actions class="px-4 py-3 justify-end" style="gap: 8px;">
+          <v-btn text class="text-none" @click="addExamDialog = false">Đóng</v-btn>
+          <v-btn color="#A62229" dark class="text-none px-5" elevation="0" @click="handleAddExamSubmit">Lưu</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- MODAL NHẬP FILE EXCEL CHUNG -->
     <v-dialog v-model="importExcelDialog" max-width="550px" persistent>
@@ -706,6 +816,19 @@ export default {
   components: { BaseTable },
   data() {
     return {
+      // Modal Thêm mới hội đồng
+      addExamDialog: false,
+      studentAddList: [],
+      examForm: {
+        examClass: '',
+        trainingMethodId: null,
+        examId: null,
+        termId: null,
+        studentIds: [],
+        fromTime: '',
+        toTime: ''
+      },
+
       // Modal Cập nhật
       editDialog: false,
       editForm: {
@@ -785,7 +908,6 @@ export default {
     }
   },
   computed: {
-    // Computed lọc sinh viên trong bảng dropdown chọn sinh viên
     filteredStudents() {
       const list = Array.isArray(this.studentDropdownList) ? this.studentDropdownList : []
       if (!this.studentSearch) return list
@@ -929,7 +1051,111 @@ export default {
       this.loadData()
     },
 
-    openAddModal() {},
+    // 1. Mở Modal Thêm mới hội đồng khi bấm vào dấu cộng (+)
+    async openAddModal() {
+      this.examForm = {
+        examClass: '',
+        trainingMethodId: null,
+        examId: null,
+        termId: null,
+        studentIds: [],
+        fromTime: '',
+        toTime: ''
+      }
+      this.termList = []
+      this.studentAddList = []
+      this.addExamDialog = true
+
+      try {
+        await Promise.all([
+          this.loadTrainingMethods(),
+          this.loadExams()
+        ])
+      } catch (error) {
+        console.error('Lỗi khởi tạo thêm mới hội đồng:', error)
+      }
+    },
+
+    async onAddExamChange(examId) {
+      this.examForm.termId = null
+      this.examForm.studentIds = []
+      this.termList = []
+      this.studentAddList = []
+      if (!examId) return
+
+      try {
+        await this.loadTermsByExam(examId)
+      } catch (error) {
+        console.error('Lỗi tải học phần theo đợt:', error)
+      }
+    },
+
+    async onAddTermOrExamChange() {
+      this.examForm.studentIds = []
+      this.studentAddList = []
+      if (!this.examForm.termId || !this.examForm.examId) return
+
+      try {
+        const params = {
+          status: 'ACTIVE',
+          termId: this.examForm.termId,
+          examId: this.examForm.examId,
+          trainingMethodId: this.examForm.trainingMethodId || 202,
+          channel: 'CMS'
+        }
+        const res = await examSessionService.getRegisterListByTermAndExam(params)
+        const raw = res.data !== undefined ? res.data : res
+        this.studentAddList = Array.isArray(raw) ? raw : (raw.data || raw.content || [])
+      } catch (error) {
+        console.error('Lỗi tải sinh viên cho thêm mới:', error)
+      }
+    },
+
+    async handleAddExamSubmit() {
+      if (!this.examForm.examClass || !this.examForm.examId || !this.examForm.termId || !this.examForm.studentIds.length) {
+        if (typeof this.$showError === 'function') {
+          this.$showError('Vui lòng nhập đầy đủ thông tin bắt buộc')
+        }
+        return
+      }
+
+      try {
+        const payload = {
+          examClass: this.examForm.examClass,
+          trainingMethodId: this.examForm.trainingMethodId,
+          examId: this.examForm.examId,
+          termId: this.examForm.termId,
+          studentIds: this.examForm.studentIds,
+          fromTime: this.examForm.fromTime,
+          toTime: this.examForm.toTime,
+          channel: 'CMS'
+        }
+
+        const res = await examSessionService.createItem(payload, 'CMS')
+        const resData = res.data !== undefined ? res.data : res
+
+        if (resData && (resData.code === 400 || (resData.error && resData.error.code !== 0))) {
+          const errorMsg = (resData.error && resData.error.message) || resData.message || 'Thêm mới hội đồng thất bại'
+          if (typeof this.$showError === 'function') {
+            this.$showError(errorMsg)
+          }
+          return
+        }
+
+        if (typeof this.$showSuccess === 'function') {
+          this.$showSuccess('Thêm mới hội đồng thành công')
+        }
+
+        this.addExamDialog = false
+        await this.loadData()
+      } catch (error) {
+        console.error('Lỗi thêm mới hội đồng:', error)
+        if (typeof this.$showError === 'function') {
+          this.$showError('Thêm mới hội đồng thất bại')
+        }
+      }
+    },
+
     openImportExcelModal() {
       this.selectedExcelFile = null
       this.importExcelDialog = true
@@ -971,18 +1197,14 @@ export default {
 
     getAssessmentTypeText(type) {
       switch (type) {
-        case 'SUPPORT':
-          return 'Hướng dẫn DATN'
-        case 'REBUTTAL':
-          return 'Phản biện DATN'
-        case 'JOIN':
-          return 'Tham gia chấm DATN'
-        default:
-          return type || 'Giảng viên'
+        case 'SUPPORT': return 'Hướng dẫn DATN'
+        case 'REBUTTAL': return 'Phản biện DATN'
+        case 'JOIN': return 'Tham gia chấm DATN'
+        default: return type || 'Giảng viên'
       }
     },
 
-    // 1. Xem Chi tiết
+    // Xem Chi tiết
     async handleDetail(item) {
       try {
         const [resDetail, resStudents] = await Promise.all([
@@ -1022,7 +1244,7 @@ export default {
       }
     },
 
-    // 2. Xuất file DSSV
+    // Xuất file DSSV
     async handleExportDSSV(item) {
       try {
         const res = await examSessionService.exportExcel(item.id, 'CMS')
@@ -1036,7 +1258,7 @@ export default {
       }
     },
 
-    // 3. Gửi email bảng điểm
+    // Gửi email bảng điểm
     openSendEmailConfirm(item) {
       this.itemToSendEmail = item
       this.emailConfirmDialog = true
@@ -1073,9 +1295,7 @@ export default {
         console.error('Lỗi khi xóa:', error)
       }
     },
-
-    handleStudentList(item) {},
-
+    
     onChangeExamStatus(item, newStatus) {
       if (item.examSessionStatus === newStatus) return
       try {
@@ -1100,7 +1320,7 @@ export default {
       }
     },
 
-    // 4. Mở Modal Cập nhật
+    // Mở Modal Cập nhật
     async openEditModal(item) {
       try {
         const resDetail = await examSessionService.getExamSessionDetail(item.id, 'CMS')
@@ -1204,27 +1424,25 @@ export default {
         }
 
         const res = await examSessionService.updateExamSession(this.editForm.id, payload, 'CMS')
-        
-        // Lấy đúng object response
         const resData = res.data !== undefined ? res.data : res
 
-        // KIỂM TRA LỖI NGHIỆP VỤ TỪ BACKEND TRẢ VỀ
         if (resData && (resData.code === 400 || (resData.error && resData.error.code !== 0))) {
           const errorMsg = (resData.error && resData.error.message) || resData.message || 'Hội đồng bảo vệ lại không thể sửa do đã chốt dữ liệu'
           if (typeof this.$showError === 'function') {
             this.$showError(errorMsg)
-          } else if (typeof this.$showWarning === 'function') {
-            this.$showWarning(errorMsg)
           }
-          return // Dừng lại tại đây, KHÔNG chạy xuống thông báo thành công
+          return
         }
 
+        this.editDialog = false
+        if (typeof this.$showSuccess === 'function') {
+          this.$showSuccess('Cập nhật hội đồng thành công')
+        }
         this.loadData()
       } catch (error) {
         console.error('Lỗi cập nhật hội đồng:', error)
-        const serverMsg = error.response && error.response.data && error.response.data.error && error.response.data.error.message
         if (typeof this.$showError === 'function') {
-          this.$showError(serverMsg || 'Hội đồng bảo vệ lại không thể sửa do đã chốt dữ liệu')
+          this.$showError('Hội đồng bảo vệ lại không thể sửa do đã chốt dữ liệu')
         }
       }
     },
@@ -1265,13 +1483,18 @@ export default {
         this.studentDropdownList = []
       }
     },
+
     handleScoreBoard(item) {
-      // item.id chính là _id của hội đồng (ví dụ: 277 hoặc 252)
       this.$router.push({
         path: `/quan-ly-bao-ve-lai/danh-sach-hoi-dong/${item.id}/bang-diem`,
         query: { channel: 'CMS' }
       })
     },
+
+    handleStudentList(item) {
+      const examSessionId = item.id || this.$route.params.id;
+      this.$router.push(`/quan-ly-bao-ve-lai/danh-sach-hoi-dong/${examSessionId}/sinh-vien`);
+    }
   }
 }
 </script>
