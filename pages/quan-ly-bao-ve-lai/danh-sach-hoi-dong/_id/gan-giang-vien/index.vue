@@ -1,50 +1,60 @@
 <template>
   <div class="assign-teacher-page pa-3 pa-md-4 bg-white">
-    <!-- TIÊU ĐỀ VÀ THANH CÔNG CỤ -->
-    <div class="d-flex align-center justify-space-between mb-3 flex-wrap" style="gap: 8px;">
-      <div class="text-h6 font-weight-bold black--text">
+    <!-- TIÊU ĐỀ VÀ THANH CÔNG CỤ (TỐI ƯU MOBILE: MỖI TÌM KIẾM 1 DÒNG) -->
+    <div class="mb-3">
+      <div class="text-h6 font-weight-bold black--text mb-2">
         Gán giảng viên cho học sinh
       </div>
 
-      <div class="d-flex align-center" style="gap: 8px;">
-        <v-select
-          v-model="filterTeacherId"
-          :items="teacherList"
-          item-text="fullName"
-          item-value="id"
-          placeholder="Giảng viên"
-          outlined
-          dense
-          hide-details
-          clearable
-          style="width: 220px;"
-        ></v-select>
+      <v-row dense>
+        <!-- Ô chọn Giảng viên (Full dòng trên mobile, có thể linh hoạt trên desktop) -->
+        <v-col cols="12">
+          <v-select
+            v-model="filterTeacherId"
+            :items="teacherList"
+            item-text="fullName"
+            item-value="id"
+            placeholder="Giảng viên"
+            outlined
+            dense
+            hide-details
+            clearable
+          ></v-select>
+        </v-col>
 
-        <v-select
-          v-model="filterProcessType"
-          :items="processTypeList"
-          item-text="text"
-          item-value="value"
-          placeholder="Quy trình bảo vệ"
-          outlined
-          dense
-          hide-details
-          clearable
-          style="width: 220px;"
-        ></v-select>
+        <!-- Ô chọn Quy trình bảo vệ (Full dòng trên mobile) -->
+        <v-col cols="12">
+          <v-select
+            v-model="filterProcessType"
+            :items="processTypeList"
+            item-text="text"
+            item-value="value"
+            placeholder="Quy trình bảo vệ"
+            outlined
+            dense
+            hide-details
+            clearable
+          ></v-select>
+        </v-col>
 
-        <v-btn icon color="#A62229" @click="resetFilters" title="Làm mới">
-          <v-icon size="24">mdi-refresh</v-icon>
-        </v-btn>
+        <!-- Cụm nút thao tác (Làm mới, Tìm kiếm, Thêm mới) -->
+        <v-col cols="12" class="d-flex align-center justify-end" style="gap: 12px;">
+          <!-- Nút làm mới (Icon tròn) -->
+          <v-btn icon color="#A62229" @click="resetFilters" title="Làm mới" class="pa-2">
+            <v-icon size="24">mdi-refresh</v-icon>
+          </v-btn>
 
-        <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" @click="loadAssignedTeachers" title="Tìm kiếm">
-          <v-icon size="24">mdi-magnify</v-icon>
-        </v-btn>
+          <!-- Nút Tìm kiếm (Nút vuông đỏ chứa icon kính lúp) -->
+          <v-btn color="#A62229" dark class="btn-square-action px-3 min-w-0" height="40" elevation="0" @click="loadAssignedTeachers" title="Tìm kiếm">
+            <v-icon size="24">mdi-magnify</v-icon>
+          </v-btn>
 
-        <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" @click="openAddModal" title="Thêm mới">
-          <v-icon size="24">mdi-plus</v-icon>
-        </v-btn>
-      </div>
+          <!-- Nút Thêm mới (Nút vuông đỏ chứa icon dấu cộng) -->
+          <v-btn color="#A62229" dark class="btn-square-action px-3 min-w-0" height="40" elevation="0" @click="openAddModal" title="Thêm mới">
+            <v-icon size="24">mdi-plus</v-icon>
+          </v-btn>
+        </v-col>
+      </v-row>
     </div>
 
     <!-- BẢNG HIỂN THỊ DANH SÁCH GIẢNG VIÊN ĐÃ GÁN -->

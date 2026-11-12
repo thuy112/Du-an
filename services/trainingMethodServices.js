@@ -1,37 +1,37 @@
 import Api from "~/api/Api.js";
 
-class TrainingMethodServices {
-    async getList(params) {
-        return await Api.get("/trainingMethod", params);
-    }
+export default {
+    getList(params) {
+        return Api.get("/api/trainingMethod", params);
+    },
 
-    async addNew(params) {
-        return await Api.post("/trainingMethod", params);
-    }
+    addNew(params) {
+        return Api.post("/api/trainingMethod", params);
+    },
 
-    async getDetail(id) {
-        return await Api.get(`/trainingMethod/${id}`);
-    }
+    getDetail(id) {
+        return Api.get(`/api/trainingMethod/${id}`);
+    },
 
-    async update(params) {
-        return await Api.put(`/trainingMethod/${params.id}`, params);
-    }
+    update(params) {
+        return Api.put(`/api/trainingMethod/${params.id}`, params);
+    },
 
-    async delete(id) {
-        return await Api.delete(`/trainingMethod/${id}`);
-    }
+    delete(id) {
+        return Api.delete(`/api/trainingMethod/${id}`);
+    },
 
-    async changeStatus(data) {
-        return await Api.put("/trainingMethod/changeStatus/" + data.id, data);
-    }
+    changeStatus(data) {
+        return Api.put("/api/trainingMethod/changeStatus/" + data.id, data);
+    },
 
-    async getAll(params) {
-        return await Api.get("/trainingMethod/list", params);
-    }
+    getAll(params) {
+        return Api.get("/api/trainingMethod/list", params);
+    },
 
-    async getTrainingTypes(trainingMethodId) {
-        return await Api.get(`/trainingMethod/${trainingMethodId}/training-types`);
-    }
+    getTrainingTypes(trainingMethodId) {
+        return Api.get(`/api/trainingMethod/${trainingMethodId}/training-types`);
+    },
 }
 
-export default new TrainingMethodServices();
+
