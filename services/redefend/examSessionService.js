@@ -102,5 +102,8 @@ export default {
   },
   createStudentAssignTeacher(data, channel = 'CMS') {
     return Api.post('/api/redefense/studentAssignTeacher', data, { params: { channel } })
-  }
+  },
+  getSessionList(params) {
+    return Api.get('/api/redefense/examSession/list', params)
+  },
 }

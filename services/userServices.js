@@ -1,34 +1,48 @@
-// services/userServices.js
-import Api from '~/api/Api.js'
+import Api from "~/api/Api.js";
 
 export default {
-  // Lấy danh sách người dùng
-  getUsers(params) {
-    return Api.get('/api/users', params)
-  },
+    getList(params) {
+        return Api.get("/api/user/list", params);
+    },
 
-  // Chi tiết người dùng
-  getUserById(id) {
-    return Api.get(`/api/users/${id}`)
-  },
+    add(data) {
+        return Api.post("/api/user", data);
+    },
 
-  // Tạo mới người dùng
-  createUser(data) {
-    return Api.post('/api/users', data)
-  },
+    delete(data) {
+        return Api.delete("/api/user/" + data.id);
+    },
 
-  // Cập nhật người dùng
-  updateUser(id, data) {
-    return Api.put(`/api/users/${id}`, data)
-  },
+    update(data) {
+        return Api.put("/api/user/" + data.id, data);
+    },
 
-  // Xóa người dùng
-  deleteUser(id) {
-    return Api.delete(`/api/users/${id}`)
-  },
+    resetPassword(data) {
+        return Api.put("/api/user/resetPassword/" + data.id);
+    },
 
-  // Upload avatar
-  uploadAvatar(formData) {
-    return Api.postMultipart('/api/users/upload-avatar', formData)
-  },
+    getInfo(params) {
+        return Api.get("/api/user/info", params);
+    },
+
+    getListClassByUser(id) {
+        return Api.get(`/api/user/clazz/${id}`);
+    },
+
+    assignClass(data) {
+        return Api.post(`/api/user/clazz`, data);
+    },
+
+    changePassword(data) {
+        return Api.put("/api/user/changePass", data);
+    },
+
+    changeStatus(data) {
+        return Api.put("/api/user/changeStatus/" + data.id, data);
+    },
+
+    UserOperations(data) {
+        return Api.get("/api/user/logs", data);
+    },
 }
+

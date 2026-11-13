@@ -1,18 +1,16 @@
-// store/sidebar.js
-
 export const state = () => ({
-  drawer: true,
+    list: [],
+    isLoading: false,
 })
 
-export const mutations = {
-  TOGGLE_SIDEBAR(state) {
-    state.drawer = !state.drawer
-  },
-  SET_SIDEBAR(state, status) {
-    state.drawer = status
-  },
+export const getters = {
+    items: (state) => state.list,
 }
 
-export const getters = {
-  isDrawerOpen: (state) => state.drawer,
+export const mutations = {
+    SET_LIST(state, list) {
+        state.list = list
+    },
 }
+
+export const actions = {}

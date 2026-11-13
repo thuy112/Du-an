@@ -482,12 +482,10 @@ export default {
   computed: {
     formattedPaymentDate: {
       get() {
-        if (!this.formModel.paymentDate) return ''
-        const parts = this.formModel.paymentDate.split('-')
-        if (parts.length === 3 && parts[0].length === 4) {
-          return `${parts[2]}/${parts[1]}/${parts[0]}`
-        }
-        return this.formModel.paymentDate
+        const date = this.toDateInputValue(this.formModel.paymentDate)
+        if (!date) return ''
+        const [year, month, day] = date.split('-')
+        return `${day}/${month}/${year}`
       },
       set(val) {
         this.formModel.paymentDate = val
@@ -495,14 +493,44 @@ export default {
     }
   },
   methods: {
+    toDateInputValue(value) {
+      if (value instanceof Date) {
+        if (Number.isNaN(value.getTime())) return null
+        const year = value.getFullYear()
+        const month = String(value.getMonth() + 1).padStart(2, '0')
+        const day = String(value.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}`
+      }
+
+      if (typeof value !== 'string') return null
+      const input = value.trim()
+      const isoMatch = input.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:$|T|\s)/)
+      const localMatch = input.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/)
+      const match = isoMatch || localMatch
+      if (!match) return null
+
+      const [, first, second, third] = match
+      const year = Number(isoMatch ? first : third)
+      const month = Number(second)
+      const day = Number(isoMatch ? third : first)
+      const date = new Date(Date.UTC(year, month - 1, day))
+      if (
+        date.getUTCFullYear() !== year ||
+        date.getUTCMonth() !== month - 1 ||
+        date.getUTCDate() !== day
+      ) {
+        return null
+      }
+
+      return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    },
+
     formatDate(dateStr) {
       if (!dateStr) return '-'
-      const cleanDate = dateStr.split('T')[0]
-      const parts = cleanDate.split('-')
-      if (parts.length === 3) {
-        return `${parts[2]}/${parts[1]}/${parts[0]}`
-      }
-      return cleanDate
+      const date = this.toDateInputValue(dateStr)
+      if (!date) return typeof dateStr === 'string' ? dateStr : '-'
+      const [year, month, day] = date.split('-')
+      return `${day}/${month}/${year}`
     },
 
     formatExamSessions(item) {
@@ -566,44 +594,25 @@ export default {
       }
     },
 
-    async handleChangeStatus(statusObj, item) {
+    async handleChangeStatus(paymentStatus, item) {
       try {
-        const recordId = item.paymentTeacherExamId || item.paymentExamId || item.id;
-        
-        if (!recordId) {
-          if (typeof this.$showError === 'function') {
-            this.$showError('Không tìm thấy mã định danh đợt thanh toán');
-          }
-          return;
-        }
-
         const res = await paymentTeacherExamServices.changeStatus({
-          id: recordId,
-          paymentTeacherExamId: recordId,
-          paymentStatus: statusObj.value,
-          channel: 'CMS'
+          id: item.id,
+          paymentSendStatus: paymentStatus.value,
         })
-        const responseData = res?.data
-        const errorCode = responseData?.error?.code ?? responseData?.code ?? res?.error?.code ?? res?.code
-        const hasBackendError = errorCode !== undefined && errorCode !== null && Number(errorCode) !== 0
-
-        if (res?.success === true && responseData?.success !== false && !responseData?.error && !hasBackendError) {
-          await this.loadData();
-          const refreshedItem = this.itemList.find(row => String(row.id) === String(recordId))
-          if (refreshedItem?.paymentStatus === statusObj.value && typeof this.$showSuccess === 'function') {
+        if (res && res.success) {
+          item.paymentStatus = paymentStatus.value
+          if (typeof this.$showSuccess === 'function') {
             this.$showSuccess('Cập nhật trạng thái thành công')
           }
-        } else {
-          const errorMessage = responseData?.error?.message || responseData?.message ||
-            res?.error?.message || res?.message
-          if (errorMessage && typeof this.$showError === 'function') {
-            this.$showError(errorMessage)
-          }
+          this.loadData()
+        } else if (typeof this.$showError === 'function') {
+          this.$showError(res?.message || 'Cập nhật trạng thái thất bại')
         }
       } catch (error) {
-        console.error('Lỗi đổi trạng thái:', error);
+        console.error(error)
         if (typeof this.$showError === 'function') {
-          this.$showError('Cập nhật trạng thái thất bại');
+          this.$showError('Cập nhật trạng thái thất bại')
         }
       }
     },
@@ -782,12 +791,22 @@ export default {
 
     // Hàm mở modal cập nhật khi bấm vào menu 3 chấm
     async handleUpdate(item) {
-      // Quét các trường ID có thể có để không bị undefined
+      // Lấy chính xác ID từ bất kỳ tên trường nào có thể có
       this.editingId = item.id || item.paymentExamId || item.paymentTeacherExamId;
       
       if (!this.editingId) {
         if (typeof this.$showError === 'function') {
-          this.$showError('Không tìm thấy mã định danh để cập nhật');
+          this.$showError('Không tìm thấy ID của bản ghi này');
+        }
+        return;
+      }
+
+      const paymentDate = item.paymentDate
+        ? this.toDateInputValue(item.paymentDate)
+        : new Date().toISOString().substr(0, 10)
+      if (!paymentDate) {
+        if (typeof this.$showError === 'function') {
+          this.$showError('Ngày thanh toán không hợp lệ, vui lòng kiểm tra lại dữ liệu');
         }
         return;
       }
@@ -795,8 +814,12 @@ export default {
       this.formModel = {
         name: item.name || item.paymentName || '',
         fileName: item.fileName || '',
-        paymentDate: item.paymentDate ? item.paymentDate.split('T')[0] : new Date().toISOString().substr(0, 10),
-        paymentTeacherIds: item.paymentTeachers ? item.paymentTeachers.map(pt => pt.paymentTeacherId || pt.paymentTeacher?.id || pt.id) : [],
+        paymentDate,
+        paymentTeacherIds: item.paymentTeachers
+          ? item.paymentTeachers
+            .map(pt => pt.paymentTeacherId || pt.paymentTeacher?.id || pt.id)
+            .filter(id => id !== undefined && id !== null)
+          : [],
       };
 
       await this.loadExamSessionOptionsForUpdate(this.editingId);
@@ -839,6 +862,7 @@ export default {
         }
 
         const payload = {
+          id: this.editingId,
           name: this.formModel.name,
           fileName: this.formModel.fileName,
           paymentDate: formattedDate,
@@ -847,7 +871,7 @@ export default {
         };
 
         // Gọi API cập nhật với ID chính xác
-        await paymentTeacherExamServices.update(this.editingId, payload);
+        await paymentTeacherExamServices.update(payload);
         
         this.editDialog = false;
         if (typeof this.$showSuccess === 'function') {

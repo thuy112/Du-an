@@ -30,7 +30,6 @@ export default {
             ...INIT_PAGE_INFO,
         },
         search: { ...INIT_SEARCH },
-        totalPage: 0,
         totalRecord: 0,
         pageInput: 1,
         isLoading: false,
@@ -46,10 +45,22 @@ export default {
             unitPrice: '',
             trainingMethodId: null,
         },
+
+        // Dữ liệu cho modal Cập nhật
+        isUpdateModalOpen: false,
+        isUpdating: false,
+        updateForm: {
+            id: null,
+            code: null,
+            unitPrice: '',
+            trainingMethodId: null,
+        },
     }),
     computed: {
         totalPages() {
-            return this.totalPage > 0 ? this.totalPage : 1
+            // Dùng Math.ceil để làm tròn lên: ví dụ 51 bản ghi / 50 items/trang = 1.02 -> làm tròn lên thành 2 trang
+            const total = Math.ceil(this.totalRecord / this.pageInfo.pageSize);
+            return total > 0 ? total : 1;
         }
     },
     created() {
@@ -57,6 +68,24 @@ export default {
         this.getTrainingMethod();
     },
     methods: {
+        // Hàm format số có dấu phẩy phân cách 3 chữ số
+        formatPriceInput(val) {
+            if (val === null || val === undefined || val === '') return '';
+            // Xóa tất cả ký tự không phải số
+            const numericStr = val.toString().replace(/\D/g, '');
+            if (!numericStr) return '';
+            // Thêm dấu phẩy mỗi 3 chữ số
+            return Number(numericStr).toLocaleString('en-US');
+        },
+
+        onAddPriceInput(val) {
+            this.addForm.unitPrice = this.formatPriceInput(val);
+        },
+
+        onUpdatePriceInput(val) {
+            this.updateForm.unitPrice = this.formatPriceInput(val);
+        },
+
         getCodeName(code) {
             return this.$getText(code, this.reAssessmentTypeList);
         },
@@ -132,10 +161,58 @@ export default {
         },
         
         handleUpdate(item) {
-            if (this.$refs.PaymentCategoryUpdate) {
-                this.$refs.PaymentCategoryUpdate.open = true;
-                this.$refs.PaymentCategoryUpdate.trainingMethodList = [...this.trainingMethodList];
-                this.$refs.PaymentCategoryUpdate.getUpdate({ ...item });
+            this.updateForm = {
+                id: item.id,
+                code: item.code || null,
+                unitPrice: item.unitPrice !== undefined && item.unitPrice !== null 
+                    ? this.formatPriceInput(item.unitPrice) 
+                    : '',
+                trainingMethodId: item.trainingMethodId || item.trainingMethod?.id || null,
+            };
+            this.isUpdateModalOpen = true;
+        },
+
+        closeUpdateModal() {
+            this.isUpdateModalOpen = false;
+        },
+
+        async handleSaveUpdate() {
+            if (this.updateForm.unitPrice === '' || this.updateForm.unitPrice === null) {
+                alert('Vui lòng nhập giá tiền!');
+                return;
+            }
+
+            try {
+                this.isUpdating = true;
+                const payload = {
+                    id: this.updateForm.id,
+                    code: this.updateForm.code,
+                    unitPrice: Number(this.updateForm.unitPrice.toString().replace(/,/g, '')),
+                    trainingMethodId: this.updateForm.trainingMethodId,
+                    channel: 'CMS',
+                    transid: '648f501c-b513-4671-9e35-fc1647112eff'
+                };
+
+                const res = await paymentCategoryServices.update(payload);
+                const responseWrapper = res?.data !== undefined ? res.data : res;
+                const errorCode = responseWrapper?.error?.code ?? responseWrapper?.code;
+                const hasBackendError = errorCode !== undefined && errorCode !== null && Number(errorCode) !== 0;
+
+                if (res?.success === true || !hasBackendError) {
+                    if (typeof this.$showSuccess === 'function') {
+                        this.$showSuccess('Cập nhật thông tin thành công');
+                    } else if (this.$toast) {
+                        this.$toast.success('Cập nhật thông tin thành công');
+                    } else {
+                        alert('Cập nhật thông tin thành công');
+                    }
+                    this.isUpdateModalOpen = false;
+                    await this.getList();
+                }
+            } catch (err) {
+                console.error('Lỗi cập nhật cấu hình định mức:', err);
+            } finally {
+                this.isUpdating = false;
             }
         },
 
@@ -143,8 +220,10 @@ export default {
             try {
                 this.isLoading = true;
                 const params = {
-                    ...this.pageInfo,
-                    ...this.search,
+                    pageIndex: this.pageInfo.pageIndex,
+                    pageSize: this.pageInfo.pageSize,
+                    code: this.search.code || undefined,
+                    trainingMethodId: this.search.trainingMethodId || undefined,
                     channel: 'CMS',
                     transid: '762b72dc-82fe-4238-a82c-d874bc098324'
                 };
@@ -154,15 +233,34 @@ export default {
                 const pageData = responseWrapper?.data !== undefined ? responseWrapper.data : responseWrapper;
 
                 if (res.success || pageData) {
-                    this.list = pageData.data || pageData.items || (Array.isArray(pageData) ? pageData : []);
-                    this.totalPage = pageData.totalPages || Math.ceil((pageData.totalRecords || pageData.total || this.list.length) / this.pageInfo.pageSize) || 0;
-                    this.totalRecord = pageData.totalRecords || pageData.total || this.list.length;
+                    const records = [
+                        pageData?.data,
+                        pageData?.items,
+                        pageData?.content,
+                        pageData,
+                    ].find(Array.isArray) || [];
+                    const total = [
+                        pageData?.totalRecords,
+                        pageData?.totalElements,
+                        pageData?.total,
+                        responseWrapper?.totalRecords,
+                        responseWrapper?.totalElements,
+                        responseWrapper?.total,
+                        res?.totalRecords,
+                        res?.totalElements,
+                        res?.total,
+                    ].find(value => value !== undefined && value !== null && Number.isFinite(Number(value)));
+
+                    this.totalRecord = total !== undefined ? Number(total) : records.length;
+                    const firstRecordIndex = (this.pageInfo.pageIndex - 1) * this.pageInfo.pageSize;
+                    this.list = records.length > this.pageInfo.pageSize
+                        ? records.slice(firstRecordIndex, firstRecordIndex + this.pageInfo.pageSize)
+                        : records;
                 }
             } catch (e) {
                 console.error(e);
                 this.list = [];
                 this.totalRecord = 0;
-                this.totalPage = 0;
             } finally {
                 this.isLoading = false;
             }
@@ -335,8 +433,8 @@ export default {
         </v-data-table>
 
         <!-- Phân trang -->
-        <div class="d-flex justify-end align-center mt-4">
-            <div class="d-flex align-center">
+        <div class="d-flex justify-end align-center mt-4 pagination-container">
+            <div class="d-flex align-center pagination-controls">
                 <span class="text-caption mr-2">Bản ghi</span>
                 <v-select
                     v-model="pageInfo.pageSize"
@@ -344,8 +442,7 @@ export default {
                     dense
                     outlined
                     hide-details
-                    class="mr-4"
-                    style="width: 80px;"
+                    class="pagination-page-size"
                     @change="changePageSize"
                 ></v-select>
                 <span class="text-caption mr-2">Trang</span>
@@ -354,31 +451,39 @@ export default {
                     dense
                     outlined
                     hide-details
-                    class="mr-2 text-center"
-                    style="width: 60px;"
+                    class="pagination-page-input text-center"
                     @keyup.enter="goToPage"
                 ></v-text-field>
-                <v-btn color="primary" class="mr-4" height="40" @click="goToPage">Đi</v-btn>
+                <v-btn color="primary" height="40" @click="goToPage">Đi</v-btn>
                 <v-btn
                     icon
                     outlined
-                    class="mr-1"
+                    color="grey"
+                    elevation="2"
+                    class="pagination-arrow"
                     :disabled="pageInfo.pageIndex <= 1"
                     @click="changePage(pageInfo.pageIndex - 1)"
                 >
                     <v-icon>mdi-chevron-left</v-icon>
                 </v-btn>
                 <v-btn
-                    color="primary"
-                    class="mr-1"
-                    min-width="36"
-                    height="36"
+                    v-for="page in totalPages"
+                    :key="page"
+                    :color="pageInfo.pageIndex === page ? 'primary' : 'white'"
+                    class="pagination-number"
+                    elevation="2"
+                    min-width="35"
+                    height="44"
+                    @click="changePage(page)"
                 >
-                    {{ pageInfo.pageIndex }}
+                    {{ page }}
                 </v-btn>
                 <v-btn
                     icon
                     outlined
+                    color="grey"
+                    elevation="2"
+                    class="pagination-arrow"
                     :disabled="pageInfo.pageIndex >= totalPages"
                     @click="changePage(pageInfo.pageIndex + 1)"
                 >
@@ -388,10 +493,10 @@ export default {
         </div>
 
         <!-- MODAL THÊM MỚI -->
-        <v-dialog v-model="isAddModalOpen" max-width="600px" persistent>
+        <v-dialog v-model="isAddModalOpen" max-width="720px" persistent>
             <v-card>
                 <v-card-title class="headline error-color white--text py-3 px-4 d-flex align-center justify-space-between" style="background-color: #a62229; color: white; flex-wrap: nowrap;">
-                    <span class="text-truncate mr-2">Thêm mới cấu hình định mức thanh toán giảng viên</span>
+                    <span class="mr-2">Thêm mới cấu hình định mức thanh toán giảng viên</span>
                     <v-btn icon dark class="flex-shrink-0" @click="closeAddModal">
                         <v-icon>mdi-close</v-icon>
                     </v-btn>
@@ -414,12 +519,13 @@ export default {
 
                         <v-col cols="12" class="mb-3">
                             <v-text-field
-                                v-model="addForm.unitPrice"
+                                :value="addForm.unitPrice"
                                 label="Giá tiền *"
                                 outlined
                                 dense
                                 hide-details
                                 suffix="VNĐ"
+                                @input="onAddPriceInput"
                             ></v-text-field>
                         </v-col>
 
@@ -444,10 +550,10 @@ export default {
                     <v-btn text class="px-4" @click="closeAddModal">
                         Đóng <v-icon right small>mdi-close</v-icon>
                     </v-btn>
-                    <v-btn 
+                    <v-btn  
                         color="error" 
                         class="px-4 white--text" 
-                        style="background-color: #a62229;"
+                        style="background-color: #a2212b;"
                         :loading="isSubmitting"
                         @click="handleSaveAdd"
                     >
@@ -457,7 +563,78 @@ export default {
             </v-card>
         </v-dialog>
 
-        <payment-category-update ref="PaymentCategoryUpdate" @reload="getList" />
+        <!-- MODAL CẬP NHẬT -->
+        <v-dialog v-model="isUpdateModalOpen" max-width="720px" persistent>
+            <v-card>
+                <v-card-title class="headline error-color white--text py-3 px-4 d-flex align-center justify-space-between" style="background-color: #a62229; color: white; flex-wrap: nowrap;">
+                    <span class="mr-2">Cập nhật cấu hình định mức thanh toán giảng viên</span>
+                    <v-btn icon dark class="flex-shrink-0" @click="closeUpdateModal">
+                        <v-icon>mdi-close</v-icon>
+                    </v-btn>
+                </v-card-title>
+                
+                <v-card-text class="pa-4 pt-6">
+                    <v-row dense>
+                        <v-col cols="12" class="mb-3">
+                            <v-select
+                                v-model="updateForm.code"
+                                :items="reAssessmentTypeList"
+                                item-text="text"
+                                item-value="value"
+                                label="Vai trò (*)"
+                                outlined
+                                dense
+                                hide-details
+                                disabled
+                            ></v-select>
+                        </v-col>
+
+                        <v-col cols="12" class="mb-3">
+                            <v-text-field
+                                :value="updateForm.unitPrice"
+                                label="Giá tiền *"
+                                outlined
+                                dense
+                                hide-details
+                                suffix="VNĐ"
+                                @input="onUpdatePriceInput"
+                            ></v-text-field>
+                        </v-col>
+
+                        <v-col cols="12">
+                            <v-select
+                                v-model="updateForm.trainingMethodId"
+                                :items="trainingMethodList"
+                                item-text="name"
+                                item-value="id"
+                                label="Hình thức đào tạo (*)"
+                                outlined
+                                dense
+                                hide-details
+                                disabled
+                            ></v-select>
+                        </v-col>
+                    </v-row>
+                </v-card-text>
+
+                <v-divider></v-divider>
+
+                <v-card-actions class="pa-3 justify-end">
+                    <v-btn text class="px-4" @click="closeUpdateModal">
+                        Đóng <v-icon right small>mdi-close</v-icon>
+                    </v-btn>
+                    <v-btn  
+                        color="error" 
+                        class="px-4 white--text" 
+                        style="background-color: #a2212b;"
+                        :loading="isUpdating"
+                        @click="handleSaveUpdate"
+                    >
+                        Lưu <v-icon right small>mdi-content-save</v-icon>
+                    </v-btn>
+                </v-card-actions>
+            </v-card>
+        </v-dialog>
     </div>
 </template>
 
@@ -471,4 +648,22 @@ export default {
 .gap-8 {
     gap: 8px;
 }
+.pagination-container {
+    max-width: 100%;
+}
+.pagination-controls {
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+.pagination-page-size {
+    width: 90px;
+    margin-right: 8px;
+}
+.pagination-page-input {
+    width: 60px;
+    margin-right: 8px;
+}
+
 </style>

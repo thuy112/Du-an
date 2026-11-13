@@ -185,11 +185,11 @@ export default {
                 // Chuyển đổi danh sách chi tiết phí của từng học phần gửi lên đúng chuẩn backend
                 details: this.itemList.map(item => ({
                     termId: item.id,
-                    raDe: item.raDe ? Number(item.raDe) : 0,
-                    chamBai: item.chamBai ? Number(item.chamBai) : 0,
-                    trongThi: item.trongThi ? Number(item.trongThi) : 0,
-                    diLai: item.diLai ? Number(item.diLai) : 0,
-                    tttn: item.tttn ? Number(item.tttn) : 0
+                    examPreparationFee: Number(item.raDe) || 0,
+                    gradingFee: Number(item.chamBai) || 0,
+                    proctoringFee: Number(item.trongThi) || 0,
+                    travelExpenses: Number(item.diLai) || 0,
+                    graduationInternFee: Number(item.tttn) || 0
                 })),
                 channel: "CMS"
             };

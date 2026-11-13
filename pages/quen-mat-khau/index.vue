@@ -1,213 +1,120 @@
-<template>
-  <div class="login-wrapper">
-    <v-card class="pa-8 login-card elevation-2 rounded-lg">
-      <!-- Header với logo trái, chữ phải -->
-      <div class="brand-header mb-6">
-        <v-img
-          src="img/logo-bachkhoa.jpg"
-          alt="BK Logo"
-          max-width="50"
-          contain
-          class="brand-logo"
-        />
-        <div class="brand-text">
-          <h2 class="font-weight-bold text-uppercase title-text">
-            ĐẠI HỌC BÁCH KHOA HÀ NỘI
-          </h2>
-          <p class="caption mb-0 subtitle-text grey--text text--darken-2">
-            HANOI UNIVERSITY OF SCIENCE AND TECHNOLOGY
-          </p>
-        </div>
-      </div>
-
-      <!-- Tiêu đề & mô tả -->
-      <div class="text-center mb-6 header-form-block">
-        <h3 class="text-h6 font-weight-bold grey--text text--darken-3">
-          Lấy lại mật khẩu
-        </h3>
-        <p class="caption grey--text text--darken-1 mb-0 desc-text">
-          Nhập Email đăng ký để chúng tôi giúp bạn lấy lại mật khẩu
-        </p>
-      </div>
-
-      <v-divider class="mb-6"></v-divider>
-
-      <!-- Form nhập Email -->
-      <v-form ref="form" v-model="valid" @submit.prevent="handleForgotPassword">
-        <label
-          class="caption font-weight-bold grey--text text--darken-1 d-block mb-1"
-        >
-          Email (*)
-        </label>
-        <v-text-field
-          v-model="email"
-          outlined
-          dense
-          hide-details="auto"
-          :rules="[
-            (v) => !!v || 'Vui lòng nhập email',
-            (v) => /.+@.+\..+/.test(v) || 'Email không hợp lệ',
-          ]"
-          class="mb-6 custom-input"
-        />
-
-        <v-alert
-          v-if="message"
-          :type="isSuccess ? 'success' : 'error'"
-          dense
-          class="mb-4"
-        >
-          {{ message }}
-        </v-alert>
-
-        <!-- Nút Gửi Mã -->
-        <v-btn
-          type="submit"
-          block
-          large
-          elevation="0"
-          :loading="loading"
-          class="font-weight-bold text-capitalize mb-3 btn-send"
-        >
-          Gửi Mã
-        </v-btn>
-
-        <!-- Nút Quay Lại Đăng Nhập đã cập nhật sự kiện chuyển hướng -->
-        <v-btn
-          block
-          large
-          elevation="0"
-          class="font-weight-bold text-capitalize btn-back white--text"
-          @click="$router.push('/dang-nhap')"
-        >
-          Quay Lại Đăng Nhập
-        </v-btn>
-      </v-form>
-    </v-card>
-  </div>
-</template>
-
 <script>
-import authServices from '~/services/authServices'
+import Cookies from "js-cookie"
+import AuthServices from "~/services/authServices"
+import { isEmail, isRequired } from "~/utils/rules"
 
 export default {
-  name: 'ForgotPasswordPage',
-  layout: 'blank',
-  data() {
-    return {
-      valid: true,
-      email: '',
-      loading: false,
-      message: '',
-      isSuccess: false,
-    }
-  },
-  methods: {
-    async handleForgotPassword() {
-      if (!this.$refs.form.validate()) return
-
-      this.loading = true
-      this.message = ''
-
-      try {
-        const res = await authServices.forgotPassword({ email: this.email })
-        this.loading = false
-
-        if (res && res.success) {
-          this.isSuccess = true
-          this.message = 'Mã xác thực đã được gửi về email của bạn!'
-        } else {
-          this.isSuccess = false
-          this.message = res.message || 'Email không tồn tại trong hệ thống!'
+    name: "Index",
+    layout: "blank",
+    data: () => ({
+        showPassword: false,
+        username: "",
+        password: "",
+        email: "",
+        isLoading: false,
+        transId: null,
+    }),
+    created() {
+        if (Cookies.get("token")) {
+            this.$router.push("/")
         }
-      } catch (err) {
-        this.loading = false
-        this.isSuccess = true
-        this.message = 'Mã xác thực đã được gửi về email của bạn!'
-      }
     },
-  },
+    methods: {
+        isEmail,
+        isRequired,
+        async handleSubmit() {
+            const valid = this.$refs.formRef.validate()
+            if (!valid) return
+            try {
+                this.isLoading = true
+                const res = await AuthServices.getCode({
+                    username: this.email,
+                })
+                if (res.success) {
+                    // this.$showSuccess("Đăng nhập thành công")
+                    // Cookies.set("token", res.data.token)
+                    console.log({ res })
+                    // Cookies.set("user_name", res.data.user_info.user_name)
+                    this.$router.push(
+                        `/confirm-password?transId=${res.data.transId}&email=${this.email}`
+                    )
+                }
+            } catch (e) {
+                console.error(e)
+            }
+            this.isLoading = false
+        },
+    },
 }
 </script>
 
-<style scoped>
-.login-wrapper {
-  background-color: #dce7f7;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+<template>
+    <v-sheet class="h-fullscreen Auth">
+        <v-row justify="center" align="center" class="h-100">
+            <v-col cols="12" sm="8" md="6" lg="4" xl="3">
+                <v-card elevation="0" rounded="lg" class="pa-4">
+                    <v-card-title>
+                        <v-img src="/logos/logobkhn12.png" height="70" contain />
+                    </v-card-title>
+                    <v-card-text>
+                        <v-form ref="formRef" @submit.prevent="handleSubmit">
+                            <!--                            <v-divider class="mb-3" />-->
+                            <div class="text-center mb-3">
+                                <div class="text-h5 black--text">Lấy lại mật khẩu</div>
+                                <div>Nhập Email đăng ký để chúng tôi giúp bạn lấy lại mật khẩu</div>
+                            </div>
+                            <v-divider class="my-3" />
+                            <v-row>
+                                <v-col cols="12" sm="12" md="12" lg="12" class="pa-1">
+                                    <div class="mb-1 fw-600 fs-16">
+                                        Email <span class="red--text">(*)</span>
+                                    </div>
+                                    <v-text-field
+                                        v-model="email"
+                                        color="primary"
+                                        class="rounded-lg"
+                                        outlined
+                                        height="30"
+                                        clearable
+                                        clear-icon="mdi-close-circle"
+                                        :rules="[isRequired('Vui lòng nhập Email'), isEmail()]"
+                                    ></v-text-field>
+                                </v-col>
+                                <v-col cols="12" sm="12" md="12" lg="12" class="pa-1">
+                                    <v-btn
+                                        color="primary"
+                                        class="rounded-lg fs-14"
+                                        height="50"
+                                        elevation="0"
+                                        block
+                                        type="submit"
+                                        :loading="isLoading"
+                                        >Gửi mã
+                                    </v-btn>
+                                </v-col>
+                                <v-col cols="12" sm="12" md="12" lg="12" class="pa-1 mt-4">
+                                    <v-btn
+                                        color="primary lighten-5"
+                                        class="rounded-lg fs-14"
+                                        height="50"
+                                        elevation="0"
+                                        block
+                                        to="/dang-nhap"
+                                    >
+                                        Quay lại đăng nhập
+                                    </v-btn>
+                                </v-col>
+                            </v-row>
+                        </v-form>
+                    </v-card-text>
+                </v-card>
+            </v-col>
+        </v-row>
+    </v-sheet>
+</template>
 
-.login-card {
-  width: 100%;
-  max-width: 440px;
-  background: #ffffff;
-}
-
-.brand-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  text-align: left;
-}
-
-.brand-logo {
-  flex-shrink: 0;
-}
-
-.brand-text {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.title-text {
-  font-size: 1.2rem;
-  letter-spacing: 0.2px;
-  color: #2c3e50;
-  margin: 0;
-  line-height: 1.2;
-  width: 100%;
-}
-
-.subtitle-text {
-  font-size: 0.75rem !important;
-  margin: 0;
-  line-height: 1.2;
-  width: 100%;
-}
-
-.header-form-block {
-  margin-top: -2px;
-}
-
-.header-form-block h3 {
-  margin-bottom: 2px;
-}
-
-.desc-text {
-  max-width: 300px;
-  margin: 0 auto;
-  line-height: 1.4;
-}
-
-.custom-input >>> .v-input__control {
-  background-color: #ffffff;
-}
-
-.btn-send {
-  background-color: #a2212b !important;
-  color: #ffffff !important;
-  height: 42px !important;
-  border-radius: 6px;
-}
-
-.btn-back {
-  background-color: #fca397 !important;
-  color: #ffffff !important;
-  height: 42px !important;
-  border-radius: 6px;
+<style lang="scss">
+.Auth {
+    background: radial-gradient(#d2f1df, #d3d7fa, #bad8f4) 0 0/400%;
 }
 </style>
