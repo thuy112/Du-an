@@ -779,9 +779,15 @@ export default {
     },
 
     async handleLogout() {
-      try {
-        await authServices.logout()
-      } catch (e) {}
+      // Kiểm tra nếu có token thì mới gọi API logout lên server
+      const currentToken = Cookies.get('token') || Cookies.get('auth_token')
+      if (currentToken) {
+        try {
+          await authServices.logout()
+        } catch (e) {
+          console.error("Lỗi khi gọi API logout:", e)
+        }
+      }
 
       // Xóa đồng thời cả 2 tên key cookie để tránh bị lỗi middleware
       Cookies.remove('token')

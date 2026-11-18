@@ -14,7 +14,8 @@ export default {
         },
         groupList: {
             type: Array,
-            required: true,
+            required: false,
+            default: () => [],
         },
     },
     data: () => ({
@@ -23,18 +24,17 @@ export default {
         genderList,
         statusList,
         avatar: null,
-        email: null,
-        fullName: null,
-        password: null,
-        phone: null,
-        position: null,
+        email: "",
+        fullName: "",
+        password: "",
+        phone: "",
+        position: "",
         status: "ACTIVE",
         groupIds: [],
     }),
     watch: {
         open(val) {
-            if (!val) {
-                // Reset dữ liệu về giá trị rỗng/mặc định ban đầu
+            if (val) {
                 this.avatar = null;
                 this.email = "";
                 this.fullName = "";
@@ -43,8 +43,10 @@ export default {
                 this.position = "";
                 this.status = "ACTIVE";
                 this.groupIds = [];
-
-                // Xóa thông báo lỗi validate an toàn
+                this.$nextTick(() => {
+                    this.$refs.form?.resetValidation();
+                });
+            } else {
                 this.$nextTick(() => {
                     this.$refs.form?.resetValidation();
                 });
@@ -54,8 +56,9 @@ export default {
     methods: {
         isPhone,
         isEmail,
+        isRequired,
         async handleSubmit() {
-            const valid = this.$refs.form.validate();
+            const valid = this.$refs.form?.validate();
             if (!valid) return;
             try {
                 this.isLoading = true;
@@ -80,7 +83,6 @@ export default {
             }
             this.isLoading = false;
         },
-        isRequired,
     },
 };
 </script>
@@ -95,7 +97,8 @@ export default {
         @OK="handleSubmit"
     >
         <v-form ref="form" lazy-validation @submit.prevent>
-            <v-row class="ma-0 mt-3">
+            <v-row class="ma-0 mt-3" dense>
+                <!-- Phần Tải ảnh lên nằm ở trên cùng -->
                 <v-col cols="12" md="4" class="d-flex align-center justify-center">
                     <BaseUploadAvatar
                         :avatar-url="avatar"
@@ -103,127 +106,129 @@ export default {
                         @clear="avatar = null"
                     />
                 </v-col>
-                <v-col cols="12" md="8">
-                    <v-row dense>
-                        <v-col cols="12" md="6">
-                            <v-text-field
-                                v-model.trim="fullName"
-                                outlined
-                                dense
-                                color="primary"
-                                clear-icon="mdi-close-circle"
-                                clearable
-                                :rules="[isRequired('Vui lòng nhập Họ & tên')]"
-                            >
-                                <template #label>
-                                    <RequiredLabel name="Họ & tên" />
-                                </template>
-                            </v-text-field>
-                        </v-col>
-                        <v-col cols="12" md="6">
-                            <v-text-field
-                                v-model.trim="password"
-                                color="primary"
-                                outlined
-                                dense
-                                autocomplete="new-password"
-                                clear-icon="mdi-close-circle"
-                                clearable
-                                :append-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                                :type="showPassword ? 'text' : 'password'"
-                                :rules="[isRequired('Vui lòng nhập Mật khẩu')]"
-                                @click:append="showPassword = !showPassword"
-                            >
-                                <template #label>
-                                    <RequiredLabel name="Mật khẩu" />
-                                </template>
-                            </v-text-field>
-                        </v-col>
 
-                        <v-col cols="12" md="6">
-                            <v-text-field
-                                v-model.trim="email"
-                                outlined
-                                dense
-                                name="username"
-                                autocomplete="nope"
-                                color="primary"
-                                clear-icon="mdi-close-circle"
-                                clearable
-                                :rules="[isRequired('Vui lòng nhập Email'), isEmail()]"
-                            >
-                                <template #label>
-                                    <RequiredLabel name="Email" />
-                                </template>
-                            </v-text-field>
-                        </v-col>
-                        <v-col cols="12" md="6">
-                            <v-text-field
-                                v-model.trim="phone"
-                                outlined
-                                dense
-                                color="primary"
-                                type="number"
-                                clear-icon="mdi-close-circle"
-                                clearable
-                                :rules="[isRequired('Vui lòng nhập Số điện thoại'), isPhone()]"
-                            >
-                                <template #label>
-                                    <RequiredLabel name="Số điện thoại" />
-                                </template>
-                            </v-text-field>
-                        </v-col>
-                        <v-col cols="12" md="6">
-                            <v-text-field
-                                v-model.trim="position"
-                                outlined
-                                dense
-                                color="primary"
-                                clear-icon="mdi-close-circle"
-                                clearable
-                                :rules="[isRequired('Vui lòng nhập Chức vụ'), $over255]"
-                            >
-                                <template #label>
-                                    <RequiredLabel name="Chức vụ" />
-                                </template>
-                            </v-text-field>
-                        </v-col>
+                <!-- Các ô input bên dưới -->
+                <v-col cols="12" md="6">
+                    <v-text-field
+                        v-model.trim="fullName"
+                        outlined
+                        dense
+                        color="primary"
+                        clear-icon="mdi-close-circle"
+                        clearable
+                        :rules="[isRequired('Vui lòng nhập Họ & tên')]"
+                    >
+                        <template #label>
+                            <RequiredLabel name="Họ & tên" />
+                        </template>
+                    </v-text-field>
+                </v-col>
 
-                        <v-col cols="12" md="6">
-                            <v-select
-                                v-model.trim="status"
-                                outlined
-                                dense
-                                no-data-text="Không có dữ liệu"
-                                color="primary"
-                                :items="statusList"
-                                clear-icon="mdi-close-circle"
-                                clearable
-                                :rules="[isRequired('Vui lòng chọn Trạng thái')]"
-                            >
-                                <template #label>
-                                    <RequiredLabel name="Trạng thái" />
-                                </template>
-                            </v-select>
-                        </v-col>
-                        <v-col cols="12">
-                            <v-autocomplete
-                                v-model="groupIds"
-                                outlined
-                                dense
-                                no-data-text="Không có dữ liệu"
-                                color="primary"
-                                :items="groupList"
-                                item-text="groupName"
-                                item-value="id"
-                                clear-icon="mdi-close-circle"
-                                clearable
-                                multiple
-                                label="Nhóm người dùng"
-                            >
-                            </v-autocomplete>
-                        </v-col>
-                    </v-row>
+                <v-col cols="12" md="6">
+                    <v-text-field
+                        v-model.trim="password"
+                        color="primary"
+                        outlined
+                        dense
+                        autocomplete="new-password"
+                        clear-icon="mdi-close-circle"
+                        clearable
+                        :append-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                        :type="showPassword ? 'text' : 'password'"
+                        :rules="[isRequired('Vui lòng nhập Mật khẩu')]"
+                        @click:append="showPassword = !showPassword"
+                    >
+                        <template #label>
+                            <RequiredLabel name="Mật khẩu" />
+                        </template>
+                    </v-text-field>
+                </v-col>
+
+                <v-col cols="12" md="6">
+                    <v-text-field
+                        v-model.trim="email"
+                        outlined
+                        dense
+                        name="username"
+                        autocomplete="nope"
+                        color="primary"
+                        clear-icon="mdi-close-circle"
+                        clearable
+                        :rules="[isRequired('Vui lòng nhập Email'), isEmail()]"
+                    >
+                        <template #label>
+                            <RequiredLabel name="Email" />
+                        </template>
+                    </v-text-field>
+                </v-col>
+
+                <v-col cols="12" md="6">
+                    <v-text-field
+                        v-model.trim="phone"
+                        outlined
+                        dense
+                        color="primary"
+                        type="number"
+                        clear-icon="mdi-close-circle"
+                        clearable
+                        :rules="[isRequired('Vui lòng nhập Số điện thoại'), isPhone()]"
+                    >
+                        <template #label>
+                            <RequiredLabel name="Số điện thoại" />
+                        </template>
+                    </v-text-field>
+                </v-col>
+
+                <v-col cols="12" md="6">
+                    <v-text-field
+                        v-model.trim="position"
+                        outlined
+                        dense
+                        color="primary"
+                        clear-icon="mdi-close-circle"
+                        clearable
+                        :rules="[isRequired('Vui lòng nhập Chức vụ')]"
+                    >
+                        <template #label>
+                            <RequiredLabel name="Chức vụ" />
+                        </template>
+                    </v-text-field>
+                </v-col>
+
+                <v-col cols="12" md="6">
+                    <v-select
+                        v-model.trim="status"
+                        outlined
+                        dense
+                        no-data-text="Không có dữ liệu"
+                        color="primary"
+                        :items="statusList"
+                        clear-icon="mdi-close-circle"
+                        clearable
+                        :rules="[isRequired('Vui lòng chọn Trạng thái')]"
+                    >
+                        <template #label>
+                            <RequiredLabel name="Trạng thái" />
+                        </template>
+                    </v-select>
+                </v-col>
+
+                <v-col cols="12">
+                    <v-autocomplete
+                        v-model="groupIds"
+                        outlined
+                        dense
+                        no-data-text="Không có dữ liệu"
+                        color="primary"
+                        :items="groupList || []"
+                        item-text="groupName"
+                        item-value="id"
+                        clear-icon="mdi-close-circle"
+                        clearable
+                        multiple
+                        label="Nhóm người dùng"
+                    >
+                    </v-autocomplete>
                 </v-col>
             </v-row>
         </v-form>

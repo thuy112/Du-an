@@ -275,7 +275,7 @@ export default {
                             >
                             </v-select>
                         </v-col>
-                        <v-col cols="auto" class="d-flex align-center gap-8">
+                        <v-col cols="auto" class="d-flex align-center gap-8 toolbar-actions">
                             <v-tooltip bottom>
                                 <template #activator="{ on, attrs }">
                                     <v-icon
@@ -337,25 +337,6 @@ export default {
                         onerror="this.src='/images/avatar_default.png'"
                     />
                     <div class="primary--text font-weight-bold">{{ item?.fullName }}</div>
-
-                    <!--                    <div class="">-->
-                    <!--                        Số điện thoại:-->
-                    <!--                        <span class="primary&#45;&#45;text font-weight-bold">{{ item?.phone }}</span>-->
-                    <!--                    </div>-->
-                    <!--                    <div v-if="item.birthday">-->
-                    <!--                        Ngày sinh:-->
-                    <!--                        <span class="primary&#45;&#45;text font-weight-bold">{{-->
-                    <!--                            $formatDate(item.birthday)-->
-                    <!--                        }}</span>-->
-                    <!--                    </div>-->
-                    <!--                    <div class="">-->
-                    <!--                        Email:-->
-                    <!--                        <span class="primary&#45;&#45;text font-weight-bold"> {{ item?.email }}</span>-->
-                    <!--                    </div>-->
-                    <!--                    <div class="">-->
-                    <!--                        Chức vụ:-->
-                    <!--                        <span class="primary&#45;&#45;text font-weight-bold"> {{ item?.position }}</span>-->
-                    <!--                    </div>-->
                 </div>
             </template>
             <template #[`item.groups`]="{ item }">
@@ -404,12 +385,6 @@ export default {
                             </v-list-item-icon>
                             <v-list-item-title>Lớp quản lý</v-list-item-title>
                         </v-list-item>
-                        <!--                        <v-list-item :to="$route.path + `/${item.id}/giang-vien`">-->
-                        <!--                            <v-list-item-icon class="mr-2">-->
-                        <!--                                <v-icon color="blue" size="20">mdi-account-tie-hat-outline</v-icon>-->
-                        <!--                            </v-list-item-icon>-->
-                        <!--                            <v-list-item-title>Gán giảng viên</v-list-item-title>-->
-                        <!--                        </v-list-item>-->
 
                         <v-list-item @click="openUpdate(item)">
                             <v-list-item-icon class="mr-2">
@@ -519,5 +494,11 @@ export default {
 <style scoped>
 :deep .v-data-table__wrapper {
     max-height: calc(100vh - 250px);
+}
+.row--dense {
+    margin: 15px;
+}
+.toolbar-actions {
+    gap: 8px;
 }
 </style>

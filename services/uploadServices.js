@@ -1,9 +1,9 @@
 import Api from "~/api/Api.js";
 
-class UploadServices {
-    async upload(data) {
-        return await Api.postMultipart("/api/file/upload", data);
+export default {
+    upload(data) {
+        return Api.postMultipart("/api/file/upload", data);
     }
 }
 
-export default new UploadServices();
+

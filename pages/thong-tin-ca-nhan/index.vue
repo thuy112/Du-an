@@ -4,64 +4,79 @@ import AuthServices from "~/services/authServices"
 import UpdateInfo from "~/components/UpdateInfo.vue"
 
 export default {
-  name: "Index",
+  name: "UserProfilePage",
   components: { UpdateInfo },
   data() {
     return {
       isOpenPassword: false,
       isOpenUpdate: false,
       isLoading: false,
-      userInfo: {} // Dữ liệu user lưu cục bộ để hiển thị ổn định kể cả khi F5
+      localUser: {
+        fullName: "",
+        email: "",
+        phone: "",
+        position: "",
+        avatar: "",
+        groups: []
+      }
     }
   },
   computed: {
+    user() {
+      const storeUser = this.$store?.state?.auth?.user
+      if (storeUser && Object.keys(storeUser).length > 0) {
+        return storeUser
+      }
+      return this.localUser || {}
+    },
     groups() {
-      return this.userInfo?.groups?.map((i) => i.groupName).join(", ") || ""
+      if (!this.user?.groups) return ""
+      if (Array.isArray(this.user.groups)) {
+        return this.user.groups.map((i) => i.groupName || i.name).join(", ")
+      }
+      return this.user.groups
     }
   },
-  created() {
-    this.fetchUserInfo()
-    // Lắng nghe sự kiện cập nhật thành công từ component con (nếu có dùng mitt)
-    if (this.$mitt) {
-      this.$mitt.on("getInfo", () => {
-        this.fetchUserInfo()
-      })
+  async mounted() {
+    // 1. Đọc ngay từ localStorage lên để hiển thị tức thì
+    try {
+      const savedUser = localStorage.getItem("user_info")
+      if (savedUser) {
+        this.localUser = JSON.parse(savedUser)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+
+    // 2. Gọi API lấy thông tin mới nhất từ server để đảm bảo dữ liệu luôn chuẩn
+    try {
+      const res = await AuthServices.getInfo ? AuthServices.getInfo() : null
+      if (res && res.success && res.data) {
+        this.localUser = res.data
+        localStorage.setItem("user_info", JSON.stringify(res.data))
+      }
+    } catch (e) {
+      console.error("Không thể tải thông tin cá nhân từ server:", e)
     }
   },
   methods: {
-    async fetchUserInfo() {
-      try {
-        this.isLoading = true
-        const res = await AuthServices.getInfo()
-        const data = res?.data !== undefined ? res.data : res
-        if (data) {
-          this.userInfo = data?.data || data
-        }
-      } catch (e) {
-        console.error("Lỗi lấy thông tin người dùng:", e)
-        // Fallback lấy từ store nếu API lỗi
-        this.userInfo = this.$store.state.auth.user || {}
-      } finally {
-        this.isLoading = false
-      }
-    },
-
     async handleLogout() {
-      try {
-        this.isLoading = true
-        const res = await AuthServices.logout({
-          token: Cookies.get("token")
-        })
-        if (res.success) {
-          this.$removeCookies()
-          this.$showSuccess("Đăng xuất thành công")
-          await this.$router.push("/dang-nhap")
+      const currentToken = Cookies.get("token") || Cookies.get("auth_token")
+      if (currentToken) {
+        try {
+          this.isLoading = true
+          await AuthServices.logout({ token: currentToken })
+        } catch (e) {
+          console.error(e)
+        } finally {
+          this.isLoading = false
         }
-      } catch (e) {
-        console.error(e)
-      } finally {
-        this.isLoading = false
       }
+      Cookies.remove("token")
+      Cookies.remove("auth_token")
+      localStorage.removeItem("user_info")
+      this.$showSuccess("Đăng xuất thành công")
+      await this.$router.push("/dang-nhap")
     }
   }
 }
@@ -69,7 +84,7 @@ export default {
 
 <template>
   <v-container fluid style="max-width: 900px">
-    <v-card elevation="0" style="border: 1px solid #f3f0f0" :loading="isLoading">
+    <v-card elevation="0" style="border: 1px solid #f3f0f0">
       <v-card-title>
         <span class="headline">Thông tin người dùng</span>
       </v-card-title>
@@ -81,17 +96,18 @@ export default {
         >
           <v-avatar size="60">
             <img
-              :src="userInfo.avatar || '/images/avatar_default.png'"
+              :src="user.avatar || '/images/avatar_default.png'"
+
               width="60"
               height="60"
               class="cover"
               onerror="this.src='/images/avatar_default.png'"
-            />
+            ></img>
           </v-avatar>
 
           <div>
-            <div class="fw-500">{{ userInfo.fullName || '---' }}</div>
-            <div>{{ userInfo.email || '---' }}</div>
+            <div class="fw-500">{{ user.fullName }}</div>
+            <div>{{ user.email }}</div>
           </div>
         </div>
 
@@ -107,36 +123,36 @@ export default {
           </div>
           <div class="content ml-2 d-flex gap-4 flex-column">
             <div class="d-flex align-center gap-8">
-              <div>Họ tên:</div>
+              <div class="">Họ tên:</div>
               <div class="fw-600 primary--text">
-                {{ userInfo.fullName || '---' }}
+                {{ user.fullName }}
               </div>
             </div>
 
             <div class="d-flex align-center gap-8">
-              <div>Số điện thoại:</div>
+              <div class="">Số điện thoại:</div>
               <div class="fw-600 primary--text">
-                {{ userInfo.phone || '---' }}
+                {{ user.phone }}
               </div>
             </div>
 
             <div class="d-flex align-center gap-8">
-              <div>Email:</div>
+              <div class="">Email:</div>
               <div class="fw-600 primary--text">
-                {{ userInfo.email || '---' }}
+                {{ user.email }}
               </div>
             </div>
             <div class="d-flex align-center gap-8">
-              <div>Chức vụ:</div>
+              <div class="">Chức vụ:</div>
               <div class="fw-600 primary--text">
-                {{ userInfo.position || '---' }}
+                {{ user.position }}
               </div>
             </div>
 
             <div class="d-flex align-center gap-8">
-              <div>Nhóm người dùng:</div>
+              <div class="">Nhóm người dùng:</div>
               <div class="fw-500 primary--text">
-                {{ groups || '---' }}
+                {{ groups }}
               </div>
             </div>
           </div>
@@ -167,8 +183,7 @@ export default {
       @toggle="isOpenPassword = !isOpenPassword"
     />
     <UpdateInfo
-      v-if="userInfo && userInfo.id"
-      :data-detail="userInfo"
+      :data-detail="user"
       :open="isOpenUpdate"
       @toggle="isOpenUpdate = !isOpenUpdate"
     />

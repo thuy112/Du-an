@@ -1,25 +1,29 @@
 import Api from "~/api/Api.js"
 
-export default {
-    login(data) {
-        return Api.post("api/auth/login", data)
-    },
-    logout(data) {
-        return Api.post("api/auth/logout", data)
-    },
-    getCode(data) {
-        return Api.post("api/auth/forgetPassword", data)
-    },
-    forgetPassword(data) {
-        return Api.put("/api/auth/forgetPassword", data)
-    },
-    getRoleByUser(data) {
-        return Api.get("api/auth/getPageRole", data)
-    },
-    getInfo() {
-        return Api.get("/api/auth/info") // API lấy thông tin cá nhân
-    },
-    updateInfo(data) {
-        return Api.put("/api/auth/info", data)
-    },
+class AuthServices {
+    async login(data) {
+        return await Api.post("api/auth/login", data)
+    }
+
+    async logout(data) {
+        return await Api.post("api/auth/logout", data)
+    }
+
+    async getCode(data) {
+        return await Api.post("api/auth/forgetPassword", data)
+    }
+
+    async forgetPassword(data) {
+        return await Api.put("/api/auth/forgetPassword", data)
+    }
+
+    async getRoleByUser(data) {
+        return await Api.get("api/auth/getPageRole", data)
+    }
+
+    async updateInfo(data) {
+        return await Api.put("/api/auth/info", data)
+    }
 }
+
+export default new AuthServices()
