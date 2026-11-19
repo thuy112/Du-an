@@ -1,6 +1,7 @@
 <script>
 import Cookies from "js-cookie"
 import AuthServices from "~/services/authServices"
+import userServices from "~/services/userServices"
 import UpdateInfo from "~/components/UpdateInfo.vue"
 
 export default {
@@ -11,7 +12,7 @@ export default {
       isOpenPassword: false,
       isOpenUpdate: false,
       isLoading: false,
-      localUser: {
+      user: {
         fullName: "",
         email: "",
         phone: "",
@@ -22,44 +23,75 @@ export default {
     }
   },
   computed: {
-    user() {
-      const storeUser = this.$store?.state?.auth?.user
-      if (storeUser && Object.keys(storeUser).length > 0) {
-        return storeUser
-      }
-      return this.localUser || {}
-    },
     groups() {
       if (!this.user?.groups) return ""
       if (Array.isArray(this.user.groups)) {
-        return this.user.groups.map((i) => i.groupName || i.name).join(", ")
+        return this.user.groups
+          .map((i) => (typeof i === "string" ? i : i.groupName || i.name || ""))
+          .filter(Boolean)
+          .join(", ")
       }
       return this.user.groups
     }
   },
   async mounted() {
-    // 1. Đọc ngay từ localStorage lên để hiển thị tức thì
     try {
       const savedUser = localStorage.getItem("user_info")
       if (savedUser) {
-        this.localUser = JSON.parse(savedUser)
+        this.user = { ...this.user, ...this.normalizeUser(JSON.parse(savedUser)) }
       }
-    } catch (e) {
-      console.error(e)
-    }
+    } catch (e) {}
 
-    // 2. Gọi API lấy thông tin mới nhất từ server để đảm bảo dữ liệu luôn chuẩn
-    try {
-      const res = await AuthServices.getInfo ? AuthServices.getInfo() : null
-      if (res && res.success && res.data) {
-        this.localUser = res.data
-        localStorage.setItem("user_info", JSON.stringify(res.data))
-      }
-    } catch (e) {
-      console.error("Không thể tải thông tin cá nhân từ server:", e)
-    }
+    await this.fetchProfile()
   },
   methods: {
+    normalizeUser(raw) {
+      if (!raw || typeof raw !== "object") return {}
+      const base = raw.user || raw.userInfo || raw
+      return {
+        ...raw,
+        ...base,
+        fullName:
+          base.fullName ||
+          base.name ||
+          base.userName ||
+          base.username ||
+          raw.fullName ||
+          raw.name ||
+          "",
+        email: base.email || raw.email || "",
+        phone:
+          base.phone ||
+          base.phoneNumber ||
+          base.mobile ||
+          raw.phone ||
+          raw.phoneNumber ||
+          "",
+        position: base.position || base.role || raw.position || "",
+        avatar: base.avatar || raw.avatar || "",
+        groups: Array.isArray(base.groups)
+          ? base.groups
+          : Array.isArray(raw.groups)
+          ? raw.groups
+          : []
+      }
+    },
+    async fetchProfile() {
+      try {
+        this.isLoading = true
+        const res = await userServices.getInfo()
+        const payload = res?.data?.data || res?.data || res
+        if (res?.success && payload && typeof payload === "object") {
+          this.user = { ...this.user, ...this.normalizeUser(payload) }
+          localStorage.setItem("user_info", JSON.stringify(this.user))
+          this.$nuxt.$emit("user-info-updated", this.user)
+        }
+      } catch (e) {
+        console.error("Lỗi khi tải thông tin cá nhân:", e)
+      } finally {
+        this.isLoading = false
+      }
+    },
     async handleLogout() {
       const currentToken = Cookies.get("token") || Cookies.get("auth_token")
       if (currentToken) {
@@ -83,7 +115,7 @@ export default {
 </script>
 
 <template>
-  <v-container fluid style="max-width: 900px">
+  <v-container fluid style="max-width: 900px" class="pa-4">
     <v-card elevation="0" style="border: 1px solid #f3f0f0">
       <v-card-title>
         <span class="headline">Thông tin người dùng</span>
@@ -91,18 +123,17 @@ export default {
 
       <v-card-text>
         <div
-          style="background: var(--primary)"
+          style="background: var(--primary, #a2212b)"
           class="rounded white--text px-4 py-3 d-flex align-center gap-20 my-5"
         >
           <v-avatar size="60">
             <img
               :src="user.avatar || '/images/avatar_default.png'"
-
               width="60"
               height="60"
               class="cover"
               onerror="this.src='/images/avatar_default.png'"
-            ></img>
+            />
           </v-avatar>
 
           <div>
@@ -186,8 +217,25 @@ export default {
       :data-detail="user"
       :open="isOpenUpdate"
       @toggle="isOpenUpdate = !isOpenUpdate"
+      @success="fetchProfile"
     />
   </v-container>
 </template>
 
-<style scoped></style>
+<style scoped>
+.gap-20 {
+  gap: 20px;
+}
+.gap-8 {
+  gap: 8px;
+}
+.gap-4 {
+  gap: 4px;
+}
+.pointer {
+  cursor: pointer;
+}
+.cover {
+  object-fit: cover;
+}
+</style>

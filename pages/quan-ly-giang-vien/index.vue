@@ -642,8 +642,9 @@ export default {
       page: 1,
       pageInput: 1,
       itemsPerPage: 50,
+      apiTotalRecords: 0,
+      apiTotalPages: 0,
 
-      // Biến lưu trữ giá trị đang chọn trên UI
       filters: {
         search: '',
         gender: null,
@@ -652,7 +653,6 @@ export default {
         department: null,
       },
 
-      // Biến thực sự dùng để lọc dữ liệu (Chỉ cập nhật khi bấm Kính lúp/Enter)
       appliedFilters: {
         search: '',
         gender: null,
@@ -703,6 +703,15 @@ export default {
     }
   },
   computed: {
+    hasActiveFilter() {
+      return Boolean(
+        (this.appliedFilters.search && this.appliedFilters.search.trim()) ||
+          this.appliedFilters.gender ||
+          this.appliedFilters.teacherType ||
+          this.appliedFilters.status ||
+          this.appliedFilters.department
+      )
+    },
     genderOptions() {
       return [
         ...new Set(
@@ -727,7 +736,6 @@ export default {
       ].sort()
     },
 
-    // Bảng chỉ lọc dựa trên `appliedFilters` thay vì `filters`
     filteredTeachers() {
       return this.teachers.filter((t) => {
         const searchKeyword = this.appliedFilters.search
@@ -758,11 +766,22 @@ export default {
         )
       })
     },
+    // Nếu server đã phân trang theo pageSize thì hiển thị toàn bộ danh sách trả về của trang đó;
+    // nếu server trả về toàn bộ danh sách lớn hơn itemsPerPage thì cắt theo trang
     paginatedTeachers() {
-      const start = (this.page - 1) * this.itemsPerPage
-      return this.filteredTeachers.slice(start, start + this.itemsPerPage)
+      if (this.filteredTeachers.length > this.itemsPerPage) {
+        const start = (this.page - 1) * this.itemsPerPage
+        return this.filteredTeachers.slice(start, start + this.itemsPerPage)
+      }
+      return this.filteredTeachers
     },
     totalPages() {
+      if (!this.hasActiveFilter && this.apiTotalRecords > 0) {
+        return Math.max(1, Math.ceil(this.apiTotalRecords / this.itemsPerPage))
+      }
+      if (!this.hasActiveFilter && this.apiTotalPages > 0) {
+        return this.apiTotalPages
+      }
       const total = Math.ceil(this.filteredTeachers.length / this.itemsPerPage)
       return total > 0 ? total : 1
     },
@@ -781,11 +800,10 @@ export default {
     await Promise.all([this.fetchWorkUnits(), this.fetchTeachers()])
   },
   methods: {
-    // Gọi API lấy danh sách Khoa/Đơn vị qua axios
     async fetchWorkUnits() {
       try {
         const res = await teacherServices.getWorkUnits({ status: 'ACTIVE' })
-        const units = res?.data || res?.items || res || []
+        const units = res?.data?.data || res?.data || res?.items || res || []
         if (Array.isArray(units) && units.length > 0) {
           this.departmentOptions = units
             .map((u) => (u.name ? u.name.trim() : ''))
@@ -797,24 +815,54 @@ export default {
       }
     },
 
-    // Gọi API lấy danh sách giảng viên qua axios
     async fetchTeachers() {
       try {
         const res = await teacherServices.getTeachers({
           pageIndex: this.page,
           pageSize: this.itemsPerPage,
           search: this.appliedFilters.search || undefined,
-          // Đảm bảo truyền đúng tên trường theo API backend yêu cầu
-          gender: this.appliedFilters.gender === 'Nam' ? 'MALE' : (this.appliedFilters.gender === 'Nữ' ? 'FEMALE' : undefined),
-          lecturerStatus: this.appliedFilters.teacherType === 'Đương chức' ? 'FULL_TIME' : (this.appliedFilters.teacherType === 'Mời giảng' ? 'VISITING' : undefined),
-          status: this.appliedFilters.status === 'Hoạt động' ? 'ACTIVE' : (this.appliedFilters.status === 'Nghỉ hưu' ? 'INACTIVE' : undefined),
+          gender:
+            this.appliedFilters.gender === 'Nam'
+              ? 'MALE'
+              : this.appliedFilters.gender === 'Nữ'
+              ? 'FEMALE'
+              : undefined,
+          lecturerStatus:
+            this.appliedFilters.teacherType === 'Đương chức'
+              ? 'FULL_TIME'
+              : this.appliedFilters.teacherType === 'Mời giảng'
+              ? 'VISITING'
+              : undefined,
+          status:
+            this.appliedFilters.status === 'Hoạt động'
+              ? 'ACTIVE'
+              : this.appliedFilters.status === 'Nghỉ hưu'
+              ? 'INACTIVE'
+              : undefined,
           channel: 'CMS',
         })
 
-        const rawData = res?.data?.data || res?.data?.items || res?.data || []
-        let parsedList = parseTeacherData(rawData)
+        const dataContainer = res?.data || {}
+        const rawData =
+          dataContainer?.data || dataContainer?.items || (Array.isArray(dataContainer) ? dataContainer : [])
 
-        // Khôi phục trạng thái đã thay đổi từ localStorage để không bị mất khi F5
+        const totalRecords =
+          dataContainer?.totalRecords ??
+          dataContainer?.total ??
+          res?.totalRecords ??
+          res?.total ??
+          0
+        const totalPages =
+          dataContainer?.totalPages ??
+          dataContainer?.pageCount ??
+          res?.totalPages ??
+          0
+
+        this.apiTotalRecords = Number(totalRecords) || 0
+        this.apiTotalPages = Number(totalPages) || 0
+
+        let parsedList = parseTeacherData(Array.isArray(rawData) ? rawData : [])
+
         const localData = localStorage.getItem('local_teachers_changes')
         if (localData) {
           const parsedLocal = JSON.parse(localData)
@@ -832,9 +880,16 @@ export default {
         }
 
         this.teachers = parsedList
+
+        if (this.page > this.totalPages) {
+          this.page = 1
+          this.pageInput = 1
+        }
       } catch (err) {
         console.error('Lỗi khi gọi API danh sách giảng viên:', err)
         this.teachers = []
+        this.apiTotalRecords = 0
+        this.apiTotalPages = 0
         this.showToast('Không thể tải dữ liệu từ máy chủ!', '#ffc107')
       }
     },
@@ -877,7 +932,7 @@ export default {
       }
     },
     goToPage() {
-      let target = parseInt(this.pageInput)
+      let target = parseInt(this.pageInput, 10)
       if (isNaN(target) || target < 1) target = 1
       if (target > this.totalPages) target = this.totalPages
       this.page = target
@@ -887,10 +942,6 @@ export default {
     onItemsPerPageChange() {
       this.page = 1
       this.pageInput = 1
-      // Kiểm tra nếu trang hiện tại vượt quá tổng số trang mới thì reset về 1
-      if (this.page > this.totalPages) {
-        this.page = 1
-      }
       this.fetchTeachers()
     },
     viewDetail(item) {
@@ -916,12 +967,10 @@ export default {
         const teacher = this.pendingStatusChange.teacher
         const newStatus = this.pendingStatusChange.newStatus
 
-        // 1. Cập nhật giao diện ngay lập tức
         teacher.status = newStatus
         teacher.hasUpdate = true
         teacher.lastUpdated = this.getCurrentDateTime()
 
-        // 2. Lưu vết vào LocalStorage
         const targetId = String(teacher.id)
         const localData = localStorage.getItem('local_teachers_changes')
         const parsedLocal = localData ? JSON.parse(localData) : []
@@ -953,7 +1002,6 @@ export default {
 
         this.confirmStatusDialog = false
 
-        // 3. Gửi đầy đủ thông tin lên API
         try {
           await teacherServices.updateTeacherStatus(teacher.id, {
             id: teacher.id,
@@ -962,19 +1010,23 @@ export default {
             phone: teacher.phone !== '---' ? teacher.phone : '',
             email: teacher.email !== '---' ? teacher.email : '',
             status: newStatus === 'Hoạt động' ? 'ACTIVE' : 'INACTIVE',
-            lecturerStatus: teacher.teacherType === 'Đương chức' ? 'FULL_TIME' : 'VISITING',
+            lecturerStatus:
+              teacher.teacherType === 'Đương chức' ? 'FULL_TIME' : 'VISITING',
             channel: 'CMS',
           })
           this.showToast('Đã chuyển trạng thái thành công', '#4caf50')
         } catch (err) {
-          console.warn('Lỗi gọi API cập nhật trạng thái, đã lưu vết cục bộ:', err)
+          console.warn(
+            'Lỗi gọi API cập nhật trạng thái, đã lưu vết cục bộ:',
+            err
+          )
           this.showToast('Đã lưu thay đổi thành công', '#4caf50')
         }
       }
     },
     exportToExcel() {
       const dataToExport = this.filteredTeachers.map((item, index) => ({
-        STT: index + 1,
+        STT: (this.page - 1) * this.itemsPerPage + index + 1,
         'Họ và Tên': item.fullName,
         'Mã Giảng Viên': item.code,
         'Số điện thoại': item.phone,

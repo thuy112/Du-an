@@ -2,7 +2,6 @@
   <v-app>
     <!-- ==================== 1. SIDEBAR CHO MÀN HÌNH LỚN (DESKTOP >= 960px) ==================== -->
     <template v-if="isDesktop">
-      <!-- Cột 1: Navigation Sidebar 88px cố định bên trái -->
       <div class="sidebar-primary">
         <div class="pa-3 text-center logo-box">
           <v-img
@@ -15,12 +14,14 @@
         </div>
 
         <div class="sidebar-menu-list pa-0">
-          <div v-for="item in fullMenuList" :key="item.id || item.path">
+          <div v-for="item in fullMenuList" :key="item.id || item.path || item.title">
             <div
               class="sidebar-item py-2 px-1 text-center"
               :class="{
                 'item-active':
-                  isParentActive(item) || $route.path === item.path,
+                  isParentActive(item) ||
+                  (item.path && $route.path === item.path) ||
+                  (activeSubMenu && activeSubMenu.title === item.title),
               }"
               @click="handleMainItemClick(item)"
             >
@@ -37,7 +38,6 @@
         </div>
       </div>
 
-      <!-- Cột 2: Submenu Drawer ĐÈ LÊN NỘI DUNG khi bấm vào menu có con -->
       <transition name="slide-fade">
         <div v-if="activeSubMenu" class="sidebar-secondary">
           <div class="red-flyout-box">
@@ -61,7 +61,7 @@
       ></div>
     </template>
 
-    <!-- ==================== 2. NAVIGATION DRAWER KHI THU NHỎ (MOBILE/TABLET < 960px) ==================== -->
+    <!-- ==================== 2. NAVIGATION DRAWER KHI THU NHỎ ==================== -->
     <v-navigation-drawer
       v-else
       v-model="mobileDrawer"
@@ -75,7 +75,6 @@
     >
       <v-list class="pa-0 mt-2">
         <template v-for="(item, i) in fullMenuList">
-          <!-- Menu có con (xổ xuống) -->
           <v-list-group
             v-if="item.children && item.children.length"
             :key="`group-${i}`"
@@ -109,7 +108,6 @@
             </v-list-item>
           </v-list-group>
 
-          <!-- Menu đơn không có con -->
           <v-list-item
             v-else
             :key="`item-${i}`"
@@ -176,7 +174,7 @@
 
       <v-spacer></v-spacer>
 
-      <!-- Popup User Admin -->
+      <!-- Thanh nhỏ & Popup User góc trên bên phải -->
       <v-menu
         v-model="menuUser"
         offset-y
@@ -191,20 +189,21 @@
             v-bind="attrs"
             v-on="on"
           >
-            <v-img
-              src="/img/download.jpg"
+            <img
+              :src="user.avatar || '/images/avatar_default.png'"
               alt="User avatar"
               width="36"
               height="36"
               class="mr-2 avatar-user"
-            ></v-img>
+              onerror="this.src='/images/avatar_default.png'"
+            />
 
             <div class="text-left user-profile-text mr-1">
               <div class="user-name-text">
-                {{ user.name || user.fullName || 'Admin' }}
+                {{ user.fullName || user.name || user.userName || '' }}
               </div>
               <div class="user-email-text">
-                {{ user.email || 'admin@gmail.com' }}
+                {{ user.email || '' }}
               </div>
             </div>
 
@@ -216,12 +215,15 @@
           <v-avatar
             v-else
             size="36"
-            color="black"
             class="cursor-pointer"
             v-bind="attrs"
             v-on="on"
           >
-            <v-img src="/img/download.jpg" alt="User avatar"></v-img>
+            <img
+              :src="user.avatar || '/images/avatar_default.png'"
+              alt="User avatar"
+              onerror="this.src='/images/avatar_default.png'"
+            />
           </v-avatar>
         </template>
 
@@ -238,11 +240,15 @@
             @click="goToUserProfile"
           >
             <v-avatar size="44" class="mr-3 mt-1">
-              <v-img src="/img/download.jpg" alt="User avatar"></v-img>
+              <img
+                :src="user.avatar || '/images/avatar_default.png'"
+                alt="User avatar"
+                onerror="this.src='/images/avatar_default.png'"
+              />
             </v-avatar>
             <div>
               <div class="font-weight-bold body-2 grey--text text--darken-3">
-                {{ user.name || user.fullName || 'Admin' }}
+                {{ user.fullName || user.name || user.userName || '' }}
               </div>
               <div
                 class="caption grey--text text--darken-1 d-flex align-center mt-1"
@@ -250,19 +256,19 @@
                 <v-icon x-small class="mr-1"
                   >mdi-badge-account-horizontal-outline</v-icon
                 >
-                {{ user.role || 'Quản trị hệ thống' }}
+                {{ displayRole }}
               </div>
               <div
                 class="caption grey--text text--darken-1 d-flex align-center mt-1"
               >
                 <v-icon x-small class="mr-1">mdi-phone-outline</v-icon>
-                {{ user.phone || '0999999999' }}
+                {{ user.phone || '' }}
               </div>
               <div
                 class="caption grey--text text--darken-1 d-flex align-center mt-1"
               >
                 <v-icon x-small class="mr-1">mdi-email-outline</v-icon>
-                {{ user.email || 'admin@gmail.com' }}
+                {{ user.email || '' }}
               </div>
             </div>
           </div>
@@ -307,6 +313,7 @@
 <script>
 import Cookies from 'js-cookie'
 import authServices from '~/services/authServices'
+import userServices from '~/services/userServices'
 import { removeCookies } from '~/utils/heppers'
 
 export default {
@@ -318,20 +325,32 @@ export default {
       activeSubMenu: null,
       mobileDrawer: false,
       dynamicPageTitle: 'Đơn vị công tác Khoa - trường',
-
       user: {
-        name: 'Admin',
-        email: 'admin@gmail.com',
-        role: 'Quản trị hệ thống',
-        phone: '0999999999',
+        fullName: '',
+        email: '',
+        phone: '',
+        position: '',
+        avatar: '',
+        groups: [],
       },
-
       menuList: [],
     }
   },
   computed: {
     isDesktop() {
       return this.$vuetify.breakpoint.mdAndUp
+    },
+
+    displayRole() {
+      if (this.user.position) return this.user.position
+      if (this.user.role) return this.user.role
+      if (Array.isArray(this.user.groups) && this.user.groups.length) {
+        return this.user.groups
+          .map((g) => (typeof g === 'string' ? g : g.groupName || g.name || ''))
+          .filter(Boolean)
+          .join(', ')
+      }
+      return ''
     },
 
     fullMenuList() {
@@ -351,226 +370,86 @@ export default {
         {
           id: 'danh-muc-he-thong',
           title: 'Danh mục hệ thống',
-          path: '/danh-muc-he-thong',
           icon: 'mdi-database',
           children: [
-            {
-              title: 'Hình thức đào tạo',
-              path: '/danh-muc-he-thong/hinh-thuc-dao-tao',
-            },
-            {
-              title: 'Loại hình đào tạo',
-              path: '/danh-muc-he-thong/loai-hinh-thuc-dao-tao',
-            },
-            {
-              title: 'Quản lý đơn vị',
-              path: '/danh-muc-he-thong/quan-ly-don-vi',
-            },
-            {
-              title: 'Quản lý ngành',
-              path: '/danh-muc-he-thong/nganh',
-            },
+            { title: 'Hình thức đào tạo', path: '/danh-muc-he-thong/hinh-thuc-dao-tao' },
+            { title: 'Loại hình đào tạo', path: '/danh-muc-he-thong/loai-hinh-thuc-dao-tao' },
+            { title: 'Quản lý đơn vị', path: '/danh-muc-he-thong/quan-ly-don-vi' },
+            { title: 'Quản lý ngành', path: '/danh-muc-he-thong/nganh' },
             { title: 'Quản lý khoá', path: '/danh-muc-he-thong/khoa' },
             { title: 'Quản lý lớp', path: '/danh-muc-he-thong/lop-hoc' },
-            {
-              title: 'Chương trình đào tạo',
-              path: '/danh-muc-he-thong/chuong-trinh-dao-tao',
-            },
-            {
-              title: 'Quản lý học phần',
-              path: '/danh-muc-he-thong/hoc-phan',
-            },
-            {
-              title: 'Quản lý học kỳ',
-              path: '/danh-muc-he-thong/quan-ly-ky-hoc',
-            },
-            {
-              title: 'Quản lý định mức phí',
-              path: '/danh-muc-he-thong/quan-ly-dinh-muc-phi',
-            },
-            {
-              title: 'Quản lý khoản thu',
-              path: '/danh-muc-he-thong/khoan-thu',
-            },
+            { title: 'Chương trình đào tạo', path: '/danh-muc-he-thong/chuong-trinh-dao-tao' },
+            { title: 'Quản lý học phần', path: '/danh-muc-he-thong/hoc-phan' },
+            { title: 'Quản lý học kỳ', path: '/danh-muc-he-thong/quan-ly-ky-hoc' },
+            { title: 'Quản lý định mức phí', path: '/danh-muc-he-thong/quan-ly-dinh-muc-phi' },
+            { title: 'Quản lý khoản thu', path: '/danh-muc-he-thong/khoan-thu' },
           ],
         },
         {
           id: 'quan-ly-thi-lai',
           title: 'Quản lý thi lại',
-          path: '/quan-ly-thi-lai',
           icon: 'mdi-youtube-studio',
           children: [
-            {
-              title: 'Quản lý kỳ đăng ký thi lại',
-              path: '/quan-ly-thi-lai/quan-ly-ky-dang-ky-thi-lai',
-            },
-            {
-              title: 'DSSV được phép đăng ký',
-              path: '/quan-ly-thi-lai/dssv-duoc-phep-dang-ky',
-            },
-            {
-              title: 'Danh sách sinh viên đăng ký',
-              path: '/quan-ly-thi-lai/sinh-vien-dang-ky',
-            },
-            {
-              title: 'Danh sách lớp thi',
-              path: '/quan-ly-thi-lai/danh-sach-lop-thi',
-            },
+            { title: 'Quản lý kỳ đăng ký thi lại', path: '/quan-ly-thi-lai/quan-ly-ky-dang-ky-thi-lai' },
+            { title: 'DSSV được phép đăng ký', path: '/quan-ly-thi-lai/dssv-duoc-phep-dang-ky' },
+            { title: 'Danh sách sinh viên đăng ký', path: '/quan-ly-thi-lai/sinh-vien-dang-ky' },
+            { title: 'Danh sách lớp thi', path: '/quan-ly-thi-lai/danh-sach-lop-thi' },
             { title: 'Kết quả thi', path: '/quan-ly-thi-lai/ket-qua-thi' },
-            {
-              title: 'Quản lý định mức thi lại',
-              path: '/quan-ly-thi-lai/dinh-muc-thi-lai',
-            },
-            {
-              title: 'Quản lý định mức thanh toán thi lại GV',
-              path: '/quan-ly-thi-lai/dinh-muc-thanh-toan-thi-lai-giang-vien',
-            },
+            { title: 'Quản lý định mức thi lại', path: '/quan-ly-thi-lai/dinh-muc-thi-lai' },
+            { title: 'Quản lý định mức thanh toán thi lại GV', path: '/quan-ly-thi-lai/dinh-muc-thanh-toan-thi-lai-giang-vien' },
           ],
         },
         {
           id: 'quan-ly-hoc-lai',
           title: 'Quản lý học lại',
-          path: '/quan-ly-hoc-lai',
           icon: 'mdi-youtube-studio',
           children: [
-            {
-              title: 'Quản lý đợt đăng ký học lại',
-              path: '/quan-ly-hoc-lai/quan-ly-dot-dang-ky-hoc-lai',
-            },
-            {
-              title: 'Quản lý hệ số lớp',
-              path: '/quan-ly-hoc-lai/quan-ly-he-so-lop',
-            },
-            {
-              title: 'Danh sách lớp học lại',
-              path: '/quan-ly-hoc-lai/danh-sach-lop-hoc',
-            },
-            {
-              title: 'Danh sách sinh viên phải học lại',
-              path: '/quan-ly-hoc-lai/sinh-vien-phai-hoc-lai',
-            },
-            {
-              title: 'Danh sách sinh viên đã đăng ký học lại',
-              path: '/quan-ly-hoc-lai/sinh-vien-dang-ky',
-            },
+            { title: 'Quản lý đợt đăng ký học lại', path: '/quan-ly-hoc-lai/quan-ly-dot-dang-ky-hoc-lai' },
+            { title: 'Quản lý hệ số lớp', path: '/quan-ly-hoc-lai/quan-ly-he-so-lop' },
+            { title: 'Danh sách lớp học lại', path: '/quan-ly-hoc-lai/danh-sach-lop-hoc' },
+            { title: 'Danh sách sinh viên phải học lại', path: '/quan-ly-hoc-lai/sinh-vien-phai-hoc-lai' },
+            { title: 'Danh sách sinh viên đã đăng ký học lại', path: '/quan-ly-hoc-lai/sinh-vien-dang-ky' },
             { title: 'Kết quả học lại', path: '/quan-ly-hoc-lai/ket-qua-thi' },
-            {
-              title: 'Định mức giảng viên',
-              path: '/quan-ly-hoc-lai/dinh-muc-giang-vien',
-            },
-            {
-              title: 'Thanh toán giảng viên theo lớp',
-              path: '/quan-ly-hoc-lai/thanh-toan-giang-vien-theo-lop',
-            },
-            {
-              title: 'Thanh toán giảng viên theo đợt',
-              path: '/quan-ly-hoc-lai/thanh-toan-giang-vien-theo-dot',
-            },
-            {
-              title: 'Quản lý thuế giảng viên',
-              path: '/quan-ly-hoc-lai/quan-ly-thue-giang-vien',
-            },
-            {
-              title: 'BC kết quả thu',
-              path: '/quan-ly-hoc-lai/bao-cao-thong-ke',
-            },
-            {
-              title: 'BC Sinh viên đăng ký',
-              path: '/quan-ly-hoc-lai/bao-cao-sinh-vien-dang-ky',
-            },
-            {
-              title: 'BC thanh toán giảng viên',
-              path: '/quan-ly-hoc-lai/bao-cao-thanh-toan-giang-vien',
-            },
-            {
-              title: 'BC SV chưa đóng tiền',
-              path: '/quan-ly-hoc-lai/sv-chua-nop-tien',
-            },
-            {
-              title: 'BC giảng viên tổng hợp',
-              path: '/quan-ly-hoc-lai/bao-cao-giang-vien-tong-hop',
-            },
+            { title: 'Định mức giảng viên', path: '/quan-ly-hoc-lai/dinh-muc-giang-vien' },
+            { title: 'Thanh toán giảng viên theo lớp', path: '/quan-ly-hoc-lai/thanh-toan-giang-vien-theo-lop' },
+            { title: 'Thanh toán giảng viên theo đợt', path: '/quan-ly-hoc-lai/thanh-toan-giang-vien-theo-dot' },
+            { title: 'Quản lý thuế giảng viên', path: '/quan-ly-hoc-lai/quan-ly-thue-giang-vien' },
+            { title: 'BC kết quả thu', path: '/quan-ly-hoc-lai/bao-cao-thong-ke' },
+            { title: 'BC Sinh viên đăng ký', path: '/quan-ly-hoc-lai/bao-cao-sinh-vien-dang-ky' },
+            { title: 'BC thanh toán giảng viên', path: '/quan-ly-hoc-lai/bao-cao-thanh-toan-giang-vien' },
+            { title: 'BC SV chưa đóng tiền', path: '/quan-ly-hoc-lai/sv-chua-nop-tien' },
+            { title: 'BC giảng viên tổng hợp', path: '/quan-ly-hoc-lai/bao-cao-giang-vien-tong-hop' },
           ],
         },
         {
           id: 'quan-ly-bao-ve-lai',
           title: 'Quản lý bảo vệ lại',
-          path: '/quan-ly-bao-ve-lai',
           icon: 'mdi-youtube-studio',
           children: [
-            {
-              title: 'Quản lý đợt bảo vệ lại',
-              path: '/quan-ly-bao-ve-lai/quan-ly-dot-bao-ve-lai',
-            },
-            {
-              title: 'DSSV được phép đăng ký',
-              path: '/quan-ly-bao-ve-lai/sinh-vien-duoc-dang-ky',
-            },
-            {
-              title: 'Danh sách sinh viên đã đăng ký',
-              path: '/quan-ly-bao-ve-lai/sinh-vien-dang-ky',
-            },
-            {
-              title: 'Danh sách hội đồng',
-              path: '/quan-ly-bao-ve-lai/danh-sach-hoi-dong',
-            },
-            {
-              title: 'Kết quả bảo vệ',
-              path: '/quan-ly-bao-ve-lai/ket-qua-bao-ve',
-            },
-            {
-              title: 'Thanh toán giảng viên theo hội đồng',
-              path: '/quan-ly-bao-ve-lai/dinh-muc-thanh-toan-giang-vien',
-            },
-            {
-              title: 'Thanh toán giảng viên theo đợt',
-              path: '/quan-ly-bao-ve-lai/dinh-muc-thanh-toan-giang-vien-theo-dot',
-            },
-            {
-              title: 'Định mức thanh toán theo công việc GV',
-              path: '/quan-ly-bao-ve-lai/cau-hinh-dinh-muc-thanh-toan-giang-vien',
-            },
-            {
-              title: 'BC kết quả thu bảo vệ lại',
-              path: '/quan-ly-bao-ve-lai/ket-qua-thu-bao-ve-lai',
-            },
-            {
-              title: 'BC Sinh viên đăng ký bảo vệ lại',
-              path: '/quan-ly-bao-ve-lai/sinh-vien-dang-ky-bao-ve-lai',
-            },
-            {
-              title: 'BC SV chưa đóng tiền bảo vệ lại',
-              path: '/quan-ly-bao-ve-lai/sv-chua-nop-tien-bao-ve-lai',
-            },
-            {
-              title: 'BC thanh toán giảng viên bảo vệ lại',
-              path: '/quan-ly-bao-ve-lai/thanh-toan-giang-vien-bao-ve-lai',
-            },
-            {
-              title: 'BC tổng hợp sinh viên bảo vệ lại',
-              path: '/quan-ly-bao-ve-lai/bao-cao-tong-hop-sinh-vien',
-            },
+            { title: 'Quản lý đợt bảo vệ lại', path: '/quan-ly-bao-ve-lai/quan-ly-dot-bao-ve-lai' },
+            { title: 'DSSV được phép đăng ký', path: '/quan-ly-bao-ve-lai/sinh-vien-duoc-dang-ky' },
+            { title: 'Danh sách sinh viên đã đăng ký', path: '/quan-ly-bao-ve-lai/sinh-vien-dang-ky' },
+            { title: 'Danh sách hội đồng', path: '/quan-ly-bao-ve-lai/danh-sach-hoi-dong' },
+            { title: 'Kết quả bảo vệ', path: '/quan-ly-bao-ve-lai/ket-qua-bao-ve' },
+            { title: 'Thanh toán giảng viên theo hội đồng', path: '/quan-ly-bao-ve-lai/dinh-muc-thanh-toan-giang-vien' },
+            { title: 'Thanh toán giảng viên theo đợt', path: '/quan-ly-bao-ve-lai/dinh-muc-thanh-toan-giang-vien-theo-dot' },
+            { title: 'Định mức thanh toán theo công việc GV', path: '/quan-ly-bao-ve-lai/cau-hinh-dinh-muc-thanh-toan-giang-vien' },
+            { title: 'BC kết quả thu bảo vệ lại', path: '/quan-ly-bao-ve-lai/ket-qua-thu-bao-ve-lai' },
+            { title: 'BC Sinh viên đăng ký bảo vệ lại', path: '/quan-ly-bao-ve-lai/sinh-vien-dang-ky-bao-ve-lai' },
+            { title: 'BC SV chưa đóng tiền bảo vệ lại', path: '/quan-ly-bao-ve-lai/sv-chua-nop-tien-bao-ve-lai' },
+            { title: 'BC thanh toán giảng viên bảo vệ lại', path: '/quan-ly-bao-ve-lai/thanh-toan-giang-vien-bao-ve-lai' },
+            { title: 'BC tổng hợp sinh viên bảo vệ lại', path: '/quan-ly-bao-ve-lai/bao-cao-tong-hop-sinh-vien' },
           ],
         },
         {
           id: 'quan-tri-he-thong',
           title: 'Quản trị hệ thống',
           icon: 'mdi-compass',
-          active: false,
           children: [
             { title: 'Người dùng', path: '/quan-tri-he-thong/nguoi-dung' },
-            {
-              title: 'Nhóm người dùng',
-              path: '/quan-tri-he-thong/nhom-nguoi-dung',
-            },
-            {
-              title: 'Thao tác người dùng',
-              path: '/quan-tri-he-thong/thao-tac-nguoi-dung',
-            },
-            {
-              title: 'File đã import',
-              path: '/quan-tri-he-thong/file-da-import',
-            },
+            { title: 'Nhóm người dùng', path: '/quan-tri-he-thong/nhom-nguoi-dung' },
+            { title: 'Thao tác người dùng', path: '/quan-tri-he-thong/thao-tac-nguoi-dung' },
+            { title: 'File đã import', path: '/quan-tri-he-thong/file-da-import' },
           ],
         },
         {
@@ -579,14 +458,8 @@ export default {
           icon: 'mdi-email-edit',
           active: false,
           children: [
-            {
-              title: 'Cấu hình email',
-              path: '/cau-hinh/cau-hinh-email',
-            },
-            {
-              title: 'Cấu hình nhận email',
-              path: '/cau-hinh/cau-hinh-nhan-email',
-            },
+            { title: 'Cấu hình email', path: '/cau-hinh/cau-hinh-email' },
+            { title: 'Cấu hình nhận email', path: '/cau-hinh/cau-hinh-nhan-email' },
           ],
         },
       ]
@@ -595,16 +468,47 @@ export default {
         return defaultMenus
       }
 
-      const hasAdminMenu = this.menuList.some(
+      const defaultById = new Map()
+      const defaultByTitle = new Map()
+      const defaultByPath = new Map()
+
+      defaultMenus.forEach((m) => {
+        if (m.id) defaultById.set(m.id, m)
+        if (m.title) defaultByTitle.set(m.title.trim().toLowerCase(), m)
+        if (m.path) defaultByPath.set(m.path, m)
+      })
+
+      const mergedMenus = this.menuList.map((apiItem) => {
+        const matched =
+          defaultById.get(apiItem.id) ||
+          defaultByTitle.get((apiItem.title || '').trim().toLowerCase()) ||
+          defaultByPath.get(apiItem.path)
+
+        const children =
+          apiItem.children && apiItem.children.length
+            ? apiItem.children
+            : matched?.children || []
+
+        return {
+          ...matched,
+          ...apiItem,
+          children,
+          path: children.length ? undefined : apiItem.path || matched?.path,
+        }
+      })
+
+      const hasAdminMenu = mergedMenus.some(
         (m) =>
-          m.path?.includes('quan-tri-he-thong') || m.title?.includes('Quản trị')
+          m.path?.includes('quan-tri-he-thong') ||
+          m.title?.includes('Quản trị') ||
+          m.children?.some((c) => c.path?.includes('quan-tri-he-thong'))
       )
 
       if (!hasAdminMenu) {
-        return [...defaultMenus, ...this.menuList]
+        return [...defaultMenus, ...mergedMenus]
       }
 
-      return this.menuList
+      return mergedMenus
     },
 
     breadcrumbs() {
@@ -642,7 +546,6 @@ export default {
       let parentMenu = null
       let childMenu = null
 
-      // Duyệt qua menu để tìm đúng menu cha và menu con
       for (const menu of this.fullMenuList) {
         if (menu.children && menu.children.length) {
           const foundChild = menu.children.find((c) => c.path === currentPath)
@@ -665,7 +568,6 @@ export default {
         return items
       }
 
-      // Fallback lấy theo pageTitle trong Vuex store nếu không khớp route
       const storeTitle = this.$store ? this.$store.state.pageTitle : ''
       if (storeTitle && storeTitle !== 'Trang chủ') {
         items.push({ text: storeTitle, disabled: true })
@@ -679,7 +581,6 @@ export default {
       immediate: true,
       handler(to) {
         this.mobileDrawer = false
-        // Tự động tìm và mở Submenu tương ứng với Route hiện tại
         const activeParent = this.fullMenuList.find(
           (m) => m.children && m.children.some((c) => c.path === to.path)
         )
@@ -692,25 +593,20 @@ export default {
     },
   },
   async mounted() {
-    // Ưu tiên đọc thông tin user lưu từ localStorage khi đăng nhập
-    const localUser = localStorage.getItem('user_info')
-    if (localUser) {
-      try {
-        this.user = { ...this.user, ...JSON.parse(localUser) }
-      } catch (e) {}
-    }
-
     await this.fetchUserInfo()
     await this.fetchPageRole()
 
     this.$nuxt.$on('update-breadcrumb-title', (newTitle) => {
       this.dynamicPageTitle = newTitle
     })
+    this.$nuxt.$on('user-info-updated', (updatedUser) => {
+      this.user = { ...this.user, ...updatedUser }
+    })
   },
 
-  // ---> ĐẶT BEFOREDESTROY NẰM RIÊNG NGAY SAU MOUNTED <---
   beforeDestroy() {
     this.$nuxt.$off('update-breadcrumb-title')
+    this.$nuxt.$off('user-info-updated')
   },
   methods: {
     isParentActive(item) {
@@ -719,14 +615,21 @@ export default {
     },
     handleMainItemClick(item) {
       if (item.children && item.children.length) {
-        if (this.activeSubMenu && this.activeSubMenu.id === item.id) {
+        const currentKey = item.id || item.title
+        const activeKey = this.activeSubMenu
+          ? this.activeSubMenu.id || this.activeSubMenu.title
+          : null
+
+        if (activeKey && activeKey === currentKey) {
           this.activeSubMenu = null
         } else {
           this.activeSubMenu = item
         }
       } else {
         this.activeSubMenu = null
-        this.navigateTo(item.path)
+        if (item.path) {
+          this.navigateTo(item.path)
+        }
       }
     },
     navigateTo(path) {
@@ -736,17 +639,59 @@ export default {
         this.$router.push(path)
       }
     },
+    normalizeUser(raw) {
+      if (!raw || typeof raw !== 'object') return {}
+      const base = raw.user || raw.userInfo || raw
+      return {
+        ...raw,
+        ...base,
+        fullName:
+          base.fullName ||
+          base.name ||
+          base.userName ||
+          base.username ||
+          raw.fullName ||
+          raw.name ||
+          '',
+        email: base.email || raw.email || '',
+        phone:
+          base.phone ||
+          base.phoneNumber ||
+          base.mobile ||
+          raw.phone ||
+          raw.phoneNumber ||
+          '',
+        position: base.position || base.role || raw.position || '',
+        avatar: base.avatar || raw.avatar || '',
+        groups: Array.isArray(base.groups)
+          ? base.groups
+          : Array.isArray(raw.groups)
+          ? raw.groups
+          : [],
+      }
+    },
     async fetchUserInfo() {
       try {
-        const res = await authServices.getUserInfo()
-        if (res && res.success && res.data) {
-          this.user = { ...this.user, ...res.data }
+        const localUser = localStorage.getItem('user_info')
+        if (localUser) {
+          this.user = { ...this.user, ...this.normalizeUser(JSON.parse(localUser)) }
+        }
+      } catch (e) {}
+
+      try {
+        const res = await userServices.getInfo()
+        const payload = res?.data?.data || res?.data || res
+        if (res?.success && payload && typeof payload === 'object') {
+          this.user = { ...this.user, ...this.normalizeUser(payload) }
+          localStorage.setItem('user_info', JSON.stringify(this.user))
         }
       } catch (e) {}
     },
     async fetchPageRole() {
       try {
-        const res = await authServices.getPageRole()
+        const res = authServices.getRoleByUser
+          ? await authServices.getRoleByUser()
+          : await authServices.getPageRole()
         if (
           res &&
           res.success &&
@@ -779,17 +724,15 @@ export default {
     },
 
     async handleLogout() {
-      // Kiểm tra nếu có token thì mới gọi API logout lên server
       const currentToken = Cookies.get('token') || Cookies.get('auth_token')
       if (currentToken) {
         try {
-          await authServices.logout()
+          await authServices.logout({ token: currentToken })
         } catch (e) {
-          console.error("Lỗi khi gọi API logout:", e)
+          console.error('Lỗi khi gọi API logout:', e)
         }
       }
 
-      // Xóa đồng thời cả 2 tên key cookie để tránh bị lỗi middleware
       Cookies.remove('token')
       Cookies.remove('auth_token')
       if (typeof removeCookies === 'function') {
@@ -799,6 +742,14 @@ export default {
 
       localStorage.removeItem('user_info')
       localStorage.setItem('logout_success', 'true')
+      this.user = {
+        fullName: '',
+        email: '',
+        phone: '',
+        position: '',
+        avatar: '',
+        groups: [],
+      }
       this.$router.push('/dang-nhap')
     },
   },
@@ -806,7 +757,6 @@ export default {
 </script>
 
 <style scoped>
-/* Cột Sidebar 1 chính màu đỏ 88px */
 .sidebar-primary {
   position: fixed;
   top: 0;
@@ -864,7 +814,6 @@ export default {
   text-align: center;
 }
 
-/* Cột Sidebar 2 */
 .sidebar-secondary {
   position: fixed;
   top: 0;
@@ -916,7 +865,6 @@ export default {
   background-color: rgba(0, 0, 0, 0.1);
 }
 
-/* Style Sidebar Thu Nhỏ (Mobile/Tablet) */
 .mobile-drawer >>> .v-navigation-drawer__content {
   overflow-y: auto;
 }
@@ -933,7 +881,6 @@ export default {
   font-weight: 600;
 }
 
-/* Header & Content */
 .topbar-custom {
   background: #f8f9fa !important;
   border-bottom: 1px solid #eaeaea;
@@ -1001,7 +948,6 @@ export default {
   cursor: pointer;
 }
 
-/* Màu chữ Trang chủ đỏ nổi bật */
 .custom-breadcrumbs >>> .text-home-red .v-breadcrumbs__item {
   color: #a2212b !important;
   font-weight: 600;
@@ -1014,7 +960,6 @@ export default {
   font-size: 0.88rem !important;
 }
 
-/* Các breadcrumb con xám nhẹ */
 .custom-breadcrumbs >>> .v-breadcrumbs__item--disabled {
   color: #888888 !important;
   font-weight: 400;

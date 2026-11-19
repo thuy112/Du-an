@@ -10,6 +10,9 @@ export default {
   getStudents(params) {
     return Api.get('/api/student', params)
   },
+  changeStatus(data) {
+    return Api.put(`/api/student/changeStatus/${data.id}`, data)
+  },
   updateStudentStatus(id, data) {
     return Api.put(`/api/student/${id}`, data)
   },
@@ -25,7 +28,6 @@ export default {
   getTerms(params) {
     return Api.get('/api/term/list', params)
   },
-  // Thêm API lấy lịch sử học tập của sinh viên
   getStudentHistory(params) {
     return Api.get('/api/student/history', params)
   },

@@ -34,13 +34,10 @@
             class="bg-white filter-item select-md custom-outlined-input"
           ></v-select>
 
+          <!-- Lọc trạng thái trên thanh tìm kiếm -->
           <v-select
             v-model="filters.status"
-            :items="[
-              { text: 'Đang học tập', value: 'Đang học' },
-              { text: 'Bảo lưu', value: 'Bảo lưu' },
-              { text: 'Đã tốt nghiệp', value: 'Đã tốt nghiệp' },
-            ]"
+            :items="studentStatusList"
             item-text="text"
             item-value="value"
             placeholder="Trạng thái"
@@ -204,44 +201,11 @@
 
       <!-- TRẠNG THÁI -->
       <template #[`item.status`]="{ item }">
-        <v-menu offset-y bottom left :z-index="999">
-          <template #activator="{ on, attrs }">
-            <div
-              v-bind="attrs"
-              class="status-badge px-3 py-1 font-weight-bold d-flex justify-space-between align-center"
-              :class="getStatusClass(item.status)"
-              style="cursor: pointer; min-width: 130px; height: 32px"
-              v-on="on"
-            >
-              <span class="text-caption font-weight-bold">{{
-                item.status
-              }}</span>
-              <v-icon size="18" color="white" class="ml-1"
-                >mdi-menu-down</v-icon
-              >
-            </div>
-          </template>
-          <v-list dense class="py-1">
-            <v-list-item @click="promptChangeStatus(item, 'Đang học')">
-              <v-list-item-title
-                class="red--text text--darken-1 font-weight-bold"
-                >Đang học</v-list-item-title
-              >
-            </v-list-item>
-            <v-list-item @click="promptChangeStatus(item, 'Bảo lưu')">
-              <v-list-item-title
-                class="orange--text text--darken-2 font-weight-bold"
-                >Bảo lưu</v-list-item-title
-              >
-            </v-list-item>
-            <v-list-item @click="promptChangeStatus(item, 'Đã tốt nghiệp')">
-              <v-list-item-title
-                class="grey--text text--darken-2 font-weight-bold"
-                >Đã tốt nghiệp</v-list-item-title
-              >
-            </v-list-item>
-          </v-list>
-        </v-menu>
+        <ChangeableStatus
+          :status="item.status"
+          :status-list="studentStatusList"
+          @changeStatus="handleChangeStatus($event, item)"
+        />
       </template>
 
       <!-- CHỨC NĂNG -->
@@ -404,12 +368,12 @@
       <div class="d-flex align-center gap-2 flex-nowrap">
         <v-select
           v-model="itemsPerPage"
-          :items="[10, 20, 50, 100]"
+          :items="[10, 20, 50, 100, 200, 500, 1000]"
           label="Bản ghi"
           dense
           outlined
           hide-details
-          :menu-props="{ attach: true, top: true, offsetY: true, zIndex: 999 }"
+          :menu-props="{ attach: false, top: true, offsetY: true, nudgeTop: 8, contentClass: 'record-count-menu', zIndex: 999 }"
           class="pagination-input"
           style="width: 85px"
           @change="onItemsPerPageChange"
@@ -614,20 +578,29 @@
 <script>
 import * as XLSX from 'xlsx'
 import BaseTable from '~/components/Base/BaseTable.vue'
-import studentServices from '~/services/studentServices' 
+import ChangeableStatus from '~/components/Base/ChangeableStatus.vue'
+import { genderList, studentStatusList, degreeList } from '~/consts/list'
+import studentServices from '~/services/studentServices'
+
+const getStatusLabel = (statusVal) => {
+  const found = studentStatusList.find((s) => s.value === statusVal)
+  if (found) return found.text
+  if (statusVal === 'ACTIVE') return 'Đang học tập'
+  if (statusVal === 'INACTIVE') return 'Không hoạt động'
+  return statusVal || '---'
+}
 
 const parseStudentData = (apiData) => {
   return apiData.map((item) => {
-    let statusVN = 'Đang học'
-    if (
-      item.status === 'ACTIVE' ||
-      item.status === 'STUDYING' ||
-      item.status === 'Đang học'
-    )
-      statusVN = 'Đang học'
-    else if (item.status === 'Bảo lưu') statusVN = 'Bảo lưu'
-    else if (item.status === 'Đã tốt nghiệp') statusVN = 'Đã tốt nghiệp'
-    else if (item.status === 'INACTIVE') statusVN = 'Không hoạt động'
+    // Chuẩn hóa giá trị status về đúng value của studentStatusList nếu API trả về tên cũ/khác
+    let normalizedStatus = item.status || ''
+    if (normalizedStatus === 'ACTIVE' || normalizedStatus === 'Đang học' || normalizedStatus === 'Đang học tập') {
+      normalizedStatus = 'STUDYING'
+    } else if (normalizedStatus === 'Bảo lưu') {
+      normalizedStatus = 'LEAVE_OF_ABSENCE'
+    } else if (normalizedStatus === 'Đã nghỉ học') {
+      normalizedStatus = 'DROP_OUT_OF_SCHOOL'
+    }
 
     return {
       id: item.id,
@@ -635,7 +608,7 @@ const parseStudentData = (apiData) => {
       fullName: item.fullName || '---',
       email: item.email || '---',
       citizen: item.citizen || '---',
-      status: statusVN,
+      status: normalizedStatus,
       className: item.className || (item.class && item.class.name) || '---',
       courseName: item.courseName || (item.course && item.course.name) || '---',
       majorName: item.majorName || (item.major && item.major.name) || '---',
@@ -646,20 +619,24 @@ const parseStudentData = (apiData) => {
         item.trainingUnitName ||
         (item.trainingUnit && item.trainingUnit.name) ||
         '---',
-      rawItem: item, // Giữ nguyên toàn bộ object gốc từ API để phục vụ việc PUT dữ liệu sau này
+      rawItem: item,
     }
   })
 }
 
 export default {
   name: 'QuanLySinhVienPage',
-  components: { BaseTable },
+  components: { BaseTable, ChangeableStatus },
   middleware: 'authenticated',
   data() {
     return {
       page: 1,
       pageInput: 1,
       itemsPerPage: 50,
+
+      genderList,
+      studentStatusList,
+      degreeList,
 
       filters: { search: '', class: null, status: null },
       tempDialogFilters: {
@@ -730,7 +707,7 @@ export default {
       ],
 
       students: [],
-      listClass: [], // Đã đổi tên từ classList thành listClass để tránh xung đột với phần tử DOM .classList
+      listClass: [],
       trainingMethodList: [],
       courseList: [],
       termList: [],
@@ -739,15 +716,14 @@ export default {
   },
   computed: {
     classOptions() {
-      const rawClassList = Array.isArray(this.listClass) 
-        ? this.listClass 
-        : (this.listClass?.data || this.listClass?.items || [this.listClass])
-      
+      const rawClassList = Array.isArray(this.listClass)
+        ? this.listClass
+        : this.listClass?.data || this.listClass?.items || [this.listClass]
+
       const safeClassList = Array.isArray(rawClassList) ? rawClassList : []
       const fromApi = safeClassList.map((c) => c?.name || c?.code).filter(Boolean)
-      
       const fromStudents = (this.students || []).map((s) => s.className).filter(Boolean)
-      
+
       return [
         ...new Set(
           [...fromApi, ...fromStudents].filter((v) => v && v !== '---')
@@ -789,7 +765,11 @@ export default {
       ].sort()
     },
     hocPhanOptions() {
-      const list = Array.isArray(this.termList) ? this.termList : (this.termList ? [this.termList] : [])
+      const list = Array.isArray(this.termList)
+        ? this.termList
+        : this.termList
+        ? [this.termList]
+        : []
       return list.map((item) => ({
         text: `${item.code || ''} ${item.name || ''}`.trim(),
         value: item.id || item.code,
@@ -805,10 +785,8 @@ export default {
           s.fullName.toLowerCase().includes(keyword) ||
           s.code.toLowerCase().includes(keyword)
 
-        // Thêm điều kiện lọc theo Lớp
         const matchClass =
-          !this.appliedFilters.class ||
-          s.className === this.appliedFilters.class
+          !this.appliedFilters.class || s.className === this.appliedFilters.class
 
         const matchStatus =
           !this.appliedFilters.status || s.status === this.appliedFilters.status
@@ -819,15 +797,14 @@ export default {
           !this.appliedFilters.location ||
           s.trainingUnitName === this.appliedFilters.location
         const matchMajor =
-          !this.appliedFilters.major ||
-          s.majorName === this.appliedFilters.major
+          !this.appliedFilters.major || s.majorName === this.appliedFilters.major
         const matchCourse =
           !this.appliedFilters.course ||
           s.courseName === this.appliedFilters.course
 
         return (
           matchSearch &&
-          matchClass && // Đưa matchClass vào điều kiện trả về
+          matchClass &&
           matchStatus &&
           matchType &&
           matchLocation &&
@@ -868,6 +845,8 @@ export default {
     this.toastList.forEach((toast) => clearInterval(toast.timer))
   },
   methods: {
+    getStatusLabel,
+
     async fetchUserInfo() {
       try {
         const res = await studentServices.getUserInfo()
@@ -893,26 +872,7 @@ export default {
           search: '',
         })
         const rawData = res?.data?.data || res?.data?.items || res?.data || []
-        let parsedList = parseStudentData(rawData)
-
-        // Khôi phục trạng thái đã thay đổi từ localStorage để không bị mất khi F5
-        const localData = localStorage.getItem('local_students_changes')
-        if (localData) {
-          const parsedLocal = JSON.parse(localData)
-          const localMap = parsedLocal.reduce((acc, curr) => {
-            acc[String(curr.id)] = curr
-            return acc
-          }, {})
-
-          parsedList = parsedList.map((s) => {
-            if (localMap[String(s.id)]) {
-              return { ...s, ...localMap[String(s.id)] }
-            }
-            return s
-          })
-        }
-
-        this.students = parsedList
+        this.students = parseStudentData(Array.isArray(rawData) ? rawData : [])
       } catch (err) {
         console.error('Lỗi tải danh sách sinh viên:', err)
         this.students = []
@@ -959,70 +919,50 @@ export default {
       }
     },
 
-    getStatusClass(status) {
-      switch (status) {
-        case 'Đang học':
-          return 'status-studying'
-        case 'Bảo lưu':
-          return 'status-warning'
-        case 'Đã tốt nghiệp':
-          return 'status-dropout'
-        default:
-          return 'status-unknown'
-      }
-    },
-    promptChangeStatus(item, newStatus) {
-      if (item.status === newStatus) return
-      this.pendingStatusChange = {
-        student: item,
-        oldStatus: item.status,
-        newStatus,
-      }
-      this.confirmStatusDialog = true
-    },
-    confirmStatusUpdate() {
-      const { student, newStatus } = this.pendingStatusChange
-      if (student) {
-        // 1. Cập nhật trạng thái ngay trên giao diện
-        student.status = newStatus
-        this.confirmStatusDialog = false
+    async handleChangeStatus(selectedStatusObj, item) {
+      if (!item || !selectedStatusObj) return
+      const nextStatusValue = selectedStatusObj.value
+      if (item.status === nextStatusValue) return
 
-        // 2. Lưu vết vào LocalStorage để duy trì trạng thái khi F5 hoặc tải lại trang
-        const targetId = String(student.id)
-        const localData = localStorage.getItem('local_students_changes')
-        const parsedLocal = localData ? JSON.parse(localData) : []
-
-        const existingIndex = parsedLocal.findIndex(
-          (p) => String(p.id) === targetId
-        )
-        const payloadChange = {
-          id: student.id,
-          code: student.code,
-          fullName: student.fullName,
-          status: newStatus,
+      try {
+        const payload = {
+          ...(item.rawItem || {}),
+          id: item.id,
+          code: item.code,
+          fullName: item.fullName,
+          status: nextStatusValue,
+          channel: 'CMS',
         }
 
-        if (existingIndex !== -1) {
-          parsedLocal[existingIndex] = {
-            ...parsedLocal[existingIndex],
-            ...payloadChange,
+        const res = await studentServices.changeStatus(payload)
+        if (
+          res &&
+          (res.success === true || res.success === undefined || res.status === 200)
+        ) {
+          item.status = nextStatusValue
+          if (item.rawItem) {
+            item.rawItem.status = nextStatusValue
           }
+          this.showToast('Cập nhật trạng thái thành công', '#4caf50')
         } else {
-          parsedLocal.push(payloadChange)
+          this.showToast(
+            res?.message || 'Cập nhật trạng thái thất bại!',
+            '#C62828'
+          )
         }
-        localStorage.setItem(
-          'local_students_changes',
-          JSON.stringify(parsedLocal)
+      } catch (err) {
+        console.error('Lỗi gọi API đổi trạng thái sinh viên:', err)
+        this.showToast(
+          err?.response?.data?.message || 'Không thể cập nhật trạng thái!',
+          '#C62828'
         )
-
-        // 3. Hiển thị thông báo thành công mà không gọi API ngầm nữa
-        this.showToast('Cập nhật trạng thái thành công', '#4caf50')
       }
     },
+
     search() {
       this.appliedFilters = {
         ...this.appliedFilters,
-        ...this.filters, // Đảm bảo từ khóa search từ giao diện được đưa vào bộ lọc
+        ...this.filters,
         ...this.tempDialogFilters,
       }
       this.page = 1
@@ -1092,16 +1032,14 @@ export default {
       this.historyDialog = true
 
       try {
-        // Gọi API lấy lịch sử thực tế của sinh viên dựa vào ID
         const res = await studentServices.getStudentHistory({
           studentId: item.id,
           pageIndex: 1,
           pageSize: 50,
         })
-        
+
         const rawHistory = res?.data?.data || res?.data?.items || res?.data || []
-        
-        // Map dữ liệu trả về từ API vào bảng lịch sử
+
         this.historyDataList = rawHistory.map((h, idx) => ({
           tenHocPhan: h.termName || h.hocPhan || `Học phần ${idx + 1}`,
           maHocPhan: h.termCode || h.maHocPhan || `HP0${idx + 1}`,
@@ -1140,7 +1078,7 @@ export default {
         Ngành: item.majorName,
         'Hình thức đào tạo': item.trainingMethodName,
         'Đơn vị': item.trainingUnitName,
-        'Trạng thái': item.status,
+        'Trạng thái': getStatusLabel(item.status),
       }))
 
       if (dataToExport.length === 0) {
@@ -1268,6 +1206,12 @@ export default {
 }
 .pagination-input >>> .v-input__control {
   min-height: 36px !important;
+}
+
+/* Luôn mở danh sách số bản ghi phía trên ô phân trang */
+.record-count-menu {
+  top: auto !important;
+  bottom: 72px !important;
 }
 
 /* Styles cho hệ thống Toast hàng đợi (xếp chồng, có progress bar và nút X) */

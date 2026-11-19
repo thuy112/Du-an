@@ -56,7 +56,7 @@ export default {
 
   // 2. Lấy thông tin chi tiết sinh viên khi chọn ở bước 1
   getStudentDetail(studentId, channel = 'CMS') {
-    return Api.get('/api/redefense/exam/get-by-student', { params: { studentId, channel } })
+    return Api.get('/api/redefense/exam/get-by-student', { studentId, channel })
   },
 
   // 3. Lấy danh sách học phần (dùng cho bước 2)
@@ -112,5 +112,21 @@ export default {
 
   async notifyEmailRefuse(data) {
     return await Api.get("/api/redefense/register/mailRefused", data);
-  }
+  },
+  async validateSameBatch(data) {
+    return await Api.post('/api/payment/reassessment/validate-same-batch', data)
+  },
+
+  async generateBatchQr(data) {
+      return await Api.post('/api/payment/reassessment/generate-batch-qr', data)
+  },
+
+  async validateExtendSameBatch(data) {
+      return await Api.post('/api/payment/reassessment/validate-extend-same-batch', data)
+  },
+
+  async extendDeadline(data) {
+      return await Api.post('/api/payment/reassessment/extend-deadline', data)
+  },
+
 }
