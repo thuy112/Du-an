@@ -148,42 +148,34 @@
         @page-change="changePage"
         @per-page-change="handleItemsPerPageChange"
       >
-        <!-- STT -->
         <template #[`item.stt`]="{ index }">
           <span>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</span>
         </template>
 
-        <!-- Hội đồng bảo vệ -->
         <template #[`item.examClass`]="{ item }">
           <span class="font-weight-medium">{{ item.examClass || '-' }}</span>
         </template>
 
-        <!-- Đợt bảo vệ -->
         <template #[`item.examName`]="{ item }">
           <span>{{ item.exam ? item.exam.name : '-' }}</span>
         </template>
 
-        <!-- Học phần -->
         <template #[`item.termName`]="{ item }">
           <span>{{ item.term ? item.term.name : '-' }}</span>
         </template>
 
-        <!-- Hình thức đào tạo -->
         <template #[`item.trainingMethod`]="{ item }">
           <span>{{ item.trainingMethod ? item.trainingMethod.name : '-' }}</span>
         </template>
 
-        <!-- Số lượng đăng kí -->
         <template #[`item.quantityCurrent`]="{ item }">
           <div class="text-center">{{ item.quantityCurrent !== undefined ? item.quantityCurrent : 0 }}</div>
         </template>
 
-        <!-- Thời gian -->
         <template #[`item.timeRange`]="{ item }">
           <span>{{ formatTimeRange(item.fromTime, item.toTime) }}</span>
         </template>
 
-        <!-- Trạng thái -->
         <template #[`item.examSessionStatus`]="{ item }">
           <v-menu v-if="item.examSessionStatus === 'NOT_FINALIZED'" offset-y>
             <template v-slot:activator="{ on, attrs }">
@@ -216,7 +208,6 @@
           </v-chip>
         </template>
 
-        <!-- Trạng thái bảng điểm -->
         <template #[`item.examSessionScoreStatus`]="{ item }">
           <v-menu v-if="item.examSessionScoreStatus === 'NO_SCOREBOARD'" offset-y>
             <template v-slot:activator="{ on, attrs }">
@@ -249,7 +240,6 @@
           </v-chip>
         </template>
 
-        <!-- Chức năng -->
         <template #[`item.actions`]="{ item }">
           <div class="d-flex align-center justify-center">
             <v-menu offset-y left>
@@ -259,19 +249,16 @@
                 </v-btn>
               </template>
               <v-list dense class="action-dropdown-list">
-                <!-- Chi tiết -->
                 <v-list-item @click="handleDetail(item)">
                   <v-list-item-icon class="mr-2"><v-icon small color="info">mdi-eye</v-icon></v-list-item-icon>
                   <v-list-item-title>Chi tiết</v-list-item-title>
                 </v-list-item>
 
-                <!-- Xuất file DSSV -->
                 <v-list-item @click="handleExportDSSV(item)">
                   <v-list-item-icon class="mr-2"><v-icon small color="success">mdi-export</v-icon></v-list-item-icon>
                   <v-list-item-title>Xuất file DSSV</v-list-item-title>
                 </v-list-item>
 
-                <!-- Nếu chưa duyệt -->
                 <template v-if="item.examSessionStatus !== 'FINALIZED' && item.examStatus !== 'FINALIZED'">
                   <v-list-item @click="handleStudentList(item)">
                     <v-list-item-icon class="mr-2"><v-icon small color="teal">mdi-school</v-icon></v-list-item-icon>
@@ -283,7 +270,6 @@
                   </v-list-item>
                 </template>
 
-                <!-- Nếu đã duyệt -->
                 <template v-else>
                   <v-list-item v-if="!item.isEmailSent" @click="openSendEmailConfirm(item)">
                     <v-list-item-icon class="mr-2"><v-icon small color="green">mdi-email-fast</v-icon></v-list-item-icon>
@@ -295,7 +281,6 @@
                   </v-list-item>
                 </template>
 
-                <!-- Xóa -->
                 <v-list-item @click="handleDelete(item)">
                   <v-list-item-icon class="mr-2"><v-icon small color="error">mdi-delete</v-icon></v-list-item-icon>
                   <v-list-item-title>Xóa</v-list-item-title>
@@ -386,7 +371,6 @@
         </v-card-title>
 
         <v-card-text class="pa-4" style="max-height: 75vh; overflow-y: auto;">
-          <!-- Tên hội đồng -->
           <v-text-field
             v-model="examForm.examClass"
             label="Hội đồng bảo vệ (*)"
@@ -396,7 +380,6 @@
             placeholder="Nhập tên hội đồng"
           ></v-text-field>
 
-          <!-- Hình thức đào tạo -->
           <v-select
             v-model="examForm.trainingMethodId"
             :items="trainingMethodList"
@@ -409,7 +392,6 @@
             placeholder="Chọn hình thức đào tạo"
           ></v-select>
 
-          <!-- Đợt bảo vệ -->
           <v-select
             v-model="examForm.examId"
             :items="examList"
@@ -423,7 +405,6 @@
             @change="onAddExamChange"
           ></v-select>
 
-          <!-- Học phần -->
           <v-select
             v-model="examForm.termId"
             :items="termList"
@@ -437,7 +418,6 @@
             @change="onAddTermOrExamChange"
           ></v-select>
 
-          <!-- Sinh viên (Chọn nhiều) -->
           <v-autocomplete
             v-model="examForm.studentIds"
             :items="studentAddList"
@@ -457,7 +437,6 @@
             </template>
           </v-autocomplete>
 
-          <!-- Thời gian bắt đầu -->
           <v-text-field
             v-model="examForm.fromTime"
             label="Thời gian bắt đầu (*)"
@@ -467,7 +446,6 @@
             class="mb-3"
           ></v-text-field>
 
-          <!-- Thời gian kết thúc -->
           <v-text-field
             v-model="examForm.toTime"
             label="Thời gian kết thúc (*)"
@@ -580,7 +558,7 @@
     </v-dialog>
 
     <!-- MODAL CHI TIẾT HỘI ĐỒNG -->
-    <v-dialog v-model="detailDialog" max-width="800px" persistent>
+    <v-dialog v-model="detailDialog" max-width="860px" persistent>
       <v-card class="rounded-lg">
         <v-card-title class="white--text py-3 px-4 d-flex justify-space-between align-center" style="background-color: #A62229;">
           <span class="text-h6 font-weight-bold">Chi tiết hội đồng</span>
@@ -605,13 +583,17 @@
               </v-chip>
             </div>
 
-            <div class="text-subtitle-1 font-weight-bold mb-2">Danh sách sinh viên ({{ (studentListDetail || []).length }})</div>
+            <div class="text-subtitle-1 font-weight-bold mb-2">
+              Danh sách sinh viên ({{ (studentListDetail || []).length }})
+            </div>
             <v-simple-table dense outlined>
               <thead>
                 <tr class="grey lighten-4">
                   <th class="text-center" style="width: 50px;">STT</th>
                   <th>Thông tin chung</th>
-                  <th>Giảng viên</th>
+                  <th style="width: 110px;">Khóa</th>
+                  <th style="width: 120px;">Lớp</th>
+                  <th style="min-width: 240px;">Giảng viên</th>
                 </tr>
               </thead>
               <tbody>
@@ -625,17 +607,23 @@
                     <div>Email: {{ stu.email || '-' }}</div>
                     <div>Giới tính: {{ formatGender(stu.gender) }}</div>
                   </td>
+                  <td>{{ stu.courseName || '-' }}</td>
+                  <td>{{ stu.className || '-' }}</td>
                   <td>
                     <template v-if="stu.teachersList && stu.teachersList.length > 0">
-                      <div v-for="(tch, tIdx) in stu.teachersList" :key="tIdx">
-                        {{ tch.fullName }} <span class="grey--text">({{ getAssessmentTypeText(tch.reAssessmentType) }})</span>
+                      <div
+                        v-for="(tch, tIdx) in stu.teachersList"
+                        :key="tIdx"
+                        class="mb-1"
+                      >
+                        {{ tch.fullName }}<span v-if="tch.roleText"> ({{ tch.roleText }})</span>
                       </div>
                     </template>
                     <span v-else class="grey--text">-</span>
                   </td>
                 </tr>
                 <tr v-if="!studentListDetail || studentListDetail.length === 0">
-                  <td colspan="3" class="text-center grey--text py-3">Không có sinh viên</td>
+                  <td colspan="5" class="text-center grey--text py-3">Không có sinh viên</td>
                 </tr>
               </tbody>
             </v-simple-table>
@@ -657,7 +645,6 @@
         </v-card-title>
 
         <v-card-text class="pa-4" style="max-height: 75vh; overflow-y: auto;">
-          <!-- Tên hội đồng -->
           <v-text-field
             v-model="editForm.examClass"
             label="Hội đồng bảo vệ (*)"
@@ -666,7 +653,6 @@
             class="mb-3"
           ></v-text-field>
 
-          <!-- Hình thức đào tạo -->
           <v-select
             v-model="editForm.trainingMethodId"
             :items="trainingMethodList"
@@ -678,7 +664,6 @@
             class="mb-3"
           ></v-select>
 
-          <!-- Đợt bảo vệ -->
           <v-select
             v-model="editForm.examId"
             :items="examList"
@@ -691,7 +676,6 @@
             @change="onExamChange"
           ></v-select>
 
-          <!-- Học phần -->
           <v-select
             v-model="editForm.termId"
             :items="termList"
@@ -704,7 +688,6 @@
             @change="onTermOrExamChange"
           ></v-select>
 
-          <!-- Sinh viên (Menu dạng bảng) -->
           <v-menu
             v-model="studentMenu"
             :close-on-content-click="false"
@@ -752,8 +735,8 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr 
-                    v-for="stu in filteredStudents" 
+                  <tr
+                    v-for="stu in filteredStudents"
                     :key="stu.id || stu.studentId"
                     @click="selectStudent(stu)"
                     style="cursor: pointer;"
@@ -776,7 +759,6 @@
             </v-card>
           </v-menu>
 
-          <!-- Thời gian bắt đầu -->
           <v-text-field
             v-model="editForm.fromTime"
             label="Thời gian bắt đầu (*)"
@@ -785,7 +767,6 @@
             class="mb-3"
           ></v-text-field>
 
-          <!-- Thời gian kết thúc -->
           <v-text-field
             v-model="editForm.toTime"
             label="Thời gian kết thúc (*)"
@@ -816,7 +797,6 @@ export default {
   components: { BaseTable },
   data() {
     return {
-      // Modal Thêm mới hội đồng
       addExamDialog: false,
       studentAddList: [],
       examForm: {
@@ -829,7 +809,6 @@ export default {
         toTime: ''
       },
 
-      // Modal Cập nhật
       editDialog: false,
       editForm: {
         id: null,
@@ -850,16 +829,13 @@ export default {
       selectedStudentText: '',
       studentError: '',
 
-      // Modal Chi tiết
       detailDialog: false,
       detailData: null,
       studentListDetail: [],
 
-      // Modal Email
       emailConfirmDialog: false,
       itemToSendEmail: null,
 
-      // Filter & Table
       loading: false,
       filters: {
         search: '',
@@ -898,7 +874,6 @@ export default {
         { value: 'actions', text: 'Chức năng', align: 'center', width: '100px', sortable: false },
       ],
 
-      // Import & Delete
       importExcelDialog: false,
       selectedExcelFile: null,
       importTeacherDialog: false,
@@ -993,7 +968,7 @@ export default {
         if (res) {
           const rawData = res.data !== undefined ? res.data : res
           this.itemList = Array.isArray(rawData) ? rawData : (rawData.data || rawData.content || rawData.items || [])
-          
+
           const total = rawData.totalElements ?? rawData.totalRecords ?? rawData.total ?? (res.totalElements || res.total)
           this.totalRecords = total !== undefined ? Number(total) : this.itemList.length
           this.totalPages = Math.ceil(this.totalRecords / this.itemsPerPage) || 1
@@ -1051,7 +1026,6 @@ export default {
       this.loadData()
     },
 
-    // 1. Mở Modal Thêm mới hội đồng khi bấm vào dấu cộng (+)
     async openAddModal() {
       this.examForm = {
         examClass: '',
@@ -1185,22 +1159,27 @@ export default {
 
     formatDateOnly(dateStr) {
       if (!dateStr) return '-'
-      return dateStr.split(' ')[0]
+      return String(dateStr).split(' ')[0]
     },
 
     formatGender(gender) {
       if (!gender) return '-'
-      if (gender === 'FEMALE') return 'Nữ'
-      if (gender === 'MALE') return 'Nam'
+      const val = String(gender).toUpperCase()
+      if (val === 'FEMALE' || val === 'NỮ') return 'Nữ'
+      if (val === 'MALE' || val === 'NAM') return 'Nam'
       return gender
     },
 
     getAssessmentTypeText(type) {
-      switch (type) {
-        case 'SUPPORT': return 'Hướng dẫn DATN'
-        case 'REBUTTAL': return 'Phản biện DATN'
-        case 'JOIN': return 'Tham gia chấm DATN'
-        default: return type || 'Giảng viên'
+      switch (String(type || '').trim().toUpperCase()) {
+        case 'SUPPORT':
+          return 'Hướng dẫn DATN'
+        case 'REBUTTAL':
+          return 'Phản biện DATN'
+        case 'JOIN':
+          return 'Tham gia chấm DATN'
+        default:
+          return type || ''
       }
     },
 
@@ -1209,42 +1188,66 @@ export default {
       try {
         const [resDetail, resStudents] = await Promise.all([
           examSessionService.getDetail(item.id, 'CMS'),
-          examSessionService.getStudentsByExamSession({ examSessionId: item.id, channel: 'CMS' })
+          examSessionService.getStudentsByExamSession({ examSessionId: item.id, channel: 'CMS' }),
         ])
-        
-        this.detailData = resDetail.data !== undefined ? resDetail.data : resDetail
-        
-        const rawStu = resStudents.data !== undefined ? resStudents.data : resStudents
-        const itemsList = Array.isArray(rawStu) ? rawStu : (rawStu.data || rawStu.content || [])
 
-        const studentMap = {}
+        this.detailData = resDetail?.data !== undefined ? resDetail.data : resDetail
+
+        const rawStu = resStudents?.data !== undefined ? resStudents.data : resStudents
+        const itemsList = Array.isArray(rawStu) ? rawStu : (rawStu?.data || rawStu?.content || [])
+
+        const studentMap = new Map()
+
         itemsList.forEach(row => {
           const stuInfo = row.student || {}
-          const stuId = stuInfo.id || row.id
+          const stuId = stuInfo.id || row.studentId || row.id
 
-          if (!studentMap[stuId]) {
-            studentMap[stuId] = {
+          const assignList = Array.isArray(row.studentAssignTeacher)
+            ? row.studentAssignTeacher
+            : (Array.isArray(row.studentAssignTeachers) ? row.studentAssignTeachers : [])
+
+          const mappedTeachers = assignList
+            .map(assign => {
+              const teacherObj = assign.teacher || {}
+              const fullName = teacherObj.fullName || teacherObj.name || assign.teacherName || ''
+              const roleText = this.getAssessmentTypeText(assign.reAssessmentType || assign.type)
+              return fullName ? { fullName, roleText } : null
+            })
+            .filter(Boolean)
+
+          if (!studentMap.has(stuId)) {
+            studentMap.set(stuId, {
               ...stuInfo,
-              teachersList: []
+              courseName: stuInfo.courseName || (stuInfo.course && stuInfo.course.name) || '-',
+              className: stuInfo.className || (stuInfo.clazz && stuInfo.clazz.name) || '-',
+              teachersList: mappedTeachers,
+            })
+          } else {
+            const existing = studentMap.get(stuId)
+            if (existing.courseName === '-' && stuInfo.courseName) {
+              existing.courseName = stuInfo.courseName
             }
-          }
-
-          if (row.teacher) {
-            studentMap[stuId].teachersList.push({
-              fullName: row.teacher.fullName || row.teacher.name,
-              reAssessmentType: row.reAssessmentType
+            if (existing.className === '-' && stuInfo.className) {
+              existing.className = stuInfo.className
+            }
+            const seen = new Set(existing.teachersList.map(t => `${t.fullName}__${t.roleText}`))
+            mappedTeachers.forEach(t => {
+              const key = `${t.fullName}__${t.roleText}`
+              if (!seen.has(key)) {
+                seen.add(key)
+                existing.teachersList.push(t)
+              }
             })
           }
         })
 
-        this.studentListDetail = Object.values(studentMap)
+        this.studentListDetail = Array.from(studentMap.values())
         this.detailDialog = true
       } catch (error) {
         console.error('Lỗi tải chi tiết hội đồng:', error)
       }
     },
 
-    // Xuất file DSSV
     async handleExportDSSV(item) {
       try {
         const res = await examSessionService.exportExcel(item.id, 'CMS')
@@ -1258,7 +1261,6 @@ export default {
       }
     },
 
-    // Gửi email bảng điểm
     openSendEmailConfirm(item) {
       this.itemToSendEmail = item
       this.emailConfirmDialog = true
@@ -1295,7 +1297,7 @@ export default {
         console.error('Lỗi khi xóa:', error)
       }
     },
-    
+
     onChangeExamStatus(item, newStatus) {
       if (item.examSessionStatus === newStatus) return
       try {
@@ -1320,12 +1322,11 @@ export default {
       }
     },
 
-    // Mở Modal Cập nhật
     async openEditModal(item) {
       try {
         const resDetail = await examSessionService.getExamSessionDetail(item.id, 'CMS')
         const data = resDetail.data !== undefined ? resDetail.data : resDetail
-        
+
         if (data.examSessionStatus === 'FINALIZED') {
           if (typeof this.$showError === 'function') {
             this.$showError('Hội đồng bảo vệ lại không thể sửa do đã chốt dữ liệu')
@@ -1334,7 +1335,7 @@ export default {
         }
 
         const currentStudent = (data.studentTerms && data.studentTerms.length > 0) ? data.studentTerms[0] : null
-        
+
         this.editForm = {
           id: data.id,
           examClass: data.examClass,
@@ -1451,7 +1452,7 @@ export default {
       const id = stu.id || stu.studentId
       const name = stu.fullName || stu.name || ''
       const code = stu.code || stu.studentCode || ''
-      
+
       this.editForm.studentId = id
       this.selectedStudentText = name ? `${name} - ${code}` : ''
       this.studentError = ''
@@ -1492,8 +1493,8 @@ export default {
     },
 
     handleStudentList(item) {
-      const examSessionId = item.id || this.$route.params.id;
-      this.$router.push(`/quan-ly-bao-ve-lai/danh-sach-hoi-dong/${examSessionId}/sinh-vien`);
+      const examSessionId = item.id || this.$route.params.id
+      this.$router.push(`/quan-ly-bao-ve-lai/danh-sach-hoi-dong/${examSessionId}/sinh-vien`)
     }
   }
 }

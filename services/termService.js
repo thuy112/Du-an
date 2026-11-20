@@ -1,30 +1,66 @@
-import Api from '~/api/Api'
+import Api from "~/api/Api.js";
 
-export default {
-  getList(params) {
-    return Api.get('/api/term/', params)
-  },
-  getDetail(id, channel = 'CMS') {
-    return Api.get(`/api/term/${id}`, { channel })
-  },
-  update(id, data, channel = 'CMS') {
-    return Api.put(`/api/term/${id}`, { ...data, channel })
-  },
-  getEducationProgramList(params) {
-    return Api.get('/api/educationProgram/list', params)
-  },
-  getMajorList(params) {
-    return Api.get('/api/major/list', params)
-  },
-  getPageRole(params) {
-    return Api.get('/api/auth/getPageRole', params)
-  },
-  getUserInfo(params) {
-    return Api.get('/api/user/info', params)
-  },
-  changeStatus(id, status, channel = 'CMS') {
-    return Api.put(`/api/term/changeStatus/${id}`, { status, channel }, {
-      params: { status, channel }
-    })
-  }
+export default{
+    getList(params) {
+        return Api.get("/api/term/", params);
+    },
+
+    getTermTypesByEducationProgram(params) {
+        return Api.get("/api/term/termTypes", params);
+    },
+
+    getListForRegister(params) {
+        return Api.get("/api/term/listForRegister", params);
+    },
+
+    getListForRegisterRetakeSession(params) {
+        return Api.get("/api/term/listForRegisterRetakeSession", params);
+    },
+
+    addNew(params) {
+        return Api.post("/api/term", params);
+    },
+
+    getDetail(id) {
+        return Api.get(`/api/term/${id}`);
+    },
+
+    update(params) {
+        return Api.put(`/api/term/${params.id}`, params);
+    },
+
+    changeStatus(params) {
+        return Api.put(`/api/term/changeStatus/${params.id}`, params);
+    },
+
+    delete(id) {
+        return Api.delete(`/api/term/${id}`);
+    },
+
+    getAll(params) {
+        return Api.get("/api/term/list", params);
+    },
+
+    getTemplate() {
+        return Api.get("/api/term/templateImport");
+    },
+
+    checkImport(file) {
+        const form = new FormData();
+        form.append("file", file);
+        return Api.postMultipart("/api/term/checkImport", form);
+    },
+
+    getListByRegisterRetakeSession(params) {
+        return Api.get("/api/retakeCourseClient/listByRegister", params);
+    },
+
+    getListRegisterRetakeSession(params) {
+        return Api.get("/api/retakeCourseClient/listForRegister", params);
+    },
+
+    confirmImport(terms) {
+        return Api.post("/api/term/importExcel", terms);
+    },
 }
+

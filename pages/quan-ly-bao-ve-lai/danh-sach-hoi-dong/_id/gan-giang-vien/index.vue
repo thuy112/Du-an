@@ -1,14 +1,14 @@
 <template>
   <div class="assign-teacher-page pa-3 pa-md-4 bg-white">
-    <!-- TIÊU ĐỀ VÀ THANH CÔNG CỤ (TỐI ƯU MOBILE: MỖI TÌM KIẾM 1 DÒNG) -->
+    <!-- TIÊU ĐỀ VÀ THANH CÔNG CỤ -->
     <div class="mb-3">
-      <div class="text-h6 font-weight-bold black--text mb-2">
-        Gán giảng viên cho học sinh
-      </div>
+      <div class="d-flex flex-column flex-md-row align-md-center justify-space-between" style="gap: 10px;">
+        <div class="text-h6 font-weight-bold black--text text-no-wrap">
+          Gán giảng viên cho học sinh
+        </div>
 
-      <v-row dense>
-        <!-- Ô chọn Giảng viên (Full dòng trên mobile, có thể linh hoạt trên desktop) -->
-        <v-col cols="12">
+        <div class="d-flex flex-wrap align-center justify-end filter-toolbar" style="gap: 8px;">
+          <!-- Ô chọn Giảng viên -->
           <v-select
             v-model="filterTeacherId"
             :items="teacherList"
@@ -19,11 +19,10 @@
             dense
             hide-details
             clearable
+            class="filter-select-teacher"
           ></v-select>
-        </v-col>
 
-        <!-- Ô chọn Quy trình bảo vệ (Full dòng trên mobile) -->
-        <v-col cols="12">
+          <!-- Ô chọn Quy trình bảo vệ -->
           <v-select
             v-model="filterProcessType"
             :items="processTypeList"
@@ -34,27 +33,39 @@
             dense
             hide-details
             clearable
+            class="filter-select-process"
           ></v-select>
-        </v-col>
 
-        <!-- Cụm nút thao tác (Làm mới, Tìm kiếm, Thêm mới) -->
-        <v-col cols="12" class="d-flex align-center justify-end" style="gap: 12px;">
-          <!-- Nút làm mới (Icon tròn) -->
-          <v-btn icon color="#A62229" @click="resetFilters" title="Làm mới" class="pa-2">
-            <v-icon size="24">mdi-refresh</v-icon>
-          </v-btn>
+          <!-- Cụm nút thao tác (Làm mới, Tìm kiếm, Thêm mới) -->
+          <div class="d-flex align-center" style="gap: 8px;">
+            <v-btn icon color="#A62229" title="Làm mới" @click="resetFilters">
+              <v-icon size="22">mdi-refresh</v-icon>
+            </v-btn>
 
-          <!-- Nút Tìm kiếm (Nút vuông đỏ chứa icon kính lúp) -->
-          <v-btn color="#A62229" dark class="btn-square-action px-3 min-w-0" height="40" elevation="0" @click="loadAssignedTeachers" title="Tìm kiếm">
-            <v-icon size="24">mdi-magnify</v-icon>
-          </v-btn>
+            <v-btn
+              color="#A62229"
+              dark
+              class="btn-square-action"
+              elevation="0"
+              title="Tìm kiếm"
+              @click="loadAssignedTeachers"
+            >
+              <v-icon size="22">mdi-magnify</v-icon>
+            </v-btn>
 
-          <!-- Nút Thêm mới (Nút vuông đỏ chứa icon dấu cộng) -->
-          <v-btn color="#A62229" dark class="btn-square-action px-3 min-w-0" height="40" elevation="0" @click="openAddModal" title="Thêm mới">
-            <v-icon size="24">mdi-plus</v-icon>
-          </v-btn>
-        </v-col>
-      </v-row>
+            <v-btn
+              color="#A62229"
+              dark
+              class="btn-square-action"
+              elevation="0"
+              title="Thêm mới"
+              @click="openAddModal"
+            >
+              <v-icon size="22">mdi-plus</v-icon>
+            </v-btn>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- BẢNG HIỂN THỊ DANH SÁCH GIẢNG VIÊN ĐÃ GÁN -->
@@ -113,17 +124,17 @@
 
     <!-- THANH PHÂN TRANG (BÊN PHẢI) VÀ NÚT QUAY LẠI (BÊN TRÁI) -->
     <div class="d-flex align-center justify-space-between mt-4 flex-wrap gap-3 pt-3 border-top">
-      <!-- Nút Quay lại bên trái -->
-      <v-btn 
-        outlined 
-        color="grey darken-2" 
-        class="text-none px-5" 
-        height="38" 
-        elevation="0" 
+      <!-- Nút Quay lại bên trái 
+      <v-btn
+        outlined
+        color="grey darken-2"
+        class="text-none px-5"
+        height="38"
+        elevation="0"
         @click="goBack"
       >
         <v-icon left small>mdi-arrow-left</v-icon> Quay Lại
-      </v-btn>
+      </v-btn> -->
 
       <!-- Cụm phân trang bên phải -->
       <div class="d-flex align-center custom-pagination-group" style="gap: 8px;">
@@ -262,7 +273,7 @@ export default {
       studentId: null,
       filterTeacherId: null,
       filterProcessType: null,
-      
+
       loading: false,
       teacherList: [],
       assignedTeacherList: [],
@@ -303,7 +314,7 @@ export default {
   async mounted() {
     this.studentId = Number(this.$route.params.id)
     this.examSessionId = Number(this.$route.query.examSessionId)
-    
+
     if (this.studentId && this.examSessionId) {
       await Promise.all([
         this.loadTeacherMasterData(),
@@ -330,13 +341,13 @@ export default {
           pageSize: this.itemsPerPage,
           examSessionId: this.examSessionId,
           studentId: this.studentId,
-          teacherId: this.filterTeacherId || '', // Truyền ID giảng viên để tìm kiếm
+          teacherId: this.filterTeacherId || '',
           type: this.filterProcessType || '',
           channel: 'CMS'
         }
         const res = await examSessionService.getStudentAssignTeacher(params)
         const rawData = res.data !== undefined ? res.data : res
-        
+
         this.assignedTeacherList = Array.isArray(rawData) ? rawData : (rawData.data || rawData.content || rawData.items || [])
         this.totalRecords = rawData.totalElements ?? rawData.totalRecords ?? this.assignedTeacherList.length
         this.totalPages = Math.ceil(this.totalRecords / this.itemsPerPage) || 1
@@ -349,7 +360,6 @@ export default {
       }
     },
 
-    // Reset bộ lọc và tải lại danh sách
     resetFilters() {
       this.filterTeacherId = null
       this.filterProcessType = null
@@ -375,7 +385,7 @@ export default {
       try {
         const res = await studentAssignTeacherServices.getDetail(item.id)
         const detailData = res?.data || item
-        
+
         this.params = {
           id: detailData.id,
           examSessionId: this.examSessionId,
@@ -457,3 +467,43 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.filter-select-teacher {
+  width: 200px;
+  max-width: 100%;
+}
+
+.filter-select-process {
+  width: 210px;
+  max-width: 100%;
+}
+
+.btn-square-action {
+  width: 44px !important;
+  min-width: 44px !important;
+  height: 38px !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+}
+
+@media (max-width: 959px) {
+  .filter-toolbar {
+    justify-content: flex-start !important;
+  }
+
+  .filter-select-teacher,
+  .filter-select-process {
+    width: 100%;
+  }
+}
+
+.v-btn.custom-disabled-btn.v-btn--disabled {
+  background-color: #b7b7b7 !important;
+  color: #ffffff !important;
+}
+
+.v-btn.custom-disabled-btn.v-btn--disabled .v-icon {
+  color: #ffffff !important;
+}
+</style>

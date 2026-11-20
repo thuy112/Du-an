@@ -115,20 +115,6 @@
         </template>
       </BaseTable>
     </div>
-
-    <!-- NÚT QUAY LẠI Ở GÓC DƯỚI BÊN PHẢI -->
-    <div class="d-flex align-center justify-end mt-4 pt-3">
-      <v-btn 
-        outlined 
-        color="grey darken-2" 
-        class="text-none px-5" 
-        height="38" 
-        elevation="0" 
-        @click="goBack"
-      >
-        <v-icon left small>mdi-arrow-left</v-icon> Quay Lại
-      </v-btn>
-    </div>
   </div>
 </template>
 

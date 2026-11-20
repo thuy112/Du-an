@@ -1,245 +1,365 @@
 <template>
-  <v-dialog v-model="dialog" max-width="850px" persistent scrollable>
-    <v-card class="rounded-lg overflow-hidden">
-      <!-- HEADER: Thanh tiêu đề đỏ Bách Khoa trên cùng -->
-      <v-card-title class="bg-red-bk white--text px-5 py-3 d-flex justify-space-between align-center" style="background-color: #A62229 !important;">
-        <span class="text-h6 font-weight-bold white--text">Chi tiết sinh viên phải học lại</span>
-        <v-btn icon dark small @click="close">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
-      </v-card-title>
+    <base-modal
+        :loading="isLoading"
+        :open="open"
+        max-width="1000"
+        title="Chi tiết sinh viên phải học lại"
+        off-btn
+        @toggle="$emit('toggle')"
+    >
+        <v-row class="mt-3" dense>
+            <!-- Thông tin sinh viên -->
+            <v-col cols="12">
+                <v-card class="mb-3" outlined>
+                    <v-card-title class="text-h6 primary--text">Thông tin sinh viên</v-card-title>
+                    <v-card-text>
+                        <v-row dense>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Họ và tên sinh viên"
+                                    :value="dataDetail?.student?.fullName || dataItem?.fullName"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Mã số sinh viên"
+                                    :value="dataDetail?.student?.code || dataItem?.studentCode"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Ngày sinh"
+                                    :value="formatDate(dataDetail?.student?.birthday)"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Giới tính"
+                                    :value="
+                                        dataDetail?.student?.gender
+                                            ? dataDetail?.student?.gender === 'MALE'
+                                                ? 'Nam'
+                                                : 'Nữ'
+                                            : ''
+                                    "
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Email"
+                                    :value="dataDetail?.student?.email"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Số điện thoại"
+                                    :value="dataDetail?.student?.phone"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Địa chỉ"
+                                    :value="dataDetail?.student?.address"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Quê quán"
+                                    :value="dataDetail?.student?.homeTown"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Lớp"
+                                    :value="dataDetail?.student?.classes?.name || dataItem?.className"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Ngành"
+                                    :value="dataDetail?.student?.major?.name"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Khóa"
+                                    :value="dataDetail?.student?.course?.name"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Hình thức đào tạo"
+                                    :value="dataDetail?.student?.trainingMethod?.name"
+                                />
+                            </v-col>
+                        </v-row>
+                    </v-card-text>
+                </v-card>
+            </v-col>
 
-      <!-- CONTENT -->
-      <v-card-text class="pa-5 bg-grey-lighten-4" style="max-height: 75vh; overflow-y: auto;">
-        
-        <!-- 1. THÔNG TIN SINH VIÊN -->
-        <v-card class="pa-4 mb-4 rounded-lg elevation-1 bg-white">
-          <div class="text-subtitle-1 font-weight-bold text-red-bk mb-3" style="color: #A62229;">Thông tin sinh viên</div>
-          <v-row dense>
-            <v-col cols="12" md="6">
-              <div class="text-body-2 mb-2">
-                Họ và tên sinh viên: <span class="font-weight-bold text-red-bk" style="color: #A62229;">{{ studentInfo.fullName || studentData?.fullName || '-' }}</span>
-              </div>
-              <div class="text-body-2 mb-2">
-                Mã số sinh viên: <span class="font-weight-bold text-red-bk" style="color: #A62229;">{{ studentInfo.code || studentData?.studentCode || '-' }}</span>
-              </div>
-              <div class="text-body-2 mb-2">
-                Ngày sinh: <span class="font-weight-medium">{{ studentInfo.dob || studentInfo.birthDate || '-' }}</span>
-              </div>
-              <div class="text-body-2 mb-2">
-                Giới tính: <span class="font-weight-medium">{{ genderText }}</span>
-              </div>
-              <div class="text-body-2 mb-2">
-                Email: <span class="font-weight-medium text-blue">{{ studentInfo.email || '-' }}</span>
-              </div>
-              <div class="text-body-2 mb-2">
-                Số điện thoại: <span class="font-weight-medium">{{ studentInfo.phone || studentInfo.phoneNumber || '-' }}</span>
-              </div>
+            <!-- Thông tin học lại -->
+            <v-col cols="12">
+                <v-card class="mb-3" outlined>
+                    <v-card-title class="text-h6 primary--text">Thông tin học lại</v-card-title>
+                    <v-card-text>
+                        <v-row dense>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Đợt học lại"
+                                    :value="dataDetail?.retakeSession?.code || dataItem?.sessionCode"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Học kỳ"
+                                    :value="dataDetail?.semester?.name || dataItem?.termCode"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Mã học phần"
+                                    :value="dataDetail?.term?.code || dataItem?.subjectCode"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Tên học phần"
+                                    :value="dataDetail?.term?.name || dataItem?.subjectName"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Số tín chỉ"
+                                    :value="dataDetail?.term?.creditHours"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Thời lượng"
+                                    :value="dataDetail?.term?.workload"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item title="Trạng thái">
+                                    <template #value>
+                                        <v-chip
+                                            v-if="getStatus(dataDetail?.status)"
+                                            :color="getStatus(dataDetail?.status)?.color"
+                                            small
+                                        >
+                                            {{ getStatus(dataDetail?.status)?.text }}
+                                        </v-chip>
+                                    </template>
+                                </base-detail-item>
+                            </v-col>
+                        </v-row>
+                    </v-card-text>
+                </v-card>
             </v-col>
-            <v-col cols="12" md="6">
-              <div class="text-body-2 mb-2">
-                Địa chỉ: <span class="font-weight-medium">{{ studentInfo.address || '-' }}</span>
-              </div>
-              <div class="text-body-2 mb-2">
-                Quê quán: <span class="font-weight-medium">{{ studentInfo.hometown || studentInfo.nativeLand || '-' }}</span>
-              </div>
-              <div class="text-body-2 mb-2">
-                Lớp: <span class="font-weight-medium text-red-bk" style="color: #A62229;">{{ studentInfo.classes?.name || studentData?.className || '-' }}</span>
-              </div>
-              <div class="text-body-2 mb-2">
-                Ngành: <span class="font-weight-medium text-red-bk" style="color: #A62229;">{{ majorName }}</span>
-              </div>
-              <div class="text-body-2 mb-2">
-                Khóa: <span class="font-weight-medium text-red-bk" style="color: #A62229;">{{ courseName }}</span>
-              </div>
-              <div class="text-body-2">
-                Hình thức đào tạo: <span class="font-weight-medium">{{ trainingTypeName }}</span>
-              </div>
-            </v-col>
-          </v-row>
-        </v-card>
 
-        <!-- 2. THÔNG TIN HỌC LẠI -->
-        <v-card class="pa-4 mb-4 rounded-lg elevation-1 bg-white">
-          <div class="text-subtitle-1 font-weight-bold text-red-bk mb-3" style="color: #A62229;">Thông tin học lại</div>
-          <v-row dense>
-            <v-col cols="12" md="6">
-              <div class="text-body-2 mb-2">
-                Đợt học lại: <span class="font-weight-bold text-red-bk" style="color: #A62229;">{{ retakeSessionInfo.code || studentData?.sessionCode || '-' }}</span>
-              </div>
-              <div class="text-body-2 mb-2">
-                Mã học phần: <span class="font-weight-bold text-red-bk" style="color: #A62229;">{{ termInfo.code || studentData?.subjectCode || '-' }}</span>
-              </div>
-              <div class="text-body-2 mb-2">
-                Số tín chỉ: <span class="font-weight-bold">{{ termInfo.credit || termInfo.credits || '-' }}</span>
-              </div>
-              <div class="text-body-2 d-flex align-center">
-                <span class="mr-2">Trạng thái:</span>
-                <span :class="['status-badge text-nowrap', isRegistered ? 'bg-green' : 'bg-grey']">
-                  {{ isRegistered ? 'Đã đăng ký' : 'Chưa đăng ký' }}
-                </span>
-              </div>
+            <!-- Thông tin điểm -->
+            <v-col cols="12">
+                <v-card class="mb-3" outlined>
+                    <v-card-title class="text-h6 primary--text">Thông tin điểm</v-card-title>
+                    <v-card-text>
+                        <v-row dense>
+                            <v-col cols="12" md="3">
+                                <base-detail-item
+                                    title="Điểm giữa kỳ"
+                                    :value="dataDetail?.scoreGk"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="3">
+                                <base-detail-item
+                                    title="Điểm thực hành thí nghiệm"
+                                    :value="dataDetail?.scoreThTn"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="3">
+                                <base-detail-item
+                                    title="Điểm quá trình"
+                                    :value="dataDetail?.scoreQt"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="3">
+                                <base-detail-item
+                                    title="Điểm cuối kỳ"
+                                    :value="dataDetail?.scoreCk"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="3">
+                                <base-detail-item
+                                    title="Điểm cộng"
+                                    :value="dataDetail?.scoreBonus"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="3">
+                                <base-detail-item
+                                    title="Điểm chữ"
+                                    :value="dataDetail?.scoreCharacter"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="3">
+                                <base-detail-item
+                                    title="Học lại / Thi lại"
+                                    :value="
+                                        resultList.find(
+                                            (item) => item.value === dataDetail?.retakeSession?.type
+                                        )?.text
+                                    "
+                                />
+                            </v-col>
+                            <v-col cols="12" md="3">
+                                <base-detail-item title="Hệ số" :value="dataDetail?.weight" />
+                            </v-col>
+                        </v-row>
+                    </v-card-text>
+                </v-card>
             </v-col>
-            <v-col cols="12" md="6">
-              <div class="text-body-2 mb-2">
-                Học kỳ: <span class="font-weight-bold text-red-bk" style="color: #A62229;">{{ semesterInfo.code || studentData?.termCode || '-' }}</span>
-              </div>
-              <div class="text-body-2 mb-2">
-                Tên học phần: <span class="font-weight-bold text-red-bk" style="color: #A62229;">{{ termInfo.name || studentData?.subjectName || '-' }}</span>
-              </div>
-              <div class="text-body-2 mb-2">
-                Thời lượng: <span class="font-weight-bold">{{ termInfo.duration || '-' }}</span>
-              </div>
-            </v-col>
-          </v-row>
-        </v-card>
 
-        <!-- 3. THÔNG TIN ĐIỂM -->
-        <v-card class="pa-4 mb-4 rounded-lg elevation-1 bg-white">
-          <div class="text-subtitle-1 font-weight-bold text-red-bk mb-3" style="color: #A62229;">Thông tin điểm</div>
-          <v-row dense>
-            <v-col cols="12" md="3">
-              <div class="text-body-2 mb-2">Điểm giữa kỳ: <span class="font-weight-bold">{{ studentData?.midScore ?? scoreInfo.midterm ?? '-' }}</span></div>
-              <div class="text-body-2">Điểm cộng: <span class="font-weight-bold">{{ studentData?.plusScore ?? scoreInfo.bonus ?? '-' }}</span></div>
+            <!-- Thông tin giảng viên -->
+            <v-col cols="12">
+                <v-card class="mb-3" outlined>
+                    <v-card-title class="text-h6 primary--text">Thông tin giảng viên</v-card-title>
+                    <v-card-text>
+                        <v-row dense>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Họ và tên giảng viên"
+                                    :value="dataDetail?.teacher?.fullName"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Mã giảng viên"
+                                    :value="dataDetail?.teacher?.code"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Email"
+                                    :value="dataDetail?.teacher?.email"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Số điện thoại"
+                                    :value="dataDetail?.teacher?.phone"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Trạng thái giảng viên"
+                                    :value="
+                                        lecturerStatusList.find(
+                                            (item) =>
+                                                item.value === dataDetail?.teacher?.lecturerStatus
+                                        )?.text
+                                    "
+                                />
+                            </v-col>
+                        </v-row>
+                    </v-card-text>
+                </v-card>
             </v-col>
-            <v-col cols="12" md="3">
-              <div class="text-body-2 mb-2">Điểm thực hành thí nghiệm: <span class="font-weight-bold">{{ studentData?.practiceScore ?? scoreInfo.practice ?? '-' }}</span></div>
-              <div class="text-body-2">Điểm chữ: <span class="font-weight-bold">{{ studentData?.letterScore ?? scoreInfo.letterScore ?? '-' }}</span></div>
-            </v-col>
-            <v-col cols="12" md="3">
-              <div class="text-body-2 mb-2">Điểm quá trình: <span class="font-weight-bold">{{ studentData?.processScore ?? scoreInfo.process ?? '-' }}</span></div>
-              <div class="text-body-2">Học lại / Thi lại: <span class="font-weight-bold text-red-bk" style="color: #A62229;">{{ studentData?.retakeType || scoreInfo.retakeType || 'Học lại' }}</span></div>
-            </v-col>
-            <v-col cols="12" md="3">
-              <div class="text-body-2 mb-2">Điểm cuối kỳ: <span class="font-weight-bold">{{ studentData?.score ?? studentData?.failedScore ?? scoreInfo.final ?? '-' }}</span></div>
-              <div class="text-body-2">Hệ số: <span class="font-weight-bold">{{ studentData?.coefficient ?? scoreInfo.coefficient ?? '-' }}</span></div>
-            </v-col>
-          </v-row>
-        </v-card>
 
-        <!-- 4. THÔNG TIN GIẢNG VIÊN -->
-        <v-card class="pa-4 mb-4 rounded-lg elevation-1 bg-white">
-          <div class="text-subtitle-1 font-weight-bold text-red-bk mb-3" style="color: #A62229;">Thông tin giảng viên</div>
-          <v-row dense>
-            <v-col cols="12" md="6">
-              <div class="text-body-2 mb-2">Họ và tên giảng viên: <span class="font-weight-medium">{{ lecturerInfo.fullName || lecturerInfo.name || '-' }}</span></div>
-              <div class="text-body-2 mb-2">Email: <span class="font-weight-medium text-blue">{{ lecturerInfo.email || '-' }}</span></div>
-              <div class="text-body-2">Trạng thái giảng viên: <span class="font-weight-medium">{{ lecturerInfo.status || '-' }}</span></div>
+            <!-- Thông tin khác -->
+            <v-col cols="12">
+                <v-card class="mb-3" outlined>
+                    <v-card-title class="text-h6 primary--text">Thông tin khác</v-card-title>
+                    <v-card-text>
+                        <v-row dense>
+                            <v-col cols="12" md="6">
+                                <base-detail-item
+                                    title="Mã phòng thi"
+                                    :value="dataDetail?.examRoomCode"
+                                />
+                            </v-col>
+                            <v-col cols="12" md="6">
+                                <base-detail-item title="Loại lớp" :value="dataDetail?.classType" />
+                            </v-col>
+                            <v-col cols="12">
+                                <base-detail-item title="Ghi chú" :value="dataDetail?.note" />
+                            </v-col>
+                        </v-row>
+                    </v-card-text>
+                </v-card>
             </v-col>
-            <v-col cols="12" md="6">
-              <div class="text-body-2 mb-2">Mã giảng viên: <span class="font-weight-medium">{{ lecturerInfo.code || '-' }}</span></div>
-              <div class="text-body-2">Số điện thoại: <span class="font-weight-medium">{{ lecturerInfo.phone || lecturerInfo.phoneNumber || '-' }}</span></div>
-            </v-col>
-          </v-row>
-        </v-card>
-
-        <!-- 5. THÔNG TIN KHÁC -->
-        <v-card class="pa-4 rounded-lg elevation-1 bg-white">
-          <div class="text-subtitle-1 font-weight-bold text-red-bk mb-3" style="color: #A62229;">Thông tin khác</div>
-          <v-row dense>
-            <v-col cols="12" md="6">
-              <div class="text-body-2 mb-2">Mã phòng thi: <span class="font-weight-medium">{{ studentData?.roomCode || otherInfo.roomCode || '-' }}</span></div>
-              <div class="text-body-2">Ghi chú: <span class="font-weight-medium">{{ studentData?.note || otherInfo.note || '-' }}</span></div>
-            </v-col>
-            <v-col cols="12" md="6">
-              <div class="text-body-2">Loại lớp: <span class="font-weight-medium">{{ studentData?.classType || otherInfo.classType || '-' }}</span></div>
-            </v-col>
-          </v-row>
-        </v-card>
-
-      </v-card-text>
-
-      <v-divider></v-divider>
-
-      <!-- FOOTER -->
-      <v-card-actions class="pa-3 px-5 d-flex justify-end bg-white">
-        <v-btn dark small elevation="0" color="#A62229" class="text-none px-4" @click="close" style="background-color: #A62229 !important;">
-          Đóng <v-icon right small>mdi-close</v-icon>
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+        </v-row>
+    </base-modal>
 </template>
 
 <script>
+import { allowRegisterStatusList, lecturerStatusList } from "~/consts/list";
+import BaseDetailItem from "~/components/Base/DetailItem.vue";
+import retakeCourseAuthListServices from "~/services/retakeCourseAuthListServices";
+
 export default {
-  name: 'RetakeCourseDetailMustRetakeStudentModal',
-  props: {
-    value: {
-      type: Boolean,
-      default: false,
+    name: "RetakeCourseDetailMustRetakeStudentModal",
+    components: { BaseDetailItem },
+    props: {
+        open: {
+            type: Boolean,
+            default: false,
+        },
+        dataItem: {
+            type: Object,
+            default: () => ({}),
+        },
     },
-    studentData: {
-      type: Object,
-      default: () => ({}),
+    data() {
+        return {
+            isLoading: false,
+            statusList: allowRegisterStatusList,
+            dataDetail: {},
+            resultList: [
+                { text: "Học lại", value: "RETAKE_COURSES" },
+                { text: "Thi lại", value: "RETAKE_EXAM" },
+            ],
+            lecturerStatusList,
+        };
     },
-  },
-  computed: {
-    dialog: {
-      get() {
-        return this.value
-      },
-      set(val) {
-        this.$emit('input', val)
-      },
+    watch: {
+        open: {
+            handler(value) {
+                if (value && this.dataItem?.id) {
+                    this.getDetail();
+                } else if (value) {
+                    this.dataDetail = this.dataItem || {};
+                }
+            },
+            immediate: true,
+        },
     },
-    isRegistered() {
-      const status = this.studentData?.status
-      return status === 'REGISTERED' || status === 'REGISTER' || this.studentData?.isRegistered
+    methods: {
+        getStatus(value) {
+            return this.statusList.find((item) => item.value === value);
+        },
+        async getDetail() {
+            this.isLoading = true;
+            try {
+                const res = await retakeCourseAuthListServices.getDetail(this.dataItem.id);
+                if (res.success) {
+                    this.dataDetail = res.data || {};
+                } else {
+                    this.dataDetail = this.dataItem || {};
+                }
+            } catch (error) {
+                this.dataDetail = this.dataItem || {};
+            } finally {
+                this.isLoading = false;
+            }
+        },
+        formatDate(date) {
+            return date ? this.$formatDate(date) : "";
+        },
     },
-    studentInfo() {
-      return this.studentData?.student || {}
-    },
-    courseName() {
-      const course = this.studentInfo?.course
-      if (typeof course === 'object' && course !== null) {
-        return course.name || course.code || '-'
-      }
-      return course || '-'
-    },
-    genderText() {
-      const g = this.studentInfo?.gender
-      if (g === 'OTHER' || g === 'Nữ') return 'Nữ'
-      if (g === 'MALE' || g === 'Nam') return 'Nam'
-      return g || '-'
-    },
-    majorName() {
-      const major = this.studentInfo?.major
-      if (typeof major === 'object' && major !== null) {
-        return major.name || major.code || '-'
-      }
-      return major || '-'
-    },
-    trainingTypeName() {
-      const type = this.studentInfo?.trainingType
-      if (typeof type === 'object' && type !== null) {
-        return type.name || type.code || '-'
-      }
-      return type || '-'
-    },
-    retakeSessionInfo() {
-      return this.studentData?.retakeSession || {}
-    },
-    semesterInfo() {
-      return this.studentData?.semester || {}
-    },
-    termInfo() {
-      return this.studentData?.term || {}
-    },
-    scoreInfo() {
-      return this.studentData?.scoreDetail || {}
-    },
-    lecturerInfo() {
-      return this.studentData?.lecturer || {}
-    },
-    otherInfo() {
-      return this.studentData?.other || {}
-    },
-  },
-  methods: {
-    close() {
-      this.dialog = false
-    },
-  },
-}
+};
 </script>
+
+<style scoped>
+:deep .v-data-table__wrapper {
+    max-height: 200px;
+    overflow: scroll;
+}
+</style>

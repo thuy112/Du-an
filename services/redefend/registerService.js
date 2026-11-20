@@ -16,6 +16,24 @@ export default {
     return Api.get('/api/classes/all', params)
   },
 
+  checkImport(file) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return Api.postMultipart('/api/redefense/register/import/check', formData)
+  },
+
+  confirmImport(data) {
+    return Api.post('/api/redefense/register/import', data)
+  },
+
+  export(params) {
+    return Api.get("/redefense/register/export", params);
+  },
+
+  getTemplate() {
+    return Api.get(`/api/redefense/register/templateImport`);
+  },
+
   // Xuất file kết quả cấn thu
   exportFile(params) {
     return Api.get('/api/redefense/register/export', { 
@@ -93,40 +111,40 @@ export default {
     return Api.put(`/api/redefense/register/approve/credit/${id}`, data, { params: { channel } })
   },
   // Duyệt tín chỉ
-  async creditRegister(data) {
-    return await Api.post("/api/redefense/register/approve/credit", data);
+  creditRegister(data) {
+    return Api.post("/api/redefense/register/approve/credit", data);
   },
 
   // Duyệt học phí
-  async tuitionFeeRegister(data) {
-    return await Api.post("/api/redefense/register/approve/tuitionFee", data);
+  tuitionFeeRegister(data) {
+    return Api.post("/api/redefense/register/approve/tuitionFee", data);
   },
 
   // Duyệt sinh viên
-  async studentRegister(data) {
-    return await Api.post("/api/redefense/register/approve/student", data);
+  studentRegister(data) {
+    return Api.post("/api/redefense/register/approve/student", data);
   },
-  async notifyEmail(data) {
-    return await Api.get("/api/redefense/register/mailFee", data);
-  },
-
-  async notifyEmailRefuse(data) {
-    return await Api.get("/api/redefense/register/mailRefused", data);
-  },
-  async validateSameBatch(data) {
-    return await Api.post('/api/payment/reassessment/validate-same-batch', data)
+  notifyEmail(data) {
+    return Api.get("/api/redefense/register/mailFee", data);
   },
 
-  async generateBatchQr(data) {
-      return await Api.post('/api/payment/reassessment/generate-batch-qr', data)
+  notifyEmailRefuse(data) {
+    return Api.get("/api/redefense/register/mailRefused", data);
+  },
+  validateSameBatch(data) {
+    return Api.post('/api/payment/reassessment/validate-same-batch', data)
   },
 
-  async validateExtendSameBatch(data) {
-      return await Api.post('/api/payment/reassessment/validate-extend-same-batch', data)
+  generateBatchQr(data) {
+      return Api.post('/api/payment/reassessment/generate-batch-qr', data)
   },
 
-  async extendDeadline(data) {
-      return await Api.post('/api/payment/reassessment/extend-deadline', data)
+  validateExtendSameBatch(data) {
+      return Api.post('/api/payment/reassessment/validate-extend-same-batch', data)
+  },
+
+  extendDeadline(data) {
+      return Api.post('/api/payment/reassessment/extend-deadline', data)
   },
 
 }

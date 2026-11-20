@@ -600,13 +600,16 @@
 
     <!-- Modal Xem Chi Tiết (Dành cho icon mắt) -->
     <RetakeCourseDetailMustRetakeStudentModal
-      v-model="showDetailModal"
+      :open="showDetailModal"
+      :data-item="selectedStudentDetail"
       :student-data="selectedStudentDetail"
+      @toggle="showDetailModal = false"
     />
 
-    <!-- Modal Thêm Sinh Viên -->
+    <!-- Modal Thêm Sinh Viên (Dành cho nút +) -->
     <DetailMustRetakeStudentModal
-      v-model="showAddModal"
+      :open="showAddModal"
+      @toggle="showAddModal = false"
       @success="onAddStudentSuccess"
     />
 
@@ -652,6 +655,8 @@
 
 <script>
 import * as XLSX from 'xlsx'
+import retakeSessionServices from '~/services/retakeSessionServices'
+import termService from '~/services/termService'
 import RetakeCourseDetailMustRetakeStudentModal from '~/components/RetakeCourse/RetakeCourseDetailMustRetakeStudentModal.vue'
 import DetailMustRetakeStudentModal from '~/components/RetakeCourse/DetailMustRetakeStudentModal.vue'
 
@@ -689,8 +694,8 @@ export default {
       selectedItems: [],
 
       // Trạng thái cho 2 modal riêng biệt
-      showAddModal: false,        // Dùng cho nút dấu +
-      showDetailModal: false,     // Dùng cho icon mắt
+      showAddModal: false, // Dùng cho nút dấu +
+      showDetailModal: false, // Dùng cho icon mắt
       selectedStudentDetail: null,
 
       toasts: [],
@@ -726,21 +731,19 @@ export default {
     async fetchInitialData() {
       try {
         const [semesterRes, sessionRes, subjectRes] = await Promise.all([
-          this.$axios.$get('/api/semester/list', {
-            params: { status: 'ACTIVE', channel: 'CMS' },
-          }).catch(() => null),
-          this.$axios.$get('/api/retakeSession/list', {
-            params: { channel: 'CMS' },
-          }).catch(() => null),
-          this.$axios.$get('/api/term/list', {
-            params: { channel: 'CMS' },
-          }).catch(() => null),
+          retakeSessionServices
+            .getSemesters({ status: 'ACTIVE', channel: 'CMS' })
+            .catch(() => null),
+          retakeSessionServices
+            .getRetakeSessions({ channel: 'CMS' })
+            .catch(() => null),
+          termService.getAll({ channel: 'CMS' }).catch(() => null),
         ])
 
         if (semesterRes) {
           const rawSemesters = Array.isArray(semesterRes)
             ? semesterRes
-            : semesterRes.data || semesterRes.content || []
+            : semesterRes.data?.data || semesterRes.data || semesterRes.content || []
           this.termOptions = rawSemesters.map((item) => ({
             text: item.name || item.code,
             value: item.id || item.code,
@@ -750,7 +753,7 @@ export default {
         if (sessionRes) {
           const rawSessions = Array.isArray(sessionRes)
             ? sessionRes
-            : sessionRes.data || sessionRes.content || []
+            : sessionRes.data?.data || sessionRes.data || sessionRes.content || []
           this.sessionOptions = rawSessions.map((item) => ({
             text: item.code || item.name,
             value: item.id || item.code,
@@ -760,7 +763,7 @@ export default {
         if (subjectRes) {
           const rawSubjects = Array.isArray(subjectRes)
             ? subjectRes
-            : subjectRes.data || subjectRes.content || []
+            : subjectRes.data?.data || subjectRes.data || subjectRes.content || []
           this.subjectOptions = rawSubjects.map((item) => ({
             text: item.name ? `${item.code} - ${item.name}` : item.code,
             value: item.id || item.code,
@@ -785,9 +788,7 @@ export default {
           channel: 'CMS',
         }
 
-        const res = await this.$axios.$get('/api/retakeCourseAuthList', {
-          params,
-        })
+        const res = await retakeSessionServices.getRetakeCourseAuthList(params)
 
         if (res) {
           const rootData = res.data !== undefined ? res.data : res
@@ -835,26 +836,10 @@ export default {
     },
 
     // 1. Hàm gọi khi bấm icon mắt (Xem chi tiết sinh viên)
-    async viewDetail(item) {
-      if (!item || !item.id) return
-      try {
-        const res = await this.$axios.$get(
-          `/api/retakeCourseAuthList/detail/${item.id}`,
-          {
-            params: { channel: 'CMS' },
-          }
-        )
-
-        if (res) {
-          const detailData = res.data !== undefined ? res.data : res
-          this.selectedStudentDetail = detailData
-          this.showDetailModal = true
-        }
-      } catch (error) {
-        console.error('Lỗi tải chi tiết sinh viên:', error)
-        this.selectedStudentDetail = item
-        this.showDetailModal = true
-      }
+    viewDetail(item) {
+      if (!item) return
+      this.selectedStudentDetail = item
+      this.showDetailModal = true
     },
 
     // 2. Hàm gọi khi bấm icon dấu + (Mở modal thêm mới)
@@ -942,12 +927,10 @@ export default {
       if (this.itemToDelete && !this.itemToDelete.isRegistered) {
         const targetId = this.itemToDelete.id
         try {
-          // Gọi API xóa trên server
-          await this.$axios.$delete(`/api/retakeCourseAuthList/${targetId}`, {
-            params: { channel: 'CMS' },
+          await retakeSessionServices.deleteRetakeCourseAuth(targetId, {
+            channel: 'CMS',
           })
 
-          // Tải lại danh sách từ server hoặc lọc bỏ trực tiếp
           await this.loadStudents()
           this.addToast('Xóa thông tin thành công')
         } catch (error) {
@@ -958,6 +941,7 @@ export default {
       this.deleteDialog = false
       this.itemToDelete = null
     },
+
     addToast(message = 'Thao tác thành công', duration = 3000) {
       const id = Date.now() + Math.random()
       this.toasts.unshift({ id, message, duration })
@@ -1036,10 +1020,9 @@ export default {
         event.target.value = ''
       }
     },
-  },
-  handleAddSuccess(newItems) {
+
+    handleAddSuccess(newItems) {
       if (Array.isArray(newItems)) {
-        // Đưa các dòng mới thêm lên đầu danh sách
         this.studentList = [...newItems, ...this.studentList]
         this.totalRecords += newItems.length
       } else {
@@ -1047,16 +1030,18 @@ export default {
       }
       this.addToast('Thêm thành công', 3000)
     },
+
     async onAddStudentSuccess(message) {
       this.showAddModal = false
       this.currentPage = 1
       this.pageInput = 1
       await this.loadStudents()
-      
-      // Gọi trực tiếp toast thông báo màu xanh lá
-      const text = typeof message === 'string' ? message : 'Thêm sinh viên thành công'
+
+      const text =
+        typeof message === 'string' ? message : 'Thêm sinh viên thành công'
       this.addToast(text, 3000)
     },
+  },
 }
 </script>
 
@@ -1073,11 +1058,9 @@ export default {
 .gray-head-text {
   color: #333333 !important;
 }
-
 .bg-gray-head {
   background-color: #eeeeee !important;
 }
-
 .status-badge {
   padding: 4px 12px;
   border-radius: 12px;
@@ -1091,7 +1074,6 @@ export default {
 .bg-grey {
   background-color: #9e9e9e !important;
 }
-
 .gap-1 {
   gap: 4px;
 }
@@ -1107,29 +1089,24 @@ export default {
 .text-nowrap {
   white-space: nowrap !important;
 }
-
 .border-btn {
   border: 1px solid #e0e0e0 !important;
   border-radius: 4px !important;
 }
-
 .filter-input >>> .v-input__slot {
   border-radius: 6px !important;
   min-height: 38px !important;
 }
-
 .select-per-page >>> .v-input__slot,
 .input-page-num >>> .v-input__slot {
   min-height: 32px !important;
   padding: 0 8px !important;
 }
-
 .btn-square-action {
   border-radius: 6px !important;
   height: 38px !important;
   min-width: 38px !important;
 }
-
 .btn-email-custom {
   min-width: 44px !important;
   width: 44px !important;
@@ -1137,17 +1114,14 @@ export default {
   border-radius: 8px !important;
   padding: 0 !important;
 }
-
 .btn-email-disabled {
   background-color: #e0e0e0 !important;
   cursor: not-allowed !important;
 }
-
 .btn-email-active {
   background-color: #a62229 !important;
   cursor: pointer !important;
 }
-
 ::v-deep .v-badge__badge {
   font-size: 11px !important;
   font-weight: bold !important;
@@ -1156,7 +1130,6 @@ export default {
   padding: 0 5px !important;
   border-radius: 10px !important;
 }
-
 .toast-container {
   position: fixed;
   top: 24px;
@@ -1166,30 +1139,25 @@ export default {
   max-width: 90vw;
   pointer-events: none;
 }
-
 .toast-item {
   pointer-events: auto;
   background-color: #4cb050 !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
-
 .opacity-80 {
   opacity: 0.8;
 }
-
 .toast-progress-bg {
   height: 3px;
   width: 100%;
   background-color: rgba(255, 255, 255, 0.25);
 }
-
 .toast-progress-bar {
   width: 100%;
   height: 100%;
   background-color: #35feb1;
   animation: shrinkProgress linear forwards;
 }
-
 @keyframes shrinkProgress {
   from {
     width: 100%;
@@ -1198,7 +1166,6 @@ export default {
     width: 0%;
   }
 }
-
 .btn-close-custom {
   color: #a62229 !important;
   font-weight: 500;

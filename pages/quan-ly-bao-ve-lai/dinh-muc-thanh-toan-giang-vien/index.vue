@@ -130,32 +130,13 @@
           <span class="font-weight-medium">{{ formatCurrency(item.totalFee) }}</span>
         </template>
 
-        <!-- Trạng thái (Bấm vào để đổi trạng thái trực tiếp qua v-menu) -->
+        <!-- Trạng thái (Theo mẫu ChangeableStatus) -->
         <template #[`item.paymentSendStatus`]="{ item }">
-          <v-menu offset-y>
-            <template v-slot:activator="{ on, attrs }">
-              <v-chip
-                small
-                dark
-                v-bind="attrs"
-                v-on="on"
-                :color="getStatusColor(item.paymentSendStatus)"
-                class="font-weight-medium text-caption cursor-pointer"
-              >
-                {{ getStatusName(item.paymentSendStatus) }}
-                <v-icon right x-small>mdi-menu-down</v-icon>
-              </v-chip>
-            </template>
-            <v-list dense>
-              <v-list-item
-                v-for="status in statusList"
-                :key="status.value"
-                @click="updateItemStatus(item, status.value)"
-              >
-                <v-list-item-title>{{ status.text }}</v-list-item-title>
-              </v-list-item>
-            </v-list>
-          </v-menu>
+          <ChangeableStatus
+            :status="item.paymentSendStatus"
+            :status-list="statusList"
+            @changeStatus="handleChangeStatus($event, item)"
+          />
         </template>
 
         <!-- Chức năng -->
@@ -176,16 +157,16 @@
 
               <v-list-item @click="handleExportStudent(item)">
                 <v-list-item-icon class="mr-2">
-                    <v-icon color="green" size="20">mdi-export</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-title>Xuất file DSSV</v-list-item-title>
+                  <v-icon color="green" size="20">mdi-export</v-icon>
+                </v-list-item-icon>
+                <v-list-item-title>Xuất file DSSV</v-list-item-title>
               </v-list-item>
 
               <v-list-item color="teal" @click="handleClick(item)">
                 <v-list-item-icon class="mr-2">
-                    <v-icon color="red" size="20">mdi-trash-can</v-icon>
-                  </v-list-item-icon>
-                  <v-list-item-title>Xóa</v-list-item-title>
+                  <v-icon color="red" size="20">mdi-trash-can</v-icon>
+                </v-list-item-icon>
+                <v-list-item-title>Xóa</v-list-item-title>
               </v-list-item>
             </v-list>
           </v-menu>
@@ -428,10 +409,10 @@
         </v-card-title>
 
         <v-card-text class="pa-4 pt-5 text-body-1">
-          Bạn có chắc chắn muốn đổi trạng thái từ 
-          <span :style="{ color: pendingStatusColor, fontWeight: 'bold' }">{{ pendingStatusText }}</span> 
-          sang 
-          <span :style="{ color: targetStatusColor, fontWeight: 'bold' }">{{ targetStatusText }}</span> 
+          Bạn có chắc chắn muốn đổi trạng thái từ
+          <span :style="{ color: pendingStatusColor, fontWeight: 'bold' }">{{ pendingStatusText }}</span>
+          sang
+          <span :style="{ color: targetStatusColor, fontWeight: 'bold' }">{{ targetStatusText }}</span>
           không?
         </v-card-text>
 
@@ -530,27 +511,31 @@
     </v-dialog>
 
     <base-confirm-modal
-            :open="openDelete"
-            @OK="handleDelete"
-            @toggle="openDelete = !openDelete"
-        >
-            <template #content>
-                <div>
-                    Xác nhận xóa
-                    <span class="primary--text font-weight-bold">{{ selectedItem?.name }}</span>
-                </div>
-            </template>
-        </base-confirm-modal>
+      :open="openDelete"
+      @OK="handleDelete"
+      @toggle="openDelete = !openDelete"
+    >
+      <template #content>
+        <div>
+          Xác nhận xóa
+          <span class="primary--text font-weight-bold">{{ selectedItem?.name }}</span>
+        </div>
+      </template>
+    </base-confirm-modal>
   </div>
 </template>
 
 <script>
 import BaseTable from '~/components/Base/BaseTable.vue'
+import ChangeableStatus from '~/components/Base/ChangeableStatus.vue'
 import paymentTeacherServices from '~/services/redefend/paymentTeacherServices'
 
 export default {
   name: 'PaymentTeacherView',
-  components: { BaseTable },
+  components: {
+    BaseTable,
+    ChangeableStatus,
+  },
   middleware: 'authenticated',
   data() {
     return {
@@ -559,10 +544,10 @@ export default {
       detailData: {
         examSessionName: '',
         trainingType: '',
-        batchName: ''
+        batchName: '',
       },
       detailTeacherList: [],
-      
+
       detailModalHeaders: [
         { text: 'STT', value: 'stt', align: 'center', width: '60px', sortable: false },
         { text: 'Giảng viên', value: 'teacherName', sortable: false, width: '150px' },
@@ -591,9 +576,9 @@ export default {
       isLoading: false,
 
       statusList: [
-        { value: "COMPLETED", text: "Đã gửi", color: "green" },
-        { value: "PENDING", text: "Chưa gửi", color: "primary" },
-        { value: "CANCELLED", text: "Hủy", color: "warning" },
+        { value: 'COMPLETED', text: 'Đã gửi', color: 'green' },
+        { value: 'PENDING', text: 'Chưa gửi', color: 'primary' },
+        { value: 'CANCELLED', text: 'Hủy', color: 'warning' },
       ],
 
       filters: {
@@ -635,6 +620,7 @@ export default {
       list: [],
       teacherList: [],
       examSessionList: [],
+      selectedItem: null,
     }
   },
   computed: {
@@ -677,15 +663,12 @@ export default {
   },
   methods: {
     getStatusName(statusKey) {
-      const found = (this.statusList || []).find(s => s.value === statusKey)
-      return found ? found.text : (statusKey || 'Chưa thanh toán')
+      const found = (this.statusList || []).find((s) => s.value === statusKey)
+      return found ? found.text : statusKey || 'Chưa thanh toán'
     },
 
     getStatusColor(statusKey) {
-      if (statusKey === 'COMPLETED') return 'green'
-      if (statusKey === 'PENDING') return '#a62229'
-      if (statusKey === 'CANCELLED') return 'grey'
-      const found = (this.statusList || []).find(s => s.value === statusKey)
+      const found = (this.statusList || []).find((s) => s.value === statusKey)
       return found ? found.color : 'warning'
     },
 
@@ -697,23 +680,30 @@ export default {
     async fetchFilterData() {
       try {
         const [teacherRes, sessionRes] = await Promise.all([
-          paymentTeacherServices.getTeacherList({ 
-            status: 'ACTIVE', 
-            channel: 'CMS', 
-            transid: 'f808f7cc-a95b-43f6-a1df-a186fe581693' 
+          paymentTeacherServices.getTeacherList({
+            status: 'ACTIVE',
+            channel: 'CMS',
+            transid: 'f808f7cc-a95b-43f6-a1df-a186fe581693',
           }),
-          paymentTeacherServices.getExamSessionList({ 
-            status: 'ACTIVE', 
-            scoreStatus: 'SCOREBOARD_AVAILABLE', 
-            examSessionStatus: 'FINALIZED', 
-            channel: 'CMS', 
-            transid: '5b32afbe-39a1-4068-9f95-c23e4f4acbae' 
-          })
+          paymentTeacherServices.getExamSessionList({
+            status: 'ACTIVE',
+            scoreStatus: 'SCOREBOARD_AVAILABLE',
+            examSessionStatus: 'FINALIZED',
+            channel: 'CMS',
+            transid: '5b32afbe-39a1-4068-9f95-c23e4f4acbae',
+          }),
         ])
 
         const parseData = (res) => {
           const raw = res?.data !== undefined ? res.data : res
-          return raw?.data?.items || raw?.data?.objects || raw?.data || raw?.items || raw?.objects || (Array.isArray(raw) ? raw : [])
+          return (
+            raw?.data?.items ||
+            raw?.data?.objects ||
+            raw?.data ||
+            raw?.items ||
+            raw?.objects ||
+            (Array.isArray(raw) ? raw : [])
+          )
         }
 
         this.teacherList = parseData(teacherRes)
@@ -733,14 +723,14 @@ export default {
           examSessionId: this.appliedFilters.examSessionId || undefined,
           paymentSendStatus: this.appliedFilters.paymentSendStatus || undefined,
           channel: 'CMS',
-          transid: 'f97ee128-4406-4342-9874-dc5527aa3a20'
+          transid: 'f97ee128-4406-4342-9874-dc5527aa3a20',
         }
 
         const res = await paymentTeacherServices.getList(params)
-        
+
         const responseWrapper = res?.data !== undefined ? res.data : res
         const pageData = responseWrapper?.data !== undefined ? responseWrapper.data : responseWrapper
-        
+
         let items = []
         if (Array.isArray(pageData?.data)) {
           items = pageData.data
@@ -750,12 +740,18 @@ export default {
           items = pageData.items
         }
 
-        // Lấy và khóa chặt tổng số bản ghi thực tế từ server
-        const apiTotal = pageData?.total !== undefined ? pageData.total : 
-                         (pageData?.totalElements !== undefined ? pageData.totalElements : 
-                         (pageData?.totalRecords !== undefined ? pageData.totalRecords : 
-                         (pageData?.totalRecord !== undefined ? pageData.totalRecord : 
-                         (responseWrapper?.total !== undefined ? responseWrapper.total : null))))
+        const apiTotal =
+          pageData?.total !== undefined
+            ? pageData.total
+            : pageData?.totalElements !== undefined
+            ? pageData.totalElements
+            : pageData?.totalRecords !== undefined
+            ? pageData.totalRecords
+            : pageData?.totalRecord !== undefined
+            ? pageData.totalRecord
+            : responseWrapper?.total !== undefined
+            ? responseWrapper.total
+            : null
 
         if (apiTotal !== null && apiTotal !== undefined) {
           this.totalRecord = apiTotal
@@ -768,12 +764,12 @@ export default {
           let teacherIds = []
           if (Array.isArray(item.paymentTeacherDetails) && item.paymentTeacherDetails.length > 0) {
             teachersStr = item.paymentTeacherDetails
-              .map(detail => detail.teacher?.fullName || detail.teacher?.name)
+              .map((detail) => detail.teacher?.fullName || detail.teacher?.name)
               .filter(Boolean)
               .join(', ')
-            
+
             teacherIds = item.paymentTeacherDetails
-              .map(detail => detail.teacher?.id)
+              .map((detail) => detail.teacher?.id)
               .filter(Boolean)
           }
 
@@ -781,25 +777,26 @@ export default {
             id: item.id,
             teacherIds,
             examSessionName: item.examSession?.examClass || '---',
-            creditHours: item.examSession?.term?.creditHours !== undefined ? item.examSession?.term?.creditHours : '---',
+            creditHours:
+              item.examSession?.term?.creditHours !== undefined
+                ? item.examSession?.term?.creditHours
+                : '---',
             teachersName: teachersStr,
             subjectName: item.examSession?.term?.name || '---',
             filePayment: item.fileName || null,
             totalFee: item.totalAmount !== undefined ? item.totalAmount : 0,
             paymentSendStatus: item.paymentSendStatus || 'PENDING',
-            examSessionId: item.examSessionId || item.examSession?.id
+            examSessionId: item.examSessionId || item.examSession?.id,
           }
         })
 
         let finalRows = mappedList
         if (this.appliedFilters.teacherId) {
           const selectedTId = Number(this.appliedFilters.teacherId)
-          finalRows = finalRows.filter(row => row.teacherIds.includes(selectedTId))
+          finalRows = finalRows.filter((row) => row.teacherIds.includes(selectedTId))
         }
 
         this.list = finalRows
-        // XÓA HOẶC COMMENT DÒNG DƯỚI ĐÂY ĐỂ KHÔNG BỊ GHI ĐÈ LẠI TỔNG SỐ BẢN GHI:
-        // this.totalRecord = this.list.length 
       } catch (err) {
         console.error('Lỗi khi tải danh sách thanh toán giảng viên:', err)
         this.list = []
@@ -857,16 +854,44 @@ export default {
     deleteItem(item) {},
     downloadFilePayment(item) {},
     exportList() {},
+    handleFileChange(file) {
+      this.addForm.file = file
+    },
 
     async handleExportStudent(item) {
       try {
-        this.loadingExportStudent = true;
-        const res = await paymentTeacherServices.exportStudentPaid(item.id);
-        if (res.success) this.$download(res?.data?.url);
+        this.loadingExportStudent = true
+        const res = await paymentTeacherServices.exportStudentPaid(item.id)
+        if (res.success) this.$download(res?.data?.url)
       } catch (error) {
-        console.error(error);
+        console.error(error)
       } finally {
-        this.loadingExportStudent = false;
+        this.loadingExportStudent = false
+      }
+    },
+
+    // @@@ change status (theo mẫu ChangeableStatus)
+    async handleChangeStatus(paymentStatus, item) {
+      try {
+        const res = await paymentTeacherServices.changeStatus({
+          id: item.id,
+          paymentSendStatus: paymentStatus.value,
+        })
+        if (res && res.success) {
+          if (typeof this.$showSuccess === 'function') {
+            this.$showSuccess('Cập nhật trạng thái thành công')
+          }
+          await this.fetchData()
+        } else if (typeof this.$showError === 'function') {
+          this.$showError(res?.message || 'Cập nhật trạng thái thất bại')
+        }
+      } catch (err) {
+        console.error('Lỗi cập nhật trạng thái:', err)
+        if (typeof this.$showError === 'function') {
+          this.$showError(
+            err?.response?.data?.message || err?.message || 'Cập nhật trạng thái thất bại'
+          )
+        }
       }
     },
 
@@ -880,49 +905,14 @@ export default {
       if (!this.pendingItem) return
       const item = this.pendingItem
       const newStatus = this.targetNewStatus
-
-      try {
-        const res = await paymentTeacherServices.changeStatus({ 
-          id: item.id, 
-          paymentSendStatus: newStatus 
-        })
-        
-        const responseWrapper = res?.data !== undefined ? res.data : res
-        const errorCode = responseWrapper?.error?.code ?? responseWrapper?.code
-
-        if (res?.success === true && !responseWrapper?.error &&
-          (errorCode === undefined || errorCode === null || Number(errorCode) === 0) &&
-          responseWrapper?.success !== false) {
-          this.isConfirmStatusOpen = false
-
-          await this.fetchData()
-          const updatedItem = this.list.find(row => String(row.id) === String(item.id))
-          if (updatedItem?.paymentSendStatus === newStatus && typeof this.$showSuccess === 'function') {
-            this.$showSuccess('Cập nhật trạng thái thành công')
-          } else if (typeof this.$showWarning === 'function') {
-            this.$showWarning('Backend chưa xác nhận trạng thái mới; danh sách vẫn giữ trạng thái đã lưu.')
-          }
-        } else {
-          const errorMessage = responseWrapper?.error?.message || responseWrapper?.message ||
-            res?.error?.message || res?.message
-          if (typeof this.$showError === 'function') {
-            this.$showError(errorMessage || 'Backend từ chối cập nhật trạng thái. Trạng thái cũ vẫn được giữ nguyên.')
-          }
-        }
-      } catch (err) {
-        console.error('Lỗi cập nhật trạng thái:', err)
-        const errorMessage = err?.response?.data?.error?.message ||
-          err?.response?.data?.message || err?.message
-        if (typeof this.$showError === 'function') {
-          this.$showError(errorMessage || 'Không thể cập nhật trạng thái. Trạng thái cũ vẫn được giữ nguyên.')
-        }
-      } finally {
-        this.pendingItem = null
-      }
+      this.isConfirmStatusOpen = false
+      await this.handleChangeStatus({ value: newStatus }, item)
+      this.pendingItem = null
     },
 
     openAddModal() {
       this.addForm.examSessionId = null
+      this.addForm.file = null
       this.teacherJobDetails = []
       this.isAddModalOpen = true
     },
@@ -944,48 +934,67 @@ export default {
           ? data
           : data?.items || data?.objects || data?.data || []
 
-        this.teacherJobDetails = items.map(item => {
+        this.teacherJobDetails = items.map((item) => {
           const counts = item.countStudentByReAssessmentType || {}
 
           let studentNamesStr = '---'
           if (Array.isArray(item.studentAssignTeachers) && item.studentAssignTeachers.length > 0) {
-            studentNamesStr = item.studentAssignTeachers.map(st => {
-              const studentName = st.student?.fullName || ''
-              let typeLabel = ''
-              if (st.reAssessmentType === 'SUPPORT') typeLabel = 'Hướng dẫn DATN'
-              else if (st.reAssessmentType === 'REBUTTAL') typeLabel = 'Phản biện DATN'
-              else if (st.reAssessmentType === 'JOIN') typeLabel = 'Tham gia HĐ chấm TN'
-              else if (st.reAssessmentType === 'RESIDENCE') typeLabel = 'Lưu trú'
+            studentNamesStr = item.studentAssignTeachers
+              .map((st) => {
+                const studentName = st.student?.fullName || ''
+                let typeLabel = ''
+                if (st.reAssessmentType === 'SUPPORT') typeLabel = 'Hướng dẫn DATN'
+                else if (st.reAssessmentType === 'REBUTTAL') typeLabel = 'Phản biện DATN'
+                else if (st.reAssessmentType === 'JOIN') typeLabel = 'Tham gia HĐ chấm TN'
+                else if (st.reAssessmentType === 'RESIDENCE') typeLabel = 'Lưu trú'
 
-              return typeLabel ? `${studentName} (${typeLabel})` : studentName
-            }).filter(Boolean).join('\n')
+                return typeLabel ? `${studentName} (${typeLabel})` : studentName
+              })
+              .filter(Boolean)
+              .join('\n')
           }
 
-          const teacher = item.teacher && typeof item.teacher === 'object'
-            ? item.teacher
-            : item.studentAssignTeachers?.find(assignment => assignment.teacher)?.teacher || null
-          const teacherName = teacher?.fullName || item.teacherName || item.fullName ||
-            item.name || teacher?.name || (typeof item.teacher === 'string' ? item.teacher : '')
-          const matchingTeachers = this.teacherList.filter(knownTeacher => {
+          const teacher =
+            item.teacher && typeof item.teacher === 'object'
+              ? item.teacher
+              : item.studentAssignTeachers?.find((assignment) => assignment.teacher)?.teacher || null
+          const teacherName =
+            teacher?.fullName ||
+            item.teacherName ||
+            item.fullName ||
+            item.name ||
+            teacher?.name ||
+            (typeof item.teacher === 'string' ? item.teacher : '')
+          const matchingTeachers = this.teacherList.filter((knownTeacher) => {
             const knownName = knownTeacher.fullName || knownTeacher.name
-            return typeof knownName === 'string' && typeof teacherName === 'string' &&
+            return (
+              typeof knownName === 'string' &&
+              typeof teacherName === 'string' &&
               knownName.trim().toLocaleLowerCase() === teacherName.trim().toLocaleLowerCase()
+            )
           })
           const matchedTeacher = matchingTeachers.length === 1 ? matchingTeachers[0] : null
-          const teacherId = teacher?.id ?? item.teacherId ?? item.studentAssignTeachers?.find(
-            assignment => assignment.teacherId !== null && assignment.teacherId !== undefined
-          )?.teacherId ?? matchedTeacher?.id
+          const teacherId =
+            teacher?.id ??
+            item.teacherId ??
+            item.studentAssignTeachers?.find(
+              (assignment) => assignment.teacherId !== null && assignment.teacherId !== undefined
+            )?.teacherId ??
+            matchedTeacher?.id
 
           return {
             teacherId,
             teacher,
             teacherName: teacherName || matchedTeacher?.fullName || matchedTeacher?.name || '',
-            creditHours: item.creditSupport !== undefined ? item.creditSupport : (item.examSession?.term?.creditHours || 0),
+            creditHours:
+              item.creditSupport !== undefined
+                ? item.creditSupport
+                : item.examSession?.term?.creditHours || 0,
             supportQuantity: counts.SUPPORT !== undefined ? counts.SUPPORT : 0,
             joinQuantity: counts.JOIN !== undefined ? counts.JOIN : 0,
             rebuttalQuantity: counts.REBUTTAL !== undefined ? counts.REBUTTAL : 0,
             residenceQuantity: counts.RESIDENCE !== undefined ? counts.RESIDENCE : 0,
-            studentNames: studentNamesStr
+            studentNames: studentNamesStr,
           }
         })
       } catch (err) {
@@ -999,15 +1008,21 @@ export default {
         alert('Vui lòng chọn hội đồng bảo vệ!')
         return
       }
-      const teacherWithoutId = this.teacherJobDetails.find(item => item.teacherId === null || item.teacherId === undefined)
+      const teacherWithoutId = this.teacherJobDetails.find(
+        (item) => item.teacherId === null || item.teacherId === undefined
+      )
       if (teacherWithoutId) {
-        alert(`Không xác định được giảng viên "${teacherWithoutId.teacherName || 'chưa rõ tên'}". Vui lòng tải lại danh sách hoặc kiểm tra dữ liệu.`)
+        alert(
+          `Không xác định được giảng viên "${
+            teacherWithoutId.teacherName || 'chưa rõ tên'
+          }". Vui lòng tải lại danh sách hoặc kiểm tra dữ liệu.`
+        )
         return
       }
       try {
         this.isSubmitting = true
-        
-        const paymentTeacherJobRequests = this.teacherJobDetails.map(item => {
+
+        const paymentTeacherJobRequests = this.teacherJobDetails.map((item) => {
           const teacherId = item.teacherId
           return {
             teacherId,
@@ -1044,13 +1059,14 @@ export default {
           examSessionId: this.addForm.examSessionId,
           paymentTeacherJobRequests,
           channel: 'CMS',
-          transid: 'b5bc9574-5864-44c5-a63f-c0c5b1dd85b4'
+          transid: 'b5bc9574-5864-44c5-a63f-c0c5b1dd85b4',
         }
 
         const res = await paymentTeacherServices.add(payload)
         const responseWrapper = res?.data !== undefined ? res.data : res
         const errorCode = responseWrapper?.error?.code ?? responseWrapper?.code
-        const hasBackendError = errorCode !== undefined && errorCode !== null && Number(errorCode) !== 0
+        const hasBackendError =
+          errorCode !== undefined && errorCode !== null && Number(errorCode) !== 0
 
         if (res?.success === true && !hasBackendError) {
           if (typeof this.$showSuccess === 'function') {
@@ -1069,32 +1085,44 @@ export default {
     async viewDetail(item) {
       try {
         const examSessionId = item.examSessionId || item.examSession?.id
-        
+
         this.detailData = {
           examSessionName: item.examSessionName || item.examSession?.examClass || '---',
           trainingType: item.trainingType || 'Ngắn hạn',
-          batchName: item.batchName || 'Đợt 20'
+          batchName: item.batchName || 'Đợt 20',
         }
 
         if (examSessionId) {
           const res = await paymentTeacherServices.getTeachers({ examSessionId })
           const raw = res?.data !== undefined ? res.data : res
           const data = raw?.data !== undefined ? raw.data : raw
-          const items = Array.isArray(data) ? data : data?.items || data?.objects || data?.data || []
+          const items = Array.isArray(data)
+            ? data
+            : data?.items || data?.objects || data?.data || []
 
-          this.detailTeacherList = items.map(tItem => {
+          this.detailTeacherList = items.map((tItem) => {
             const counts = tItem.countStudentByReAssessmentType || {}
 
-            const teacher = tItem.teacher && typeof tItem.teacher === 'object'
-              ? tItem.teacher
-              : tItem.studentAssignTeachers?.find(assignment => assignment.teacher)?.teacher || null
-            
-            const teacherName = teacher?.fullName || tItem.teacherName || tItem.fullName ||
-              tItem.name || teacher?.name || (typeof tItem.teacher === 'string' ? tItem.teacher : '---')
+            const teacher =
+              tItem.teacher && typeof tItem.teacher === 'object'
+                ? tItem.teacher
+                : tItem.studentAssignTeachers?.find((assignment) => assignment.teacher)?.teacher ||
+                  null
+
+            const teacherName =
+              teacher?.fullName ||
+              tItem.teacherName ||
+              tItem.fullName ||
+              tItem.name ||
+              teacher?.name ||
+              (typeof tItem.teacher === 'string' ? tItem.teacher : '---')
 
             return {
               teacherName,
-              creditHours: tItem.creditSupport !== undefined ? tItem.creditSupport : (tItem.examSession?.term?.creditHours || 0),
+              creditHours:
+                tItem.creditSupport !== undefined
+                  ? tItem.creditSupport
+                  : tItem.examSession?.term?.creditHours || 0,
               supportQuantity: counts.SUPPORT !== undefined ? counts.SUPPORT : 0,
               joinQuantity: counts.JOIN !== undefined ? counts.JOIN : 0,
               rebuttalQuantity: counts.REBUTTAL !== undefined ? counts.REBUTTAL : 0,
@@ -1114,19 +1142,19 @@ export default {
     },
 
     handleClick(item) {
-      this.selectedItem = item;
-      this.openDelete = true;
+      this.selectedItem = item
+      this.openDelete = true
     },
 
     async handleDelete() {
-      const res = await paymentTeacherServices.delete(this.selectedItem.id);
+      const res = await paymentTeacherServices.delete(this.selectedItem.id)
       if (res.success) {
-        this.$showSuccess("Xoá thành công hội đồng thanh toán GV");
-        await this.fetchData();
+        this.$showSuccess('Xoá thành công hội đồng thanh toán GV')
+        await this.fetchData()
       }
-      this.openDelete = false;
+      this.openDelete = false
     },
-  }
+  },
 }
 </script>
 

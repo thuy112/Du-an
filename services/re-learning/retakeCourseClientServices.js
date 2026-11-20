@@ -1,20 +1,21 @@
 import Api from '~/api/Api.js'
 
-class RetakeCourseClientsServices {
+export default {
     // Lấy danh sách học phần / học lại theo phân trang hoặc bộ lọc
-    async getList(params) {
-        return await Api.get('/retakeCourse', params);
-    }
+    getList(params) {
+        return Api.get('/api/retakeCourse', params);
+    },
 
     // Lấy chi tiết thông tin học lại theo id
-    async getDetail(id) {
-        return await Api.get(`/retakeCourse/${id}`);
-    }
+    getDetail(id) {
+        return Api.get(`/api/retakeCourse/${id}`);
+    },
 
     // Lấy danh sách học phần nợ của sinh viên cần đăng ký học lại
-    async getListForRegister(params) {
-        return await Api.get('/registerRetakeCourse/listForRegister', params);
+    getListForRegister(params) {
+        return Api.get('/api/registerRetakeCourse/listForRegister', params);
+    },
+    getListAllForRegister(params) {
+        return Api.get("/api/retakeCourseClient/listAllForRegister", params);
     }
 }
-
-export default new RetakeCourseClientsServices();

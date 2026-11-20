@@ -161,10 +161,13 @@
             :disabled="item.disabled"
             :class="{
               'text-home-red': item.text === 'Trang chủ',
-              'text-retake-list-red': item.text === 'Danh sách lớp học lại',
+              'text-retake-list-red':
+                item.text === 'Danh sách lớp học lại' ||
+                item.text === 'Danh sách hội đồng',
               'text-breadcrumb-gray':
                 item.text !== 'Trang chủ' &&
-                item.text !== 'Danh sách lớp học lại',
+                item.text !== 'Danh sách lớp học lại' &&
+                item.text !== 'Danh sách hội đồng',
             }"
           >
             {{ item.text }}
@@ -314,6 +317,7 @@
 import Cookies from 'js-cookie'
 import authServices from '~/services/authServices'
 import userServices from '~/services/userServices'
+import examSessionService from '~/services/redefend/examSessionService'
 import { removeCookies } from '~/utils/heppers'
 
 export default {
@@ -324,7 +328,7 @@ export default {
       dialogPassword: false,
       activeSubMenu: null,
       mobileDrawer: false,
-      dynamicPageTitle: 'Đơn vị công tác Khoa - trường',
+      dynamicPageTitle: '',
       user: {
         fullName: '',
         email: '',
@@ -514,6 +518,7 @@ export default {
     breadcrumbs() {
       const currentPath = this.$route.path
       const routeParams = this.$route.params
+      const routeQuery = this.$route.query
 
       if (currentPath === '/') {
         return [{ text: 'Trang chủ', disabled: true }]
@@ -535,6 +540,71 @@ export default {
           disabled: false,
         })
         items.push({ text: routeParams.id || '', disabled: true })
+        return items
+      }
+
+      const isRedefenseGradeSheet =
+        /^\/quan-ly-bao-ve-lai\/danh-sach-hoi-dong\/[^/]+\/bang-diem\/?$/.test(
+          currentPath
+        )
+
+      if (isRedefenseGradeSheet) {
+        items.push({ text: 'Quản lý bảo vệ lại', disabled: true })
+        items.push({
+          text: 'Danh sách hội đồng',
+          to: '/quan-ly-bao-ve-lai/danh-sach-hoi-dong',
+          exact: true,
+          disabled: false,
+        })
+        const councilLabel =
+          this.dynamicPageTitle ||
+          routeQuery.examSessionCode ||
+          routeQuery.code ||
+          routeParams.code ||
+          routeParams.id ||
+          ''
+        if (councilLabel) {
+          items.push({ text: councilLabel, disabled: true })
+        }
+        return items
+      }
+
+      const isRedefenseAssignStudent =
+        /^\/quan-ly-bao-ve-lai\/danh-sach-hoi-dong\/[^/]+\/sinh-vien\/?$/.test(
+          currentPath
+        )
+
+      if (isRedefenseAssignStudent) {
+        items.push({ text: 'Quản lý bảo vệ lại', disabled: true })
+        items.push({
+          text: 'Danh sách hội đồng',
+          to: '/quan-ly-bao-ve-lai/danh-sach-hoi-dong',
+          exact: true,
+          disabled: false,
+        })
+        items.push({
+          text: this.dynamicPageTitle || 'Gán sinh viên cho hội đồng',
+          disabled: true,
+        })
+        return items
+      }
+
+      const isRedefenseAssignLecturer =
+        /^\/quan-ly-bao-ve-lai\/danh-sach-hoi-dong\/[^/]+\/gan-giang-vien\/?$/.test(
+          currentPath
+        )
+
+      if (isRedefenseAssignLecturer) {
+        items.push({ text: 'Quản lý bảo vệ lại', disabled: true })
+        items.push({
+          text: 'Danh sách hội đồng',
+          to: '/quan-ly-bao-ve-lai/danh-sach-hoi-dong',
+          exact: true,
+          disabled: false,
+        })
+        if (this.dynamicPageTitle) {
+          items.push({ text: this.dynamicPageTitle, disabled: true })
+        }
         return items
       }
 
@@ -581,6 +651,7 @@ export default {
       immediate: true,
       handler(to) {
         this.mobileDrawer = false
+        this.dynamicPageTitle = ''
         const activeParent = this.fullMenuList.find(
           (m) => m.children && m.children.some((c) => c.path === to.path)
         )
@@ -588,6 +659,10 @@ export default {
           this.activeSubMenu = activeParent
         } else {
           this.activeSubMenu = null
+        }
+
+        if (/^\/quan-ly-bao-ve-lai\/danh-sach-hoi-dong\/[^/]+\/bang-diem\/?$/.test(to.path)) {
+          this.fetchCouncilBreadcrumbLabel(to.params.id)
         }
       },
     },
@@ -609,6 +684,16 @@ export default {
     this.$nuxt.$off('user-info-updated')
   },
   methods: {
+    async fetchCouncilBreadcrumbLabel(sessionId) {
+      if (!sessionId) return
+      try {
+        const res = await examSessionService.getExamSessionDetail(sessionId, 'CMS')
+        const rawSession = res?.data !== undefined ? res.data : res
+        if (rawSession && rawSession.examClass) {
+          this.dynamicPageTitle = rawSession.examClass
+        }
+      } catch (e) {}
+    },
     isParentActive(item) {
       if (!item.children) return false
       return item.children.some((child) => child.path === this.$route.path)
@@ -754,7 +839,7 @@ export default {
     },
   },
 }
-</script>
+</script> 
 
 <style scoped>
 .sidebar-primary {

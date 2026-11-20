@@ -60,5 +60,5 @@ export default {
             params: { channel: 'CMS', ...params },
             headers: { 'Content-Type': 'multipart/form-data' }
         })
-    }
+    },
 }
