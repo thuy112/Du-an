@@ -104,16 +104,16 @@
         <!-- Nút thao tác -->
         <div class="d-flex align-center" style="gap: 5px;">
           <v-btn icon color="#A62229" class="btn-square-action" @click="refreshData" title="Làm mới">
-            <v-icon size="22">mdi-refresh</v-icon>
+            <v-icon size="24">mdi-refresh</v-icon>
           </v-btn>
 
           <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" @click="handleSearch" title="Tìm kiếm">
-            <v-icon size="22">mdi-magnify</v-icon>
+            <v-icon size="24">mdi-magnify</v-icon>
           </v-btn>
 
           <!-- Nút Dấu Cộng (+) mở Modal Thêm mới -->
           <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" @click="openAddDialog" title="Thêm mới">
-            <v-icon size="22">mdi-plus</v-icon>
+            <v-icon size="24">mdi-plus</v-icon>
           </v-btn>
         </div>
       </div>
@@ -169,10 +169,10 @@
         <template #[`item.actions`]="{ item }">
           <div class="d-flex align-center justify-center" style="gap: 4px;">
             <v-btn icon small color="amber darken-2" @click="handleEdit(item)" title="Sửa">
-              <v-icon size="18">mdi-pencil</v-icon>
+              <v-icon size="24">mdi-pencil</v-icon>
             </v-btn>
             <v-btn icon small color="error" @click="handleDelete(item)" title="Xóa">
-              <v-icon size="18">mdi-delete</v-icon>
+              <v-icon size="24">mdi-trash-can</v-icon>
             </v-btn>
           </div>
         </template>

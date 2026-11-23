@@ -20,5 +20,49 @@ export default {
       params: { educationProgramId: id, channel },
       responseType: 'blob' // Xử lý nhận file tải về nếu cần
     })
-  }
+  },
+
+    getAll(status) {
+        return Api.get("/api/educationProgram/list", status);
+    },
+
+    add(data) {
+        return Api.post("/api/educationProgram", data);
+    },
+
+    getDetail(id) {
+        return Api.get(`/api/educationProgram/${id}`);
+    },
+
+    confirmImport(data) {
+        return Api.post("/api/educationProgram/import", data);
+    },
+
+    checkImport(data) {
+        const file = new FormData();
+        file.append("file", data);
+        return Api.post("/api/educationProgram/import/check", file);
+    },
+
+    delete(data) {
+        return Api.delete("/api/educationProgram/" + data.id);
+    },
+
+    getTermTypeEducation(educationProgramId) {
+        return Api.get(`/api/educationProgram/termTypes/${educationProgramId}`);
+    },
+
+    exportEducationProgram(educationProgramId) {
+        return Api.get(`/api/educationProgram/exportTerm/${educationProgramId}`, {
+            educationProgramId,
+        });
+    },
+
+    getTemplate() {
+        return Api.get(`/api/educationProgram/template`);
+    },
+
+    update(data) {
+        return Api.put("/api/educationProgram/" + data.id, data);
+    },
 }

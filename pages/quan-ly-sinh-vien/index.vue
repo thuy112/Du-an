@@ -214,6 +214,9 @@
           <v-btn icon x-small color="cyan darken-1" @click="viewDetail(item)">
             <v-icon size="24" color="blue">mdi-eye</v-icon>
           </v-btn>
+          <v-btn icon x-small @click="handleUpdate(item)">
+            <v-icon size="24" color="warning">mdi-pencil</v-icon>
+          </v-btn>
           <v-btn icon x-small color="teal" @click="checkHistory(item)">
             <v-icon size="24" color="green">mdi-table-account</v-icon>
           </v-btn>
@@ -437,95 +440,238 @@
       </div>
     </div>
 
-    <!-- DIALOG CHI TIẾT SINH VIÊN -->
-    <v-dialog v-model="detailDialog" max-width="850px" scrollable>
-      <v-card class="rounded-lg overflow-hidden">
-        <v-card-title
-          class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center"
-          style="background-color: #a2212b"
-        >
-          <span>Thông tin sinh viên chi tiết</span>
-          <v-btn icon small color="white" @click="detailDialog = false"
-            ><v-icon>mdi-close</v-icon></v-btn
+    <!-- MODAL CHI TIẾT SINH VIÊN (THEO MẪU) -->
+    <base-modal
+      :open="detailDialog"
+      max-width="1150px"
+      off-btn
+      title="Thông tin sinh viên chi tiết"
+      @toggle="detailDialog = !detailDialog"
+    >
+      <v-row class="mt-3" dense>
+        <v-col cols="12">
+          <base-title title="Thông tin cá nhân" />
+        </v-col>
+        <v-col cols="6">
+          <base-detail-item :value="detailItem?.fullName" title="Họ tên" />
+        </v-col>
+        <v-col cols="6">
+          <base-detail-item :value="getGender(detailItem?.gender)" title="Giới tính" />
+        </v-col>
+
+        <v-col cols="6">
+          <base-detail-item :value="detailItem?.code" title="Mã số sinh viên" />
+        </v-col>
+        <v-col cols="6">
+          <base-detail-item :value="detailItem?.citizen" title="CCCD" />
+        </v-col>
+        <v-col cols="6">
+          <base-detail-item
+            :value="$formatDate ? $formatDate(detailItem?.birthday) : detailItem?.birthday"
+            title="Ngày sinh"
+          />
+        </v-col>
+
+        <v-col cols="6">
+          <base-detail-item :value="detailItem?.email" title="Email trường" />
+        </v-col>
+        <v-col cols="6">
+          <base-detail-item :value="detailItem?.birthplace" title="Nơi sinh" />
+        </v-col>
+
+        <v-col cols="6">
+          <base-detail-item :value="detailItem?.emailOther" title="Email cá nhân" />
+        </v-col>
+        <v-col cols="6">
+          <base-detail-item :value="detailItem?.homeTown" title="Trú quán" />
+        </v-col>
+        <v-col cols="6">
+          <base-detail-item :value="detailItem?.ethnicity" title="Dân tộc" />
+        </v-col>
+        <v-col cols="6">
+          <base-detail-item :value="detailItem?.address" title="Địa chỉ liên hệ" />
+        </v-col>
+        <v-col cols="12" md="6">
+          <base-detail-item title="Trạng thái" :value="detailItem?.status">
+            <template #value>
+              <BaseStatusItem
+                :status-list="studentStatusList"
+                :status="detailItem?.status"
+              />
+            </template>
+          </base-detail-item>
+        </v-col>
+        <v-col cols="6">
+          <base-detail-item :value="detailItem?.phone" title="SĐT" />
+        </v-col>
+
+        <v-col cols="12">
+          <v-divider />
+        </v-col>
+        <v-col cols="12">
+          <base-title title="Thông tin đào tạo" />
+        </v-col>
+
+        <v-col cols="12">
+          <base-expansion
+            :value="detailTrainingUnit?.name || detailItem?.trainingUnitName"
+            title="Địa điểm đào tạo"
           >
-        </v-card-title>
+            <template #content>
+              <v-row dense>
+                <v-col cols="6" md="4">
+                  <base-detail-item
+                    :value="detailTrainingUnit?.code"
+                    title="Mã địa điểm đào tạo"
+                  />
+                </v-col>
+                <v-col v-if="detailTrainingUnit?.address">
+                  <base-detail-item
+                    :value="detailTrainingUnit?.address"
+                    title="Địa chỉ"
+                  />
+                </v-col>
+              </v-row>
+            </template>
+          </base-expansion>
+        </v-col>
 
-        <v-card-text class="pt-4 black--text" style="max-height: 80vh">
-          <div class="d-flex align-center mb-3">
-            <div class="section-title-indicator mr-2"></div>
-            <h3 class="text-subtitle-1 font-weight-bold" style="color: #000">
-              Thông tin cá nhân
-            </h3>
-          </div>
-
-          <v-row dense class="text-body-2 mb-4">
-            <v-col cols="12" md="6" class="py-1"
-              ><span class="grey--text text--darken-1">Họ tên:</span>
-              <span class="font-weight-medium red--text text--darken-3 ml-1">{{
-                selectedStudent.fullName
-              }}</span></v-col
-            >
-            <v-col cols="12" md="6" class="py-1"
-              ><span class="grey--text text--darken-1">Mã số sinh viên:</span>
-              <span class="font-weight-bold red--text text--darken-3 ml-1">{{
-                selectedStudent.code
-              }}</span></v-col
-            >
-            <v-col cols="12" md="6" class="py-1"
-              ><span class="grey--text text--darken-1">CCCD:</span>
-              <span class="font-weight-medium red--text text--darken-3 ml-1">{{
-                selectedStudent.citizen
-              }}</span></v-col
-            >
-            <v-col cols="12" md="6" class="py-1"
-              ><span class="grey--text text--darken-1">Email trường:</span>
-              <span class="red--text text--darken-3 font-weight-medium ml-1">{{
-                selectedStudent.email
-              }}</span></v-col
-            >
-          </v-row>
-
-          <v-divider class="my-3"></v-divider>
-
-          <div class="d-flex align-center mb-3">
-            <div class="section-title-indicator mr-2"></div>
-            <h3 class="text-subtitle-1 font-weight-bold" style="color: #000">
-              Thông tin đào tạo
-            </h3>
-          </div>
-
-          <v-row dense class="text-body-2">
-            <v-col cols="12" md="6" class="py-1"
-              ><b>Khóa:</b> {{ selectedStudent.courseName }}</v-col
-            >
-            <v-col cols="12" md="6" class="py-1"
-              ><b>Lớp:</b> {{ selectedStudent.className }}</v-col
-            >
-            <v-col cols="12" md="6" class="py-1"
-              ><b>Ngành:</b> {{ selectedStudent.majorName }}</v-col
-            >
-            <v-col cols="12" md="6" class="py-1"
-              ><b>Hình thức đào tạo:</b>
-              {{ selectedStudent.trainingMethodName }}</v-col
-            >
-            <v-col cols="12" md="6" class="py-1"
-              ><b>Địa điểm đào tạo:</b>
-              {{ selectedStudent.trainingUnitName }}</v-col
-            >
-          </v-row>
-        </v-card-text>
-
-        <v-card-actions class="justify-end pb-3 pr-4 border-top">
-          <v-btn
-            outlined
-            color="grey darken-2"
-            class="px-4 text-capitalize"
-            @click="detailDialog = false"
-            >Đóng X</v-btn
+        <v-col cols="12">
+          <base-expansion
+            :value="detailClasses?.name || detailItem?.className"
+            title="Tên lớp"
           >
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+            <template #content>
+              <v-row dense>
+                <v-col cols="12">
+                  <base-detail-item
+                    :value="detailClasses?.code"
+                    title="Mã lớp"
+                  />
+                </v-col>
+              </v-row>
+            </template>
+          </base-expansion>
+        </v-col>
+
+        <v-col cols="12">
+          <base-expansion
+            :value="detailCourse?.name || detailItem?.courseName"
+            title="Tên khóa học"
+          >
+            <template #content>
+              <v-row dense>
+                <v-col cols="6" md="3">
+                  <base-detail-item
+                    :value="detailCourse?.code"
+                    title="Mã khóa học"
+                  />
+                </v-col>
+                <v-col cols="12" md="6">
+                  <base-detail-item title="Thời gian">
+                    <template #value>
+                      <span
+                        v-if="
+                          detailCourse?.fromTime || detailCourse?.toTime
+                        "
+                      >
+                        {{
+                          $formatDate
+                            ? $formatDate(detailCourse?.fromTime)
+                            : detailCourse?.fromTime
+                        }}~{{
+                          $formatDate
+                            ? $formatDate(detailCourse?.toTime)
+                            : detailCourse?.toTime
+                        }}
+                      </span>
+                    </template>
+                  </base-detail-item>
+                </v-col>
+              </v-row>
+            </template>
+          </base-expansion>
+        </v-col>
+
+        <v-col v-if="detailTrainingType?.name" cols="12">
+          <base-expansion
+            :value="detailTrainingType?.name"
+            title="Loại hình đào tạo"
+          >
+            <template #content>
+              <v-row dense>
+                <v-col cols="6" md="4">
+                  <base-detail-item
+                    :value="detailTrainingType?.code"
+                    title="Mã loại hình đào tạo"
+                  />
+                </v-col>
+              </v-row>
+            </template>
+          </base-expansion>
+        </v-col>
+
+        <v-col cols="12">
+          <base-expansion
+            :value="
+              detailTrainingMethod?.name || detailItem?.trainingMethodName
+            "
+            title="Hình thức đào tạo"
+          >
+            <template #content>
+              <v-row dense>
+                <v-col cols="6" md="4">
+                  <base-detail-item
+                    :value="detailTrainingMethod?.code"
+                    title="Mã hình thức đào tạo"
+                  />
+                </v-col>
+              </v-row>
+            </template>
+          </base-expansion>
+        </v-col>
+
+        <v-col cols="12">
+          <base-expansion
+            :value="detailMajor?.name || detailItem?.majorName"
+            title="Ngành"
+          >
+            <template #content>
+              <v-row dense>
+                <v-col cols="6" md="3">
+                  <base-detail-item
+                    :value="detailMajor?.code"
+                    title="Mã ngành"
+                  />
+                </v-col>
+              </v-row>
+            </template>
+          </base-expansion>
+        </v-col>
+
+        <v-col cols="12" md="4">
+          <base-expansion
+            :value="getDegree(detailItem?.degreeType)"
+            title="Bằng cấp"
+            :disable="true"
+          ></base-expansion>
+        </v-col>
+        <v-col cols="12" md="4">
+          <base-expansion
+            :value="formatMonthYear(detailItem?.startOfTraining)"
+            title="Thời gian bắt đầu"
+            :disable="true"
+          ></base-expansion>
+        </v-col>
+        <v-col cols="12" md="4">
+          <base-expansion
+            :value="formatMonthYear(detailItem?.expiryDate)"
+            title="Thời gian kết thúc"
+            :disable="true"
+          ></base-expansion>
+        </v-col>
+      </v-row>
+    </base-modal>
 
     <!-- HỆ THỐNG TOAST HÀNG ĐỢI (Xếp chồng, có nút X và thanh tiến trình thời gian chạy) -->
     <div class="toast-queue-container">
@@ -572,15 +718,23 @@
         </div>
       </transition-group>
     </div>
+    <student-update ref="StudentUpdate" @updated="fetchStudents" />
   </div>
 </template>
 
 <script>
 import * as XLSX from 'xlsx'
+import moment from 'moment'
 import BaseTable from '~/components/Base/BaseTable.vue'
+import BaseModal from '~/components/Base/Modal.vue'
+import BaseTitle from '~/components/Base/Title.vue'
+import BaseExpansion from '~/components/Base/Expansion.vue'
+import BaseDetailItem from '~/components/Base/DetailItem.vue'
+import BaseStatusItem from '~/components/Base/StatusItem.vue'
 import ChangeableStatus from '~/components/Base/ChangeableStatus.vue'
 import { genderList, studentStatusList, degreeList } from '~/consts/list'
 import studentServices from '~/services/studentServices'
+import StudentUpdate from '~/components/Student/Update.vue'
 
 const getStatusLabel = (statusVal) => {
   const found = studentStatusList.find((s) => s.value === statusVal)
@@ -594,7 +748,11 @@ const parseStudentData = (apiData) => {
   return apiData.map((item) => {
     // Chuẩn hóa giá trị status về đúng value của studentStatusList nếu API trả về tên cũ/khác
     let normalizedStatus = item.status || ''
-    if (normalizedStatus === 'ACTIVE' || normalizedStatus === 'Đang học' || normalizedStatus === 'Đang học tập') {
+    if (
+      normalizedStatus === 'ACTIVE' ||
+      normalizedStatus === 'Đang học' ||
+      normalizedStatus === 'Đang học tập'
+    ) {
       normalizedStatus = 'STUDYING'
     } else if (normalizedStatus === 'Bảo lưu') {
       normalizedStatus = 'LEAVE_OF_ABSENCE'
@@ -626,7 +784,16 @@ const parseStudentData = (apiData) => {
 
 export default {
   name: 'QuanLySinhVienPage',
-  components: { BaseTable, ChangeableStatus },
+  components: {
+    BaseTable,
+    BaseModal,
+    BaseTitle,
+    BaseExpansion,
+    BaseDetailItem,
+    BaseStatusItem,
+    ChangeableStatus,
+    StudentUpdate,
+  },
   middleware: 'authenticated',
   data() {
     return {
@@ -715,6 +882,32 @@ export default {
     }
   },
   computed: {
+    detailItem() {
+      const raw = this.selectedStudent?.rawItem || {}
+      return {
+        ...raw,
+        ...this.selectedStudent,
+        status: this.selectedStudent?.status || raw.status,
+      }
+    },
+    detailClasses() {
+      return this.detailItem?.classes || this.detailItem?.class || {}
+    },
+    detailCourse() {
+      return this.detailItem?.course || {}
+    },
+    detailTrainingMethod() {
+      return this.detailItem?.trainingMethod || {}
+    },
+    detailTrainingUnit() {
+      return this.detailItem?.trainingUnit || {}
+    },
+    detailMajor() {
+      return this.detailItem?.major || {}
+    },
+    detailTrainingType() {
+      return this.detailItem?.trainingType || {}
+    },
     classOptions() {
       const rawClassList = Array.isArray(this.listClass)
         ? this.listClass
@@ -847,6 +1040,21 @@ export default {
   methods: {
     getStatusLabel,
 
+    getDegree(degreeType) {
+      return this.degreeList.find((i) => i.value === degreeType)?.text
+    },
+
+    getGender(gender) {
+      const list = typeof this.genderList === 'function' ? this.genderList() : this.genderList
+      return (list || []).find((i) => i.value === gender)?.text
+    },
+
+    formatMonthYear(val) {
+      if (!val) return ''
+      const m = moment(val, ['DD/MM/YYYY', 'MM/YYYY', 'YYYY-MM-DD'], true)
+      return m.isValid() ? m.format('MM/YYYY') : val
+    },
+
     async fetchUserInfo() {
       try {
         const res = await studentServices.getUserInfo()
@@ -959,6 +1167,10 @@ export default {
       }
     },
 
+    handleUpdate(item) {
+      this.$refs.StudentUpdate?.getUpdate(item)
+    },
+
     search() {
       this.appliedFilters = {
         ...this.appliedFilters,
@@ -1020,9 +1232,31 @@ export default {
       this.page = 1
       this.pageInput = 1
     },
-    viewDetail(item) {
+    async viewDetail(item) {
       this.selectedStudent = { ...item }
       this.detailDialog = true
+
+      if (!item?.id) return
+
+      try {
+        const res = await studentServices.getDetail(item.id)
+        const raw = res?.data !== undefined ? res.data : res
+        const detailObj = raw?.data !== undefined ? raw.data : raw
+
+        if (detailObj && typeof detailObj === 'object') {
+          this.selectedStudent = {
+            ...item,
+            rawItem: {
+              ...(item.rawItem || {}),
+              ...detailObj,
+            },
+            ...detailObj,
+            status: detailObj.status || item.status,
+          }
+        }
+      } catch (err) {
+        console.error('Lỗi tải chi tiết sinh viên:', err)
+      }
     },
     async checkHistory(item) {
       this.selectedStudent = { ...item }

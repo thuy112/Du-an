@@ -113,10 +113,10 @@
           <span class="font-weight-medium">{{ item.name || '-' }}</span>
         </template>
 
-        <!-- Định mức phản hệ (RE_STUDY: #2196f3, RE_DEFENSE: #009688) -->
+        <!-- Định mức phản hệ (RE_STUDY: #2196f3, REDEFENCES: #009688) -->
         <template #[`item.decisionFeeType`]="{ item }">
-          <v-chip small :color="item.decisionFeeType === 'RE_DEFENSE' ? '#009688' : '#2196f3'" dark>
-            {{ item.decisionFeeTypeName || (item.decisionFeeType === 'RE_DEFENSE' ? 'Bảo vệ lại' : 'Học lại') }}
+          <v-chip small :color="item.decisionFeeType === 'REDEFENCES' ? '#009688' : '#2196f3'" dark>
+            {{ item.decisionFeeTypeName || (item.decisionFeeType === 'REDEFENCES' ? 'Bảo vệ lại' : 'Học lại') }}
           </v-chip>
         </template>
 
@@ -279,8 +279,8 @@
             </v-col>
             <v-col cols="12" md="6" class="d-flex align-center mt-2">
               <span class="font-weight-bold mr-2">Định mức phân hệ:</span>
-              <v-chip small :color="viewDetail.decisionFeeType === 'RE_DEFENSE' ? '#009688' : '#2196f3'" dark>
-                {{ viewDetail.decisionFeeType === 'RE_DEFENSE' ? 'Bảo vệ lại' : 'Học lại' }}
+              <v-chip small :color="viewDetail.decisionFeeType === 'REDEFENCES' ? '#009688' : '#2196f3'" dark>
+                {{ viewDetail.decisionFeeType === 'REDEFENCES' ? 'Bảo vệ lại' : 'Học lại' }}
               </v-chip>
             </v-col>
             <v-col cols="12" md="6" class="d-flex align-center mt-2">
@@ -541,8 +541,8 @@ export default {
         { text: 'Chưa kích hoạt', value: 'INACTIVE', color: '#9e9e9e' },
       ],
       feeTypeList: [
-        { text: 'Học lại', value: 'RE_STUDY' },
-        { text: 'Bảo vệ lại', value: 'RE_DEFENSE' },
+        { value: "RETAKE", text: "Học lại", color: "blue" },
+        { value: "REDEFENCES", text: "Bảo vệ lại", color: "teal" },
       ],
       semesterList: [],
 
@@ -745,66 +745,56 @@ export default {
       this.viewLoading = true
       this.viewModal = true
       try {
-        const [detailRes, majorRes, methodRes] = await Promise.all([
-          decisionFeeService.getDetail(item.id, 'CMS').catch(() => null),
-          decisionFeeService.getMajorList({ status: 'ACTIVE', channel: 'CMS' }).catch(() => []),
-          decisionFeeService.getTrainingMethodList({ status: 'ACTIVE', channel: 'CMS' }).catch(() => [])
+        const [majorRes, methodRes] = await Promise.all([
+          decisionFeeService.getMajorList
+            ? decisionFeeService.getMajorList({ status: 'ACTIVE', channel: 'CMS' }).catch(() => [])
+            : [],
+          decisionFeeService.getTrainingMethodList
+            ? decisionFeeService.getTrainingMethodList({ status: 'ACTIVE', channel: 'CMS' }).catch(() => [])
+            : [],
         ])
 
-        if (detailRes) {
-          const detail = detailRes.data !== undefined ? detailRes.data : detailRes
-          
-          this.viewDetail.name = detail.name || item.name || '-'
-          this.viewDetail.issueDate = detail.issueDate || detail.timeInform || item.timeInform || '-'
-          this.viewDetail.semesterName = detail.semester?.name || detail.semesterName || item.semester?.name || '-'
-          this.viewDetail.decisionFeeType = detail.decisionFeeType || item.decisionFeeType || '-'
-          this.viewDetail.status = detail.status || item.status || '-'
+        const detail = item || {}
+        this.viewDetail.name = detail.name || '-'
+        this.viewDetail.issueDate = detail.timeInform || detail.issueDate || '-'
+        this.viewDetail.semesterName = detail.semester?.name || detail.semesterName || '-'
+        this.viewDetail.decisionFeeType = detail.decisionFeeType || '-'
+        this.viewDetail.status = detail.status || '-'
 
-          const majorData = majorRes?.data !== undefined ? majorRes.data : majorRes
-          const majors = Array.isArray(majorData) ? majorData : (majorData?.data || majorData?.content || majorData?.items || [])
+        const majorData = majorRes?.data !== undefined ? majorRes.data : majorRes
+        const majors = Array.isArray(majorData) ? majorData : (majorData?.data || majorData?.content || majorData?.items || [])
 
-          const methodData = methodRes?.data !== undefined ? methodRes.data : methodRes
-          const trainingMethodsList = Array.isArray(methodData) ? methodData : (methodData?.data || methodData?.content || methodData?.items || [])
+        const methodData = methodRes?.data !== undefined ? methodRes.data : methodRes
+        const trainingMethodsList = Array.isArray(methodData) ? methodData : (methodData?.data || methodData?.content || methodData?.items || [])
 
-          // Lấy mảng lưu phí từ API chi tiết (hỗ trợ cả feeTrainingmethodsDtos và trainingmethodCreates)
-          const savedFeesData = detail.feeTrainingmethodsDtos || detail.trainingmethodCreates || []
+        const savedFeesData = detail.feeTrainingmethodsDtos || []
 
-          const formattedList = []
+        this.viewDetail.tableList = majors.map((major) => {
+          const majorId = major.id
+          const majorName = major.name || major.code || '-'
+          const educationProgram = major?.educationProgram?.name || major.educationProgramName || '-'
 
-          majors.forEach((major) => {
-            const majorId = major.id
-            const majorName = major.name || major.code || '-'
-            const educationProgram = major?.educationProgram?.name || major.educationProgramName || '-'
+          const trainingMethods = trainingMethodsList.map((tm) => {
+            const matchedGroup = savedFeesData.find(
+              (_i) =>
+                (_i?.trainingMethod?.id === tm.id && _i?.trainingMethod?.code === tm.code) ||
+                _i?.trainingMethod?.id === tm.id
+            )
+            const findFee = matchedGroup?.estimationFees?.find((estima) => estima.majorId === majorId)
 
-            const trainingMethods = trainingMethodsList.map((tm) => {
-              // Tìm nhóm theo hình thức đào tạo
-              const matchedGroup = savedFeesData.find(
-                (_i) =>
-                  (_i?.trainingMethod?.id === tm.id) ||
-                  (_i?.trainingMethodId === tm.id) ||
-                  (_i?.id === tm.id)
-              )
-
-              // Tìm phí theo ngành học
-              const reqList = matchedGroup?.estimationFees || matchedGroup?.estimationRequests || []
-              const findFee = reqList.find((estima) => estima.majorId === majorId || estima.majorCode === major.code)
-
-              return {
-                name: tm.name || tm.code || '-',
-                fee: findFee ? (findFee.fee || 0) : 0
-              }
-            })
-
-            formattedList.push({
-              majorId,
-              majorName,
-              educationProgram,
-              trainingMethods
-            })
+            return {
+              name: tm.name || tm.code || '-',
+              fee: findFee ? Number(findFee.fee || 0) : 0,
+            }
           })
 
-          this.viewDetail.tableList = formattedList
-        }
+          return {
+            majorId,
+            majorName,
+            educationProgram,
+            trainingMethods,
+          }
+        })
       } catch (error) {
         console.error('Lỗi khi tải chi tiết định mức phí:', error)
         this.viewDetail.tableList = []

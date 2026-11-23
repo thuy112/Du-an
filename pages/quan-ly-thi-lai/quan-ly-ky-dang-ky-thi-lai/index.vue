@@ -20,57 +20,22 @@
             @keyup.enter="handleSearch"
           ></v-text-field>
 
-          <v-menu
-            v-model="fromFilterMenu"
-            :close-on-content-click="false"
-            transition="scale-transition"
-            offset-y
-            min-width="auto"
-          >
-            <template v-slot:activator="{ on, attrs }">
-              <v-text-field
-                v-model="formattedFromFilterDate"
-                label="Từ ngày"
-                outlined
-                dense
-                hide-details
-                readonly
-                clearable
-                v-bind="attrs"
-                v-on="on"
-                class="filter-input flex-grow-1"
-                style="min-width: 150px;"
-                @click:clear="filters.fromTime = ''"
-              ></v-text-field>
-            </template>
-            <v-date-picker v-model="filters.fromTime" locale="vi" @input="fromFilterMenu = false"></v-date-picker>
-          </v-menu>
+          <BaseDatePicker
+            v-model="filters.fromTime"
+            hide-details
+            label="Từ ngày"
+            class="filter-input flex-grow-1"
+            style="min-width: 150px;"
+          />
 
-          <v-menu
-            v-model="toFilterMenu"
-            :close-on-content-click="false"
-            transition="scale-transition"
-            offset-y
-            min-width="auto"
-          >
-            <template v-slot:activator="{ on, attrs }">
-              <v-text-field
-                v-model="formattedToFilterDate"
-                label="Đến ngày"
-                outlined
-                dense
-                hide-details
-                readonly
-                clearable
-                v-bind="attrs"
-                v-on="on"
-                class="filter-input flex-grow-1"
-                style="min-width: 150px;"
-                @click:clear="filters.toTime = ''"
-              ></v-text-field>
-            </template>
-            <v-date-picker v-model="filters.toTime" locale="vi" @input="toFilterMenu = false"></v-date-picker>
-          </v-menu>
+          <BaseDatePicker
+            v-model="filters.toTime"
+            :to-time="true"
+            hide-details
+            label="Đến ngày"
+            class="filter-input flex-grow-1"
+            style="min-width: 150px;"
+          />
 
           <v-select
             v-model="filters.status"
@@ -142,17 +107,14 @@
         </template>
         <template #[`item.actions`]="{ item }">
           <div class="d-flex align-center justify-center" style="gap: 4px;">
-            <!-- Xem chi tiết (Icon mắt) -->
             <v-btn icon small color="info" @click="handleView(item)" title="Xem chi tiết">
               <v-icon size="24">mdi-eye</v-icon>
             </v-btn>
 
-            <!-- Cập nhật / Sửa (Icon bút) -->
             <v-btn icon small color="amber darken-3" @click="handleEdit(item)" title="Cập nhật">
               <v-icon size="24">mdi-pencil</v-icon>
             </v-btn>
 
-            <!-- Xóa (Icon thùng rác) -->
             <v-btn icon small color="error" @click="handleDelete(item)" title="Xóa">
               <v-icon size="24">mdi-trash-can</v-icon>
             </v-btn>
@@ -196,7 +158,7 @@
           <v-btn icon outlined small color="grey" :disabled="currentPage <= 1" @click="changePage(currentPage - 1)">
             <v-icon small>mdi-chevron-left</v-icon>
           </v-btn>
-          
+
           <template v-for="page in displayedPages">
             <v-btn
               v-if="page !== '...'"
@@ -271,6 +233,7 @@
 
             <!-- THỜI GIAN BẮT ĐẦU -->
             <div class="mb-4">
+              <label class="d-block mb-1 font-weight-medium">Thời gian bắt đầu đăng ký <span class="text-red-bold">*</span></label>
               <v-menu
                 v-model="fromMenu"
                 :close-on-content-click="false"
@@ -281,7 +244,7 @@
                 <template v-slot:activator="{ on, attrs }">
                   <v-text-field
                     v-model="formModel.fromTime"
-                    label="Thời gian bắt đầu đăng ký (*)"
+                    placeholder="DD/MM/YYYY HH:mm:ss"
                     outlined
                     dense
                     hide-details
@@ -289,7 +252,7 @@
                     clearable
                     v-bind="attrs"
                     v-on="on"
-                    @click:clear="formModel.fromTime = ''"
+                    @click:clear="clearFromTime"
                   ></v-text-field>
                 </template>
                 <v-card>
@@ -303,7 +266,8 @@
                     v-else
                     v-model="tempFromTime"
                     format="24hr"
-                    @input="onFromTimePicked"
+                    @input="onFromTimeChanging"
+                    @change="onFromTimePicked"
                   ></v-time-picker>
                 </v-card>
               </v-menu>
@@ -311,6 +275,7 @@
 
             <!-- THỜI GIAN KẾT THÚC -->
             <div class="mb-4">
+              <label class="d-block mb-1 font-weight-medium">Thời gian kết thúc đăng ký <span class="text-red-bold">*</span></label>
               <v-menu
                 v-model="toMenu"
                 :close-on-content-click="false"
@@ -321,7 +286,7 @@
                 <template v-slot:activator="{ on, attrs }">
                   <v-text-field
                     v-model="formModel.toTime"
-                    label="Thời gian kết thúc đăng ký (*)"
+                    placeholder="DD/MM/YYYY HH:mm:ss"
                     outlined
                     dense
                     hide-details
@@ -329,7 +294,7 @@
                     clearable
                     v-bind="attrs"
                     v-on="on"
-                    @click:clear="formModel.toTime = ''"
+                    @click:clear="clearToTime"
                   ></v-text-field>
                 </template>
                 <v-card>
@@ -343,7 +308,8 @@
                     v-else
                     v-model="tempToTime"
                     format="24hr"
-                    @input="onToTimePicked"
+                    @input="onToTimeChanging"
+                    @change="onToTimePicked"
                   ></v-time-picker>
                 </v-card>
               </v-menu>
@@ -446,11 +412,12 @@
 <script>
 import BaseTable from '~/components/Base/BaseTable.vue'
 import ChangeableStatus from '~/components/Base/ChangeableStatus.vue'
+import BaseDatePicker from '~/components/Base/DatePicker.vue'
 import examService from '~/services/examService'
 
 export default {
   name: 'ExamManagementPage',
-  components: { BaseTable, ChangeableStatus },
+  components: { BaseTable, ChangeableStatus, BaseDatePicker },
   data() {
     return {
       loading: false,
@@ -472,15 +439,13 @@ export default {
       fromMode: 'DATE',
       toMode: 'DATE',
       tempFromDate: '',
-      tempFromTime: '00:00',
+      tempFromTime: '00:00:00',
       tempToDate: '',
-      tempToTime: '00:00',
+      tempToTime: '23:59:59',
 
       dialog: false,
       isEdit: false,
       editId: null,
-      fromFilterMenu: false,
-      toFilterMenu: false,
 
       deleteDialog: false,
       selectedItemToDelete: null,
@@ -490,12 +455,15 @@ export default {
       snackbarColor: '#4caf50',
 
       formModel: {
+        id: null,
         name: '',
         code: '',
         semesterId: null,
         fromTime: '',
         toTime: '',
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        type: 'RETAKE_EXAM',
+        terms: []
       },
 
       statusList: [
@@ -550,24 +518,6 @@ export default {
         pages.push(1, '...', current - 1, current, current + 1, '...', total)
       }
       return pages
-    },
-    formattedFromFilterDate: {
-      get() {
-        if (!this.filters.fromTime) return ''
-        const parts = this.filters.fromTime.split('-')
-        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`
-        return this.filters.fromTime
-      },
-      set(val) { if (!val) this.filters.fromTime = '' }
-    },
-    formattedToFilterDate: {
-      get() {
-        if (!this.filters.toTime) return ''
-        const parts = this.filters.toTime.split('-')
-        if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`
-        return this.filters.toTime
-      },
-      set(val) { if (!val) this.filters.toTime = '' }
     }
   },
   async mounted() {
@@ -575,6 +525,109 @@ export default {
     await this.loadData()
   },
   methods: {
+    normalizeTimeWithSec(t, fallback = '00:00:00') {
+      if (!t) return fallback
+      const parts = String(t).trim().split(':')
+      if (parts.length === 2) return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}:00`
+      if (parts.length >= 3) return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}:${parts[2].padStart(2, '0')}`
+      return fallback
+    },
+    formatDateTimeForForm(val, defaultTime = '00:00:00') {
+      if (!val) return ''
+      const str = String(val).trim()
+      if (!str) return ''
+
+      const vnMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}:\d{2}(?::\d{2})?))?$/)
+      if (vnMatch) {
+        const dd = vnMatch[1].padStart(2, '0')
+        const mm = vnMatch[2].padStart(2, '0')
+        const yyyy = vnMatch[3]
+        const timePart = this.normalizeTimeWithSec(vnMatch[4], defaultTime)
+        return `${dd}/${mm}/${yyyy} ${timePart}`
+      }
+
+      const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{1,2}:\d{2}(?::\d{2})?))?/)
+      if (isoMatch) {
+        const yyyy = isoMatch[1]
+        const mm = isoMatch[2]
+        const dd = isoMatch[3]
+        const timePart = this.normalizeTimeWithSec(isoMatch[4], defaultTime)
+        return `${dd}/${mm}/${yyyy} ${timePart}`
+      }
+
+      return str
+    },
+    parseVnDateTime(str) {
+      if (!str) return null
+      const match = String(str).trim().match(/^(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/)
+      if (!match) return null
+      const [, dd, mm, yyyy, hh, min, ss = '00'] = match
+      return new Date(Number(yyyy), Number(mm) - 1, Number(dd), Number(hh), Number(min), Number(ss))
+    },
+    clearFromTime() {
+      this.formModel.fromTime = ''
+      this.tempFromDate = ''
+      this.tempFromTime = '00:00:00'
+      this.fromMode = 'DATE'
+    },
+    clearToTime() {
+      this.formModel.toTime = ''
+      this.tempToDate = ''
+      this.tempToTime = '23:59:59'
+      this.toMode = 'DATE'
+    },
+    onFromDatePicked(dateStr) {
+      if (!dateStr) return
+      this.tempFromDate = dateStr
+      const [yyyy, mm, dd] = dateStr.split('-')
+      const hm = (this.tempFromTime || '00:00').substring(0, 5)
+      this.formModel.fromTime = `${dd}/${mm}/${yyyy} ${hm}:00`
+      this.fromMode = 'TIME'
+    },
+    onFromTimeChanging(timeStr) {
+      if (!timeStr) return
+      this.tempFromTime = timeStr.substring(0, 5)
+      if (this.tempFromDate) {
+        const [yyyy, mm, dd] = this.tempFromDate.split('-')
+        this.formModel.fromTime = `${dd}/${mm}/${yyyy} ${this.tempFromTime}:00`
+      }
+    },
+    onFromTimePicked(timeStr) {
+      const hm = (timeStr || this.tempFromTime || '00:00').substring(0, 5)
+      this.tempFromTime = hm
+      if (this.tempFromDate) {
+        const [yyyy, mm, dd] = this.tempFromDate.split('-')
+        this.formModel.fromTime = `${dd}/${mm}/${yyyy} ${hm}:00`
+      }
+      this.fromMenu = false
+      this.fromMode = 'DATE'
+    },
+    onToDatePicked(dateStr) {
+      if (!dateStr) return
+      this.tempToDate = dateStr
+      const [yyyy, mm, dd] = dateStr.split('-')
+      const hm = (this.tempToTime || '23:59').substring(0, 5)
+      this.formModel.toTime = `${dd}/${mm}/${yyyy} ${hm}:00`
+      this.toMode = 'TIME'
+    },
+    onToTimeChanging(timeStr) {
+      if (!timeStr) return
+      this.tempToTime = timeStr.substring(0, 5)
+      if (this.tempToDate) {
+        const [yyyy, mm, dd] = this.tempToDate.split('-')
+        this.formModel.toTime = `${dd}/${mm}/${yyyy} ${this.tempToTime}:00`
+      }
+    },
+    onToTimePicked(timeStr) {
+      const hm = (timeStr || this.tempToTime || '23:59').substring(0, 5)
+      this.tempToTime = hm
+      if (this.tempToDate) {
+        const [yyyy, mm, dd] = this.tempToDate.split('-')
+        this.formModel.toTime = `${dd}/${mm}/${yyyy} ${hm}:00`
+      }
+      this.toMenu = false
+      this.toMode = 'DATE'
+    },
     async loadPageRole() {
       try { await examService.getPageRole() } catch (err) {}
     },
@@ -593,15 +646,6 @@ export default {
     async loadData() {
       this.loading = true
       try {
-        const formatParamDate = (dateStr, isEnd = false) => {
-          if (!dateStr) return ''
-          const parts = dateStr.split('-')
-          if (parts.length === 3) {
-            return `${parts[2]}/${parts[1]}/${parts[0]} ${isEnd ? '23:59:59' : '00:00:00'}`
-          }
-          return dateStr
-        }
-
         const params = {
           pageIndex: this.currentPage,
           pageSize: this.itemsPerPage,
@@ -609,8 +653,12 @@ export default {
           sort: 'id,desc',
           ...(this.activeFilters.search && { search: this.activeFilters.search }),
           ...(this.activeFilters.status && { status: this.activeFilters.status }),
-          ...(this.activeFilters.fromTime && { fromTime: formatParamDate(this.activeFilters.fromTime, false) }),
-          ...(this.activeFilters.toTime && { toTime: formatParamDate(this.activeFilters.toTime, true) })
+          ...(this.activeFilters.fromTime && {
+            fromTime: this.formatDateTimeForForm(this.activeFilters.fromTime, '00:00:00')
+          }),
+          ...(this.activeFilters.toTime && {
+            toTime: this.formatDateTimeForForm(this.activeFilters.toTime, '23:59:59')
+          })
         }
 
         const res = await examService.getExamList(params)
@@ -629,8 +677,8 @@ export default {
     },
     formatTimeRange(item) {
       if (item.fromTime && item.toTime) {
-        const cleanFrom = item.fromTime.split(' ')[0]
-        const cleanTo = item.toTime.split(' ')[0]
+        const cleanFrom = String(item.fromTime).split(' ')[0]
+        const cleanTo = String(item.toTime).split(' ')[0]
         return `${cleanFrom} - ${cleanTo}`
       }
       return item.timeRange || item.time || '-'
@@ -638,71 +686,76 @@ export default {
     openAddDialog() {
       this.isEdit = false
       this.editId = null
-      this.formModel = { name: '', code: '', semesterId: null, fromTime: '', toTime: '', status: 'ACTIVE' }
+      this.formModel = {
+        id: null,
+        name: '',
+        code: '',
+        semesterId: null,
+        fromTime: '',
+        toTime: '',
+        status: 'ACTIVE',
+        type: 'RETAKE_EXAM',
+        terms: []
+      }
       this.tempFromDate = ''
-      this.tempFromTime = '00:00'
+      this.tempFromTime = '00:00:00'
       this.tempToDate = ''
-      this.tempToTime = '00:00'
+      this.tempToTime = '23:59:59'
       this.fromMode = 'DATE'
       this.toMode = 'DATE'
       this.dialog = true
     },
-    onFromDatePicked(dateStr) {
-      if (dateStr) {
-        this.tempFromDate = dateStr
-        this.fromMode = 'TIME'
-      }
-    },
-    onFromTimePicked(timeStr) {
-      if (this.tempFromDate && timeStr) {
-        const parts = this.tempFromDate.split('-')
-        const cleanTime = timeStr.split(':').length === 2 ? `${timeStr}:00` : timeStr
-        this.formModel.fromTime = `${parts[2]}/${parts[1]}/${parts[0]} ${cleanTime}`
-      }
-      this.fromMenu = false
-      this.fromMode = 'DATE'
-    },
-    onToDatePicked(dateStr) {
-      if (dateStr) {
-        this.tempToDate = dateStr
-        this.toMode = 'TIME'
-      }
-    },
-    onToTimePicked(timeStr) {
-      if (this.tempToDate && timeStr) {
-        const parts = this.tempToDate.split('-')
-        const cleanTime = timeStr.split(':').length === 2 ? `${timeStr}:00` : timeStr
-        this.formModel.toTime = `${parts[2]}/${parts[1]}/${parts[0]} ${cleanTime}`
-      }
-      this.toMenu = false
-      this.toMode = 'DATE'
-    },
     async handleSave() {
-      if (!this.formModel.name || !this.formModel.code) return
-
-      if (this.tempFromDate && (!this.formModel.fromTime || !this.formModel.fromTime.includes(':'))) {
-        const parts = this.tempFromDate.split('-')
-        this.formModel.fromTime = `${parts[2]}/${parts[1]}/${parts[0]} ${this.tempFromTime.length === 5 ? this.tempFromTime + ':00' : '00:00:00'}`
+      if (this.tempFromDate && !this.formModel.fromTime) {
+        const [yyyy, mm, dd] = this.tempFromDate.split('-')
+        this.formModel.fromTime = `${dd}/${mm}/${yyyy} ${this.normalizeTimeWithSec(this.tempFromTime, '00:00:00')}`
       }
-      if (this.tempToDate && (!this.formModel.toTime || !this.formModel.toTime.includes(':'))) {
-        const parts = this.tempToDate.split('-')
-        this.formModel.toTime = `${parts[2]}/${parts[1]}/${parts[0]} ${this.tempToTime.length === 5 ? this.tempToTime + ':00' : '23:59:59'}`
+      if (this.tempToDate && !this.formModel.toTime) {
+        const [yyyy, mm, dd] = this.tempToDate.split('-')
+        this.formModel.toTime = `${dd}/${mm}/${yyyy} ${this.normalizeTimeWithSec(this.tempToTime, '23:59:59')}`
+      }
+
+      if (
+        !this.formModel.name?.trim() ||
+        !this.formModel.code?.trim() ||
+        !this.formModel.semesterId ||
+        !this.formModel.fromTime ||
+        !this.formModel.toTime
+      ) {
+        this.snackbarText = 'Vui lòng nhập đầy đủ các trường bắt buộc!'
+        this.snackbarColor = '#e53935'
+        this.snackbar = true
+        return
+      }
+
+      const fromDateObj = this.parseVnDateTime(this.formModel.fromTime)
+      const toDateObj = this.parseVnDateTime(this.formModel.toTime)
+      if (fromDateObj && toDateObj && toDateObj < fromDateObj) {
+        this.snackbarText = 'Thời gian kết thúc đăng ký phải sau hoặc bằng thời gian bắt đầu!'
+        this.snackbarColor = '#e53935'
+        this.snackbar = true
+        return
       }
 
       this.submitting = true
       try {
         const payload = {
-          name: this.formModel.name,
-          code: this.formModel.code,
-          semesterId: this.formModel.semesterId || null,
+          ...(this.isEdit && (this.editId || this.formModel.id)
+            ? { id: this.editId || this.formModel.id }
+            : {}),
+          name: this.formModel.name.trim(),
+          code: this.formModel.code.trim(),
+          semesterId: this.formModel.semesterId,
           fromTime: this.formModel.fromTime,
           toTime: this.formModel.toTime,
-          status: this.formModel.status
+          status: this.formModel.status,
+          type: this.formModel.type || 'RETAKE_EXAM',
+          terms: this.formModel.terms || []
         }
 
         if (this.isEdit) {
-          await examService.updateExam(this.editId, payload, 'CMS')
-          this.snackbarText = 'Cập nhật thành công'
+          await examService.updateExam(this.editId || this.formModel.id, payload, 'CMS')
+          this.snackbarText = 'Cập nhật thông tin thành công'
         } else {
           await examService.createExam(payload, 'CMS')
           this.snackbarText = 'Thêm mới thành công'
@@ -711,13 +764,17 @@ export default {
         this.dialog = false
         this.snackbarColor = '#4caf50'
         this.snackbar = true
-        
+
         this.currentPage = 1
         this.pageInput = 1
         await this.loadData()
       } catch (err) {
         console.error('Lỗi lưu kỳ thi:', err)
-        const errorMsg = err.response?.data?.message || err.message || 'Có lỗi xảy ra khi lưu'
+        const errorMsg =
+          err.response?.data?.error?.message ||
+          err.response?.data?.message ||
+          err.message ||
+          'Có lỗi xảy ra khi lưu'
         this.snackbarText = errorMsg
         this.snackbarColor = '#e53935'
         this.snackbar = true
@@ -788,7 +845,6 @@ export default {
     },
     async handleView(item) {
       try {
-        // Gọi API chi tiết chuẩn qua /api/exam/detail/{id}
         const res = await examService.getExamDetail(item.id, 'CMS')
         const detail = res.data !== undefined ? res.data : res
         this.viewItem = detail || item
@@ -801,39 +857,49 @@ export default {
         this.snackbar = true
       }
     },
-
     async handleEdit(item) {
       this.isEdit = true
       this.editId = item.id
       try {
         const res = await examService.getExamDetail(item.id, 'CMS')
-        const detail = res.data !== undefined ? res.data : res
+        const rawDetail = res?.data !== undefined ? res.data : res
+        const detail = rawDetail && rawDetail.data && !Array.isArray(rawDetail.data) ? rawDetail.data : (rawDetail || {})
+
+        const rawFrom = detail.fromTime ?? item.fromTime ?? ''
+        const rawTo = detail.toTime ?? item.toTime ?? ''
 
         this.formModel = {
-          name: detail.name || item.name || '',
-          code: detail.code || item.code || '',
-          semesterId: detail.semesterId || (detail.semester ? detail.semester.id : null) || item.semesterId || null,
-          fromTime: detail.fromTime || item.fromTime || '',
-          toTime: detail.toTime || item.toTime || '',
-          status: detail.status || item.status || 'ACTIVE'
+          id: detail.id || item.id,
+          name: detail.name ?? item.name ?? '',
+          code: detail.code ?? item.code ?? '',
+          semesterId:
+            detail.semesterId ||
+            (detail.semester ? detail.semester.id : null) ||
+            item.semesterId ||
+            (item.semester ? item.semester.id : null) ||
+            null,
+          fromTime: this.formatDateTimeForForm(rawFrom, '00:00:00'),
+          toTime: this.formatDateTimeForForm(rawTo, '23:59:59'),
+          status: detail.status || item.status || 'ACTIVE',
+          type: detail.type || item.type || 'RETAKE_EXAM',
+          terms: Array.isArray(detail.terms) ? detail.terms.map((t) => (typeof t === 'object' ? t.id : t)) : []
         }
 
-        // Tách ngày giờ đổ lại vào Date & Time Picker
         if (this.formModel.fromTime) {
           const [d, t] = this.formModel.fromTime.split(' ')
-          if (d) {
-            const p = d.split('/')
-            this.tempFromDate = `${p[2]}-${p[1]}-${p[0]}`
+          if (d && d.includes('/')) {
+            const [dd, mm, yyyy] = d.split('/')
+            this.tempFromDate = `${yyyy}-${mm}-${dd}`
           }
-          if (t) this.tempFromTime = t.substring(0, 5)
+          if (t) this.tempFromTime = this.normalizeTimeWithSec(t, '00:00:00')
         }
         if (this.formModel.toTime) {
           const [d, t] = this.formModel.toTime.split(' ')
-          if (d) {
-            const p = d.split('/')
-            this.tempToDate = `${p[2]}-${p[1]}-${p[0]}`
+          if (d && d.includes('/')) {
+            const [dd, mm, yyyy] = d.split('/')
+            this.tempToDate = `${yyyy}-${mm}-${dd}`
           }
-          if (t) this.tempToTime = t.substring(0, 5)
+          if (t) this.tempToTime = this.normalizeTimeWithSec(t, '23:59:59')
         }
 
         this.fromMode = 'DATE'

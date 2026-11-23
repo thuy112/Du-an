@@ -36,14 +36,18 @@
           style="min-width: 160px;"
         ></v-select>
 
-        <!-- Nút thao tác (Làm mới, Tìm kiếm) -->
+        <!-- Nút thao tác (Làm mới, Tìm kiếm, Thêm mới) -->
         <div class="d-flex align-center" style="gap: 5px;">
-          <v-btn icon color="#A62229" class="btn-square-action" @click="refreshData" title="Làm mới">
+          <v-btn icon color="#A62229" class="btn-square-action" title="Làm mới" @click="refreshData">
             <v-icon size="22">mdi-refresh</v-icon>
           </v-btn>
 
-          <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" @click="handleSearch" title="Tìm kiếm">
+          <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" title="Tìm kiếm" @click="handleSearch">
             <v-icon size="22">mdi-magnify</v-icon>
+          </v-btn>
+
+          <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" title="Thêm mới" @click="openAdd">
+            <v-icon size="22">mdi-plus</v-icon>
           </v-btn>
         </div>
       </div>
@@ -85,7 +89,7 @@
             @changeStatus="(selectedItem) => handleStatusChange(item, selectedItem)"
           >
             <template #content="{ data }">
-              Bạn có chắc chắn muốn đổi trạng thái sang 
+              Bạn có chắc chắn muốn đổi trạng thái sang
               <span class="font-weight-bold red--text">{{ data.text }}</span> không?
             </template>
           </ChangeableStatus>
@@ -93,20 +97,72 @@
 
         <!-- Cột Chức năng -->
         <template #[`item.actions`]="{ item }">
-          <div class="d-flex align-center justify-center" style="gap: 4px;">
-            <v-btn icon small color="green" @click="handleCustomAction(item)" title="Chi tiết/Thao tác">
-              <v-icon size="24">mdi-microsoft-excel</v-icon>
+          <div class="d-flex align-center justify-center" style="gap: 6px;">
+            <v-btn icon small color="green" title="Xuất file Excel" @click="handleCustomAction(item)">
+              <v-icon size="22">mdi-microsoft-excel</v-icon>
+            </v-btn>
+
+            <v-btn icon small color="warning" title="Sửa" @click="openUpdate(item)">
+              <v-icon size="22">mdi-pencil</v-icon>
+            </v-btn>
+
+            <v-btn icon small color="red" title="Xóa" @click="openDelete(item)">
+              <v-icon size="22">mdi-trash-can</v-icon>
             </v-btn>
           </div>
         </template>
       </BaseTable>
     </div>
 
+    <!-- MODAL THÊM / SỬA CHƯƠNG TRÌNH ĐÀO TẠO -->
+    <EduProgramAction
+      :data-item="selectedItem"
+      :is-update="isUpdate"
+      :open="isOpenAction"
+      @success="onActionSuccess"
+      @toggle="isOpenAction = false"
+      @update:open="isOpenAction = $event"
+    />
+
+    <!-- DIALOG XÁC NHẬN XÓA -->
+    <v-dialog v-model="isOpenDelete" max-width="450px" persistent>
+      <v-card class="rounded-lg overflow-hidden">
+        <v-card-title
+          class="pa-3 text-subtitle-1 font-weight-bold white--text d-flex justify-space-between align-center"
+          style="background-color: #a2212b"
+        >
+          <span>Xác nhận xóa</span>
+          <v-btn icon small dark @click="isOpenDelete = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+
+        <v-card-text class="pa-4 text-body-1 black--text">
+          Bạn có chắc chắn muốn xóa chương trình đào tạo
+          <span class="font-weight-bold red--text">{{ selectedItem && selectedItem.name }}</span> không?
+        </v-card-text>
+
+        <v-card-actions class="justify-end pa-3 border-top">
+          <v-btn outlined color="grey darken-1" class="text-capitalize mr-2" @click="isOpenDelete = false">
+            Hủy
+          </v-btn>
+          <v-btn
+            color="#a2212b"
+            dark
+            elevation="0"
+            class="text-capitalize px-4"
+            :loading="isLoadingDelete"
+            @click="handleDelete"
+          >
+            Xác nhận
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
     <!-- THANH PHÂN TRANG CỐ ĐỊNH PHÍA DƯỚI -->
     <div class="pagination-bottom-container mt-4 pt-3 d-flex align-center justify-space-between flex-wrap gap-3 sticky-bottom-bar border-top">
-      <div class="d-flex align-center">
-        <!-- Khu vực bên trái nếu cần thêm nút chức năng -->
-      </div>
+      <div class="d-flex align-center"></div>
 
       <div class="d-flex align-center custom-pagination-group" style="gap: 8px;">
         <v-select
@@ -201,6 +257,7 @@
 <script>
 import BaseTable from '~/components/Base/BaseTable.vue'
 import ChangeableStatus from '~/components/Base/ChangeableStatus.vue'
+import EduProgramAction from '~/components/EduProgram/Action.vue'
 import educationProgramService from '~/services/educationProgramService'
 
 export default {
@@ -208,11 +265,17 @@ export default {
   components: {
     BaseTable,
     ChangeableStatus,
+    EduProgramAction,
   },
   data() {
     return {
       isMobileDevice: false,
       loading: false,
+      isOpenAction: false,
+      isUpdate: false,
+      isOpenDelete: false,
+      isLoadingDelete: false,
+      selectedItem: {},
       filters: {
         search: '',
         status: '',
@@ -225,7 +288,7 @@ export default {
         show: false,
         text: '',
         progress: 100,
-        timer: null
+        timer: null,
       },
       statusList: [
         { text: 'Kích hoạt', value: 'ACTIVE', color: '#a2212b' },
@@ -244,7 +307,7 @@ export default {
         { text: 'Mã chương trình', value: 'code', align: 'left', minWidth: '200px', sortable: false },
         { text: 'Tên chương trình', value: 'name', align: 'left', minWidth: '300px', sortable: true },
         { text: 'Trạng thái', value: 'status', align: 'center', minWidth: '150px', sortable: false },
-        { text: 'Chức năng', value: 'actions', align: 'center', width: '100px', sortable: false },
+        { text: 'Chức năng', value: 'actions', align: 'center', width: '130px', sortable: false },
       ],
     }
   },
@@ -315,7 +378,7 @@ export default {
         if (res) {
           const rootData = res.data !== undefined ? res.data : res
           const allItems = Array.isArray(rootData) ? rootData : (rootData.data || rootData.content || rootData.items || [])
-          
+
           const rawTotal = rootData.totalElements ?? rootData.totalRecords ?? rootData.total ?? (res.totalElements || res.totalRecords || res.total)
           this.totalRecords = rawTotal !== undefined ? Number(rawTotal) : allItems.length
 
@@ -340,7 +403,7 @@ export default {
     },
 
     goToPage() {
-      const page = parseInt(this.pageInput)
+      const page = parseInt(this.pageInput, 10)
       if (page >= 1 && page <= this.totalPages) {
         this.changePage(page)
       } else {
@@ -357,7 +420,7 @@ export default {
 
     showSuccessToast(message) {
       this.snackbar.show = false
-      
+
       this.$nextTick(() => {
         this.snackbar.text = message
         this.snackbar.show = true
@@ -378,7 +441,11 @@ export default {
       try {
         const newStatusValue = selectedItem.value || selectedItem
         if (educationProgramService.changeStatus) {
-          await educationProgramService.changeStatus(item.id, newStatusValue, 'CMS')
+          await educationProgramService.changeStatus({
+            id: item.id,
+            status: newStatusValue,
+            channel: 'CMS',
+          })
         }
         item.status = newStatusValue
         await this.loadData()
@@ -388,28 +455,65 @@ export default {
       }
     },
 
+    openAdd() {
+      this.isUpdate = false
+      this.selectedItem = {}
+      this.isOpenAction = true
+    },
+
+    openUpdate(item) {
+      this.isUpdate = true
+      this.selectedItem = { ...item }
+      this.isOpenAction = true
+    },
+
+    async onActionSuccess(msg) {
+      await this.loadData()
+      this.showSuccessToast(msg || (this.isUpdate ? 'Cập nhật chương trình đào tạo thành công' : 'Thêm chương trình đào tạo thành công'))
+    },
+
+    openDelete(item) {
+      this.selectedItem = item
+      this.isOpenDelete = true
+    },
+
+    async handleDelete() {
+      if (!this.selectedItem || !this.selectedItem.id) return
+      this.isLoadingDelete = true
+      try {
+        if (educationProgramService.delete) {
+          await educationProgramService.delete(this.selectedItem.id)
+        }
+        this.isOpenDelete = false
+        await this.loadData()
+        this.showSuccessToast('Xóa chương trình thành công')
+      } catch (error) {
+        console.error('Lỗi khi xóa chương trình đào tạo:', error)
+      } finally {
+        this.isLoadingDelete = false
+      }
+    },
+
     async handleCustomAction(item) {
       try {
         const id = item.id
-        // Gọi API export term
-        const res = await educationProgramService.exportTerm(id, 'CMS')
-        
-        // Kiểm tra nếu API trả về đường dẫn download file hoặc dữ liệu file blob
-        const responseData = res.data !== undefined ? res.data : res
-        
-        // Nếu server trả về dạng object chứa link download (ví dụ: data.url hoặc data.path)
+        const res = educationProgramService.exportTerm
+          ? await educationProgramService.exportTerm(id, 'CMS')
+          : await educationProgramService.exportEducationProgram(id)
+
+        const responseData = res && res.data !== undefined ? res.data : res
+
         if (responseData && (responseData.url || responseData.data)) {
           const fileUrl = responseData.url || responseData.data
           window.open(fileUrl, '_blank')
         } else {
-          // Hoặc nếu API mở trực tiếp download stream
           this.showSuccessToast('Xuất file Excel thành công')
         }
       } catch (error) {
         console.error('Lỗi khi xuất file:', error)
       }
     },
-  }
+  },
 }
 </script>
 
