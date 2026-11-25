@@ -5,6 +5,10 @@ export default {
     return Api.get('/api/authorizeRegistration', params)
   },
 
+  getExamSessionList(params) {
+    return Api.get('/api/examSession/list', params)
+  },
+
   delete(id, channel = 'CMS') {
     return Api.delete(`/api/authorizeRegistration/${id}`, { params: { channel } })
   },
@@ -59,10 +63,37 @@ export default {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
   },
+
+  // --- Bổ sung cho modal Thêm sinh viên được phép thi lại ---
+  getRegisterExam(code, channel = 'CMS') {
+    return Api.get('/api/authorizeRegistration/examSession', { code, channel })
+  },
+
   getExamSessions(params) {
     return Api.get('/api/authorizeRegistration/examSession', params)
   },
+
+  add(data, channel = 'CMS') {
+    return Api.post('/api/authorizeRegistration', data, { params: { channel } })
+  },
+
   createAuthorizeRegistration(data, channel = 'CMS') {
     return Api.post('/api/authorizeRegistration', data, { params: { channel } })
+  },
+  confirmImport(params, channel = 'CMS') {
+    return Api.post('/api/authorizeRegistration/import', params, { params: { channel } })
+  },
+
+  checkImport(file, channel = 'CMS') {
+    const form = new FormData()
+    form.append('file', file)
+    return Api.post('/api/authorizeRegistration/import/check', form, {
+      params: { channel },
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
+
+  exportAuthorize(params) {
+    return Api.get('/api/authorizeRegistration/export', { channel: 'CMS', ...params })
   }
 }

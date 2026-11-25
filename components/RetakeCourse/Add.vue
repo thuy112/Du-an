@@ -119,34 +119,29 @@
                 <!-- Date inputs -->
                 <template v-if="!useWeekInput">
                     <v-col cols="12" md="6">
-                        <v-text-field
-                            v-model="body.fromTime"
-                            label="Thời gian bắt đầu (*)"
-                            type="date"
-                            outlined
-                            dense
-                            hide-details="auto"
+                        <DateField
+                            label="Thời gian bắt đầu"
+                            :data="body"
+                            field="fromTime"
                             :max="body.toTime"
-                            :rules="[(v) => !!v || 'Vui lòng nhập đủ thông tin']"
+                            required="Vui lòng nhập đủ thông tin"
                         />
                     </v-col>
                     <v-col cols="12" md="6">
-                        <v-text-field
-                            v-model="body.toTime"
-                            label="Thời gian kết thúc (*)"
-                            type="date"
-                            outlined
-                            dense
-                            hide-details="auto"
+                        <DateField
+                            label="Thời gian kết thúc"
+                            :data="body"
+                            field="toTime"
                             :min="body.fromTime"
                             :rules="[
-                                (v) => !!v || 'Vui lòng nhập đủ thông tin',
-                                (e) =>
-                                    !body.fromTime ||
-                                    !e ||
-                                    e >= body.fromTime ||
-                                    'Thời gian kết thúc phải sau thời gian bắt đầu',
+                                (e) => {
+                                    if (!body.fromTime || !e) return true;
+                                    const start = moment(body.fromTime, ['DD/MM/YYYY', 'YYYY-MM-DD'], true);
+                                    const end = moment(e, ['DD/MM/YYYY', 'YYYY-MM-DD'], true);
+                                    return !start.isValid() || !end.isValid() || !end.isBefore(start) || 'Thời gian kết thúc phải sau thời gian bắt đầu';
+                                },
                             ]"
+                            required="Vui lòng nhập đủ thông tin"
                         />
                     </v-col>
                 </template>
@@ -159,7 +154,6 @@
                             :data="body"
                             field="weekFromTime"
                             required="Vui lòng nhập đủ thông tin"
-                            @update-field="handleWeekFieldUpdate"
                         />
                     </v-col>
                     <v-col cols="12" md="6">
@@ -168,7 +162,6 @@
                             :data="body"
                             field="weekToTime"
                             required="Vui lòng nhập đủ thông tin"
-                            @update-field="handleWeekFieldUpdate"
                         />
                     </v-col>
                 </template>
@@ -189,6 +182,7 @@
 </template>
 
 <script>
+import moment from "moment";
 import retakeCourseService from "~/services/retakeCourseService";
 import retakeSessionServices from "~/services/retakeSessionServices";
 import termService from "~/services/termService";
@@ -198,6 +192,7 @@ import trainingMethodServices from "~/services/trainingMethodServices";
 import coefficientServices from "~/services/coefficientServices";
 import { getEndOfISOWeek, getRetakeClassTypeText, getStartOfISOWeek } from "~/utils/heppers";
 import BaseWeekField from "~/components/Base/BaseWeekField.vue";
+import DateField from "~/components/Base/DateField.vue";
 
 const INITIAL_STATE = {
     fromTime: "",
@@ -221,9 +216,11 @@ export default {
     name: "RetakeCourseAdd",
     components: {
         BaseWeekField,
+        DateField,
     },
     data() {
         return {
+            moment,
             open: false,
             timeChoose: [],
             body: { ...INITIAL_STATE },
@@ -250,12 +247,6 @@ export default {
         },
     },
     methods: {
-        handleWeekFieldUpdate({ field, value }) {
-            if (this.body && field) {
-                this.$set(this.body, field, value);
-            }
-        },
-
         resetForm() {
             Object.assign(this.$data, this.$options.data());
             this.$refs.form?.resetValidation();
@@ -380,6 +371,13 @@ export default {
             }
         },
 
+        normalizeDateForApi(val, suffix) {
+            if (!val) return "";
+            const parsed = moment(val, ["DD/MM/YYYY", "YYYY-MM-DD"], true);
+            const datePart = parsed.isValid() ? parsed.format("YYYY-MM-DD") : String(val).trim();
+            return `${datePart} ${suffix}`;
+        },
+
         async handleAdd() {
             if (!this.$refs.form.validate()) return;
 
@@ -413,8 +411,8 @@ export default {
                 delete requestBody.weekFromTime;
                 delete requestBody.weekToTime;
             } else {
-                requestBody.fromTime = requestBody.fromTime ? `${requestBody.fromTime} 00:00:00` : "";
-                requestBody.toTime = requestBody.toTime ? `${requestBody.toTime} 23:59:59` : "";
+                requestBody.fromTime = this.normalizeDateForApi(requestBody.fromTime, "00:00:00");
+                requestBody.toTime = this.normalizeDateForApi(requestBody.toTime, "23:59:59");
                 delete requestBody.weekFromTime;
                 delete requestBody.weekToTime;
             }

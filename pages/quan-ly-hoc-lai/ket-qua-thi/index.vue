@@ -9,82 +9,102 @@
     </div>
 
     <!-- CỤM LỌC TÌM KIẾM (FILTER TOOLBAR) -->
-    <div class="d-flex align-center justify-end gap-2 mb-4 flex-wrap">
-      <v-text-field
-        v-model="filters.keyword"
-        placeholder="Mã sv, tên sv"
-        outlined
-        dense
-        hide-details
-        class="filter-input"
-        style="max-width: 200px"
-        @change="fetchData"
-      ></v-text-field>
+    <div class="d-flex flex-column align-end gap-2 mb-4">
+      <div class="d-flex align-center justify-end gap-2 flex-wrap w-100">
+        <v-text-field
+          v-model="filters.keyword"
+          label="Mã sv, tên sv"
+          outlined
+          dense
+          hide-details
+          class="filter-input"
+          style="max-width: 200px"
+          @change="fetchData"
+        ></v-text-field>
 
-      <v-select
-        v-model="filters.class"
-        :items="classList"
-        placeholder="Lớp sinh viên"
-        outlined
-        dense
-        hide-details
-        clearable
-        class="filter-select"
-        style="max-width: 180px"
-        @change="fetchData"
-      ></v-select>
+        <v-select
+          v-model="filters.class"
+          :items="classList"
+          item-text="text"
+          item-value="value"
+          label="Lớp sinh viên"
+          outlined
+          dense
+          hide-details
+          clearable
+          class="filter-select"
+          style="max-width: 180px"
+          @change="fetchData"
+        ></v-select>
 
-      <v-select
-        v-model="filters.session"
-        :items="sessionList"
-        placeholder="Đợt học lại"
-        outlined
-        dense
-        hide-details
-        clearable
-        class="filter-select"
-        style="max-width: 180px"
-        @change="fetchData"
-      ></v-select>
+        <v-select
+          v-model="filters.session"
+          :items="sessionList"
+          item-text="text"
+          item-value="value"
+          label="Đợt học lại"
+          outlined
+          dense
+          hide-details
+          clearable
+          class="filter-select"
+          style="max-width: 180px"
+          @change="fetchData"
+        ></v-select>
 
-      <v-select
-        v-model="filters.retakeClass"
-        :items="retakeClassList"
-        placeholder="Lớp học lại"
-        outlined
-        dense
-        hide-details
-        clearable
-        class="filter-select"
-        style="max-width: 180px"
-        @change="fetchData"
-      ></v-select>
+        <v-select
+          v-model="filters.retakeClass"
+          :items="retakeClassList"
+          item-text="text"
+          item-value="value"
+          label="Lớp học lại"
+          outlined
+          dense
+          hide-details
+          clearable
+          class="filter-select"
+          style="max-width: 180px"
+          @change="fetchData"
+        ></v-select>
 
-      <!-- CỤM NÚT ICON ACTION BÊN PHẢI -->
-      <div class="d-flex align-center gap-1">
-        <v-btn
-          icon
-          class="action-icon-btn"
-          title="Bộ lọc nâng cao"
-          @click="showAdvancedFilter = true"
-        >
-          <v-icon color="#A62229" size="24">mdi-filter-variant-plus</v-icon>
-        </v-btn>
+        <!-- CỤM NÚT ICON ACTION BÊN PHẢI -->
+        <div class="d-flex align-center gap-1">
+          <v-btn
+            icon
+            class="action-icon-btn"
+            title="Bộ lọc nâng cao"
+            @click="openAdvancedFilter"
+          >
+            <v-icon color="#A62229" size="24">mdi-filter-variant-plus</v-icon>
+          </v-btn>
 
-        <v-btn icon class="action-icon-btn" title="Làm mới" @click="fetchData">
-          <v-icon color="#A62229" size="24">mdi-refresh</v-icon>
-        </v-btn>
+          <v-btn icon class="action-icon-btn" title="Làm mới" @click="onRefresh">
+            <v-icon color="#A62229" size="24">mdi-refresh</v-icon>
+          </v-btn>
 
-        <v-btn
-          color="#A62229"
-          dark
-          elevation="0"
-          class="search-btn min-w-0 px-3"
-          @click="fetchData"
-        >
-          <v-icon size="24">mdi-magnify</v-icon>
-        </v-btn>
+          <v-btn
+            color="#A62229"
+            dark
+            elevation="0"
+            class="search-btn min-w-0 px-3"
+            @click="fetchData"
+          >
+            <v-icon size="24">mdi-magnify</v-icon>
+          </v-btn>
+        </div>
       </div>
+
+      <!-- NÚT BỘ LỌC NÂNG CAO HIỆN DƯỚI CỤM ICON SAU KHI TÌM KIẾM -->
+      <v-btn
+        v-if="hasAppliedAdvancedFilter"
+        outlined
+        small
+        color="#A62229"
+        class="applied-advanced-btn text-none font-weight-medium"
+        @click="openAdvancedFilter"
+      >
+        Bộ lọc nâng cao
+      </v-btn>
     </div>
 
     <!-- BẢNG DANH SÁCH KẾT QUẢ HỌC LẠI -->
@@ -134,7 +154,7 @@
       </table>
     </div>
 
-    <!-- FOOTER PHÂN TRANG (CHỈNH GIỐNG HÌNH THIẾT KẾ MỚI) -->
+    <!-- FOOTER PHÂN TRANG -->
     <div class="d-flex align-center justify-end mt-4 gap-2">
       <!-- BẢN GHI -->
       <v-select
@@ -214,7 +234,10 @@
               <v-select
                 v-model="advancedFilters.heSo"
                 :items="heSoList"
-                placeholder="Hệ số"
+                item-text="text"
+                item-value="value"
+                label="Hệ số"
+                no-data-text="Không có dữ liệu"
                 outlined
                 dense
                 hide-details
@@ -227,7 +250,9 @@
               <v-select
                 v-model="advancedFilters.trangThai"
                 :items="trangThaiList"
-                placeholder="Trạng thái"
+                item-text="text"
+                item-value="value"
+                label="Trạng thái"
                 outlined
                 dense
                 hide-details
@@ -265,7 +290,7 @@
       </div>
     </v-dialog>
 
-    <!-- DANH SÁCH THÔNG BÁO LỖI (MỚI XẾP TRÊN CỦ, HIỆN LIÊN TỤC) -->
+    <!-- DANH SÁCH THÔNG BÁO LỖI -->
     <div class="toast-container">
       <div
         v-for="toast in toasts"
@@ -299,7 +324,21 @@
 </template>
 
 <script>
-import examResultServices from '~/services/examResultServices' 
+import examResultServices from '~/services/examResultServices'
+import { getRetakeClassTypeText } from '~/utils/heppers'
+
+const COEFFICIENT_CLASS_TYPE_MAP = {
+  NEW_CLASS: 'Lớp mở',
+  COMBINE_CLASS: 'Lớp ghép',
+  PROJECT_BASED_CLASS: 'Đồ án môn học',
+  PROJECT_CLASS: 'Đồ án môn học',
+}
+
+const COEFFICIENT_COURSE_TYPE_MAP = {
+  SPECIALIZED: 'Chuyên ngành',
+  OUTLINE: 'Đại cương',
+  GENERAL: 'Đại cương',
+}
 
 export default {
   name: 'KetQuaThiPage',
@@ -312,19 +351,21 @@ export default {
         session: null,
         retakeClass: null,
       },
-      // Chuyển các mảng tĩnh sang mảng động để hứng dữ liệu từ API trả về
       classList: [],
       sessionList: [],
       retakeClassList: [],
 
-      // Bộ lọc nâng cao Modal
       showAdvancedFilter: false,
+      hasAppliedAdvancedFilter: false,
       advancedFilters: {
         heSo: null,
         trangThai: null,
       },
       heSoList: [],
-      trangThaiList: ['Chưa duyệt', 'Đã duyệt'],
+      trangThaiList: [
+        { text: 'Chưa duyệt', value: 'Chưa duyệt' },
+        { text: 'Đã duyệt', value: 'Đã duyệt' },
+      ],
 
       resultList: [],
 
@@ -355,70 +396,227 @@ export default {
     this.initPageData()
   },
   methods: {
-    // Gọi tổng hợp dữ liệu danh mục lọc và danh sách chính khi vào trang
     async initPageData() {
-      await Promise.all([
-        this.fetchFilterOptions(),
-        this.fetchData()
-      ])
+      await Promise.all([this.fetchFilterOptions(), this.fetchData()])
     },
 
-    // Lấy dữ liệu các dropdown bộ lọc từ API
+    async openAdvancedFilter() {
+      this.showAdvancedFilter = true
+      if (!this.heSoList.length) {
+        await this.fetchCoefficientOptions()
+      }
+    },
+
+    async fetchCoefficientOptions() {
+      try {
+        const coefRes = await examResultServices.getCoefficients({
+          pageSize: 100,
+          pageIndex: 1,
+          channel: 'CMS',
+        })
+        this.heSoList = [...this.mapCoefficientOptions(coefRes)]
+      } catch (err) {
+        console.error('Lỗi khi tải danh sách hệ số:', err)
+      }
+    },
+
+    extractArrayDeep(input, depth = 0) {
+      if (!input || depth > 5) return []
+      if (Array.isArray(input)) return input
+      if (typeof input !== 'object') return []
+
+      const keys = ['objects', 'content', 'items', 'list', 'data', 'records', 'rows']
+      for (const k of keys) {
+        if (Array.isArray(input[k])) return input[k]
+      }
+      for (const k of keys) {
+        if (input[k] && typeof input[k] === 'object') {
+          const found = this.extractArrayDeep(input[k], depth + 1)
+          if (found.length) return found
+        }
+      }
+      return []
+    },
+
+    mapCoefficientOptions(res) {
+      const rawList =
+        (res &&
+          res.data &&
+          res.data.data &&
+          Array.isArray(res.data.data.data) &&
+          res.data.data.data) ||
+        (res &&
+          res.data &&
+          Array.isArray(res.data.data) &&
+          res.data.data) ||
+        (res && Array.isArray(res.data) && res.data) ||
+        this.extractArrayDeep(res)
+
+      return rawList
+        .filter((item) => item && typeof item === 'object')
+        .map((raw, idx) => {
+          const item = raw.coefficient || raw
+          const helperText = getRetakeClassTypeText(
+            item.classType,
+            item.courseType,
+            item.isCourseNormal
+          )
+          const classText =
+            COEFFICIENT_CLASS_TYPE_MAP[item.classType] ||
+            helperText ||
+            item.classType ||
+            ''
+          const courseText = item.courseType
+            ? COEFFICIENT_COURSE_TYPE_MAP[item.courseType] || item.courseType
+            : ''
+
+          let label = classText
+          if (courseText && !label.includes(courseText)) {
+            label = label ? `${label} (${courseText})` : courseText
+          }
+
+          const coef =
+            item.coefficient !== undefined && item.coefficient !== null
+              ? Number(item.coefficient)
+              : null
+
+          const text =
+            coef !== null && !Number.isNaN(coef)
+              ? label
+                ? `${label} (${coef})`
+                : String(coef)
+              : label || String(item.id ?? idx)
+
+          return {
+            text,
+            value: item.id !== undefined ? item.id : idx,
+          }
+        })
+    },
+
+    mapSelectOptions(res) {
+      const raw = this.extractArrayDeep(res)
+      return raw
+        .map((item, idx) => {
+          if (item === null || item === undefined) return null
+          if (typeof item === 'string' || typeof item === 'number') {
+            return { text: String(item), value: item }
+          }
+          const target = (item && item.retakeCourse) || item
+          const text =
+            target.maDot ||
+            target.name ||
+            target.code ||
+            target.label ||
+            (target.id !== undefined ? String(target.id) : '')
+          const value =
+            target.id !== undefined
+              ? target.id
+              : target.code !== undefined
+              ? target.code
+              : text || idx
+
+          return text ? { text: String(text), value } : null
+        })
+        .filter(Boolean)
+    },
+
     async fetchFilterOptions() {
       try {
-        // 1. Lấy đợt học lại
-        const sessionRes = await examResultServices.getRetakeSessions({ status: 'ACTIVE', channel: 'CMS' })
-        this.sessionList = sessionRes?.data?.objects || sessionRes?.data || []
+        const [sessionRes, classRes, coefRes, retakeClassRes] = await Promise.all([
+          examResultServices.getRetakeSessions({
+            status: 'ACTIVE',
+            channel: 'CMS',
+          }),
+          examResultServices.getClasses({ channel: 'CMS' }),
+          examResultServices.getCoefficients({
+            pageSize: 100,
+            pageIndex: 1,
+            channel: 'CMS',
+          }),
+          examResultServices.getRetakeCourses({
+            pageSize: 100,
+            pageIndex: 1,
+            channel: 'CMS',
+          }),
+        ])
 
-        // 2. Lấy danh sách lớp
-        const classRes = await examResultServices.getClasses({ channel: 'CMS' })
-        this.classList = classRes?.data?.objects || classRes?.data || []
-
-        // 3. Lấy hệ số (cho modal nâng cao)
-        const coefRes = await examResultServices.getCoefficients({ pageSize: 100, pageIndex: 1, channel: 'CMS' })
-        this.heSoList = coefRes?.data?.objects || coefRes?.data || []
-
-        // 4. Lấy lớp học lại
-        const retakeClassRes = await examResultServices.getRetakeCourses({ pageSize: 100, pageIndex: 1, channel: 'CMS' })
-        this.retakeClassList = retakeClassRes?.data?.objects || retakeClassRes?.data || []
+        this.sessionList = this.mapSelectOptions(sessionRes)
+        this.classList = this.mapSelectOptions(classRes)
+        this.heSoList = [...this.mapCoefficientOptions(coefRes)]
+        this.retakeClassList = this.mapSelectOptions(retakeClassRes)
       } catch (err) {
         console.error('Lỗi khi tải dữ liệu danh mục bộ lọc:', err)
       }
     },
 
-    // Lấy danh sách kết quả chính (Xử lý cả trường hợp API bảng chính bị lỗi như bạn đề cập)
     async fetchData() {
       try {
         const params = {
           pageIndex: this.page,
           pageSize: this.pageSize,
           fullName: this.filters.keyword || '',
-          channel: 'CMS'
+          classId: this.filters.class || undefined,
+          retakeSessionId: this.filters.session || undefined,
+          retakeCourseId: this.filters.retakeClass || undefined,
+          classCoefficientId: this.advancedFilters.heSo || undefined,
+          scoreStatus: this.advancedFilters.trangThai || undefined,
+          channel: 'CMS',
         }
 
         const res = await examResultServices.getRetakeCourseResults(params)
-        
-        // In ra console để bạn mở F12 xem cấu trúc chính xác của backend trả về là gì
-        console.log('API RetakeCourseResult response:', res)
+        const responseData = (res && res.data) || res
 
-        // Hứng linh hoạt tất cả các dạng cấu trúc dữ liệu trả về phổ biến của hệ thống
-        const responseData = res?.data || res
-        
-        if (Array.isArray(responseData)) {
-          this.resultList = responseData
-        } else {
-          this.resultList = 
-            responseData?.objects || 
-            responseData?.content || 
-            responseData?.data?.objects || 
-            responseData?.data?.content || 
-            responseData?.data || 
+        const rawRows = Array.isArray(responseData)
+          ? responseData
+          : (responseData && responseData.objects) ||
+            (responseData && responseData.content) ||
+            (responseData && responseData.data && responseData.data.objects) ||
+            (responseData && responseData.data && responseData.data.content) ||
+            (responseData && responseData.data) ||
             []
-        }
+
+        this.resultList = (Array.isArray(rawRows) ? rawRows : []).map((item, idx) => ({
+          id: item.id || idx + 1,
+          studentCode:
+            item.studentCode || item.code || (item.student && item.student.code) || '',
+          studentName:
+            item.studentName ||
+            item.fullName ||
+            (item.student && item.student.fullName) ||
+            '',
+          className:
+            item.className ||
+            (item.clazz && item.clazz.name) ||
+            (item.class && item.class.name) ||
+            '',
+          retakeClassName:
+            item.retakeClassName ||
+            item.retakeClassCode ||
+            (item.retakeCourse && item.retakeCourse.code) ||
+            '',
+          classType: item.classType || item.retakeCourseStatus || '',
+          score:
+            item.score !== undefined
+              ? item.score
+              : item.point !== undefined
+              ? item.point
+              : item.totalScore || '',
+          note: item.note || item.description || '',
+          session:
+            item.session ||
+            (item.retakeSession && (item.retakeSession.code || item.retakeSession.maDot)) ||
+            '',
+          subject:
+            item.subject ||
+            (item.term && item.term.name) ||
+            item.termName ||
+            '',
+          status: item.status || item.approvalStatus || '',
+        }))
       } catch (err) {
-        console.warn('API bảng kết quả học lại đang gặp lỗi, chuyển sang cơ chế dự phòng:', err)
-        
-        // Đọc dữ liệu dự phòng từ localStorage nếu API lỗi 500
+        console.warn('Lỗi tải danh sách kết quả học lại:', err)
+        this.pushToast()
         const localData = localStorage.getItem('local_retake_course_results')
         if (localData) {
           this.resultList = JSON.parse(localData)
@@ -428,14 +626,36 @@ export default {
       }
     },
 
+    onRefresh() {
+      this.filters = {
+        keyword: '',
+        class: null,
+        session: null,
+        retakeClass: null,
+      }
+      this.advancedFilters = {
+        heSo: null,
+        trangThai: null,
+      }
+      this.hasAppliedAdvancedFilter = false
+      this.page = 1
+      this.pageInput = '1'
+      this.fetchData()
+    },
+
     handleAdvancedSearch() {
+      this.hasAppliedAdvancedFilter = Boolean(
+        this.advancedFilters.heSo || this.advancedFilters.trangThai
+      )
       this.showAdvancedFilter = false
+      this.page = 1
+      this.pageInput = '1'
       this.fetchData()
     },
 
     goToPage() {
       const p = parseInt(this.pageInput, 10)
-      if (p >= 1 && p <= this.totalPages) {
+      if (p && p >= 1 && p <= this.totalPages) {
         this.page = p
         this.fetchData()
       } else {
@@ -463,6 +683,15 @@ export default {
         this.pageInput = String(this.page)
         this.fetchData()
       }
+    },
+
+    pushToast() {
+      const id = ++this.toastCounter
+      this.toasts.unshift({ id })
+    },
+
+    removeToast(id) {
+      this.toasts = this.toasts.filter((t) => t.id !== id)
     },
   },
 }
@@ -520,7 +749,13 @@ export default {
   border-radius: 4px;
 }
 
-/* CSS PHÂN TRANG THEO THIẾT KẾ MỚI IN IMAGE */
+.applied-advanced-btn {
+  height: 30px !important;
+  border-radius: 4px !important;
+  background-color: #ffffff !important;
+}
+
+/* CSS PHÂN TRANG */
 .custom-pagination-select {
   width: 92px !important;
   flex: 0 0 92px;
@@ -632,7 +867,7 @@ export default {
   padding: 0 16px !important;
 }
 
-/* QUẢN LÝ DANH SÁCH TOAST XẾP CHỒNG THÔNG BÁO */
+/* TOAST THÔNG BÁO */
 .toast-container {
   position: fixed;
   top: 70px;

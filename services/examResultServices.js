@@ -1,50 +1,62 @@
-import Api from '~/api/Api.js'
+import Api from "~/api/Api.js";
 
-const examResultServices = {
-  async getExamResults(params) {
-    return await Api.get('/api/v1/exam-results',params)
+export default {
+  // Danh sách kết quả học lại (đúng path /api/RetakeCourseResult)
+  getRetakeCourseResults(params) {
+    return Api.get("/api/RetakeCourseResult", params);
   },
 
-  async updateExamResults(data) {
-    return await Api.post('/api/v1/exam-results/update', data)
+  // Các API danh mục theo danh sách URL bạn gửi
+  getRetakeSessions(params = { status: "ACTIVE", channel: "CMS" }) {
+    return Api.get("/api/retakeSession/list", params);
+  },
+  getClasses(params = { channel: "CMS" }) {
+    return Api.get("/api/classes/all", params);
+  },
+  getCoefficients(params = { pageSize: 100, pageIndex: 1, channel: "CMS" }) {
+    return Api.get("/api/coefficient", params);
+  },
+  getRetakeCourses(params = { pageSize: 100, pageIndex: 1, channel: "CMS" }) {
+    return Api.get("/api/retakeCourse", params);
   },
 
-  async importExamResults(formData) {
-    return await Api.postMultipart('/api/v1/exam-results/import', formData)
+  // Giữ nguyên các hàm có sẵn của bạn
+  getList(params) {
+    return Api.get("/api/result", params);
   },
-
-  async exportExamResults(params) {
-    return await Api.getBlob('/api/v1/exam-results/export',params)
+  addNew(params) {
+    return Api.post("/api/result", params);
   },
-
-  // Danh sách các API bổ sung cho module Kết quả học lại & Import
-  async getRetakeCourseResults(params) {
-    return await Api.get('/api/RetakeCourseResult',params)
+  getDetail(id) {
+    return Api.get(`/api/result/${id}`);
   },
-
-  async getRetakeSessions(params) {
-    return await Api.get('/api/retakeSession/list',params)
+  update(params) {
+    return Api.put(`/api/result/${params.id}`, params);
   },
-
-  async getClasses(params) {
-    return await Api.get('/api/classes/all',params)
+  delete(id) {
+    return Api.delete(`/api/result/${id}`);
   },
-
-  async getCoefficients(params) {
-    return await Api.get('/api/coefficient',params)
+  checkImport(file) {
+    const form = new FormData();
+    form.append("file", file);
+    return Api.postMultipart("/api/result/import/check", form);
   },
-
-  async getRetakeCourses(params) {
-    return await Api.get('/api/retakeCourse',params)
+  import(data, examClass) {
+    return Api.post("/api/result/import", { examResultImports: [...data], examClass });
   },
-
-  async checkImport(formData) {
-    return await Api.postMultipart('/api/redefense/result/import/check', formData)
+  export(params) {
+    return Api.get("/api/result/export", params);
   },
-
-  async saveImport(formData) {
-    return await Api.postMultipart('/api/redefense/result/import', formData)
+  getTemplate() {
+    return Api.get("/api/result/template");
   },
-}
-
-export default examResultServices
+  closed(params) {
+    return Api.get("/api/result/closed", params);
+  },
+  register(params) {
+    return Api.get("/api/result/register", params);
+  },
+  getRetakeCourseResultByRegisterExam(params) {
+    return Api.get("/api/RetakeCourseResult/byRegisterExam", params);
+  },
+};

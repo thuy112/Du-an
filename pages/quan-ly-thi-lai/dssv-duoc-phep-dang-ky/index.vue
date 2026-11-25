@@ -173,15 +173,33 @@
       </BaseTable>
     </div>
 
-    <!-- PHÂN TRANG -->
+    <!-- PHÂN TRANG & NÚT XUẤT / NHẬP -->
     <div class="pagination-bottom-container mt-4 pt-3 d-flex align-center justify-space-between flex-wrap gap-3 sticky-bottom-bar border-top">
       <div class="d-flex align-center" style="gap: 8px;">
-        <v-btn color="#4caf50" dark class="text-none font-weight-medium rounded-sm text-nowrap px-3" height="32" elevation="0" style="font-size: 12px; border-radius: 4px !important;" @click="exportReportFile">
+        <v-btn
+          color="#4caf50"
+          dark
+          class="text-none font-weight-medium rounded-sm text-nowrap px-3"
+          height="32"
+          elevation="0"
+          style="font-size: 12px; border-radius: 4px !important;"
+          :loading="loadingExport"
+          :disabled="!itemList.length"
+          @click="handleExport"
+        >
           <v-icon left small>mdi-export</v-icon>
           XUẤT FILE BÁO CÁO
         </v-btn>
 
-        <v-btn color="#4caf50" dark class="text-none font-weight-medium rounded-sm text-nowrap px-3" height="32" elevation="0" style="font-size: 12px; border-radius: 4px !important;" @click="openImportDialog">
+        <v-btn
+          color="#4caf50"
+          dark
+          class="text-none font-weight-medium rounded-sm text-nowrap px-3"
+          height="32"
+          elevation="0"
+          style="font-size: 12px; border-radius: 4px !important;"
+          @click="handleOpenImport"
+        >
           <v-icon left small>mdi-import</v-icon>
           NHẬP FILE ĐĂNG KÍ
         </v-btn>
@@ -263,42 +281,35 @@
       </v-card>
     </v-dialog>
 
-    <!-- MODAL NHẬP FILE EXCEL -->
-    <v-dialog v-model="importDialog" max-width="600px" persistent>
-      <v-card class="rounded-lg overflow-hidden">
-        <div class="px-6 py-4 text-white font-weight-bold d-flex justify-space-between align-items-center" style="background-color: #A62229; font-size: 18px;">
-          <span>Nhập file excel</span>
-          <v-btn icon dark @click="importDialog = false"><v-icon>mdi-close</v-icon></v-btn>
-        </div>
-
-        <v-card-text class="pa-6">
-          <div class="mb-4">
-            Tải file mẫu ở đây: 
-            <a href="#" class="red--text font-weight-medium text-decoration-none" @click.prevent="downloadTemplate">
-              template_danh_sach_thi.xlsx
-            </a>
-          </div>
-
-          <v-file-input
-            v-model="selectedFile"
-            label="Chọn tệp đính kèm"
-            outlined
-            dense
-            prepend-icon="mdi-plus"
-            show-size
-            accept=".xlsx, .xls"
-            class="custom-file-input"
-          ></v-file-input>
-        </v-card-text>
-
-        <v-divider></v-divider>
-
-        <v-card-actions class="pa-4 justify-end" style="gap: 8px;">
-          <v-btn text class="text-none px-4" @click="importDialog = false">Đóng</v-btn>
-          <v-btn color="#A2212B" dark depressed class="text-none px-6" :loading="importing" @click="handleImportSubmit">Import</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <!-- MODAL NHẬP FILE EXCEL (BASE IMPORT) -->
+    <BaseImport
+      ref="Import"
+      width="900"
+      :open="openImport"
+      :loading="loadingImport"
+      :template-error-url="templateErrorUrl"
+      :template-url="templateUrl"
+      @close="handleCloseImport"
+      @import="handleImport"
+      @save="handleSaveImport"
+    >
+      <template #additionalInput>
+        <v-autocomplete
+          v-if="availableList"
+          v-model="importExamId"
+          clearable
+          label="Kỳ thi lại"
+          outlined
+          style="max-width: 220px"
+          hide-details
+          dense
+          :items="examOptions"
+          item-value="value"
+          item-text="text"
+          no-data-text="Không có dữ liệu"
+        />
+      </template>
+    </BaseImport>
 
     <!-- SNACKBAR THÔNG BÁO -->
     <v-snackbar
@@ -327,20 +338,22 @@
 
 <script>
 import BaseTable from '~/components/Base/BaseTable.vue'
-import AddStudentModal from '~/components/AddStudentModal.vue' // Import component modal thêm mới
+import BaseImport from '~/components/Base/Import.vue'
+import AddStudentModal from '~/components/AddStudentModal.vue'
 import authorizeService from '~/services/authorizeRegistrationService'
 
 export default {
   name: 'AuthorizeRegistrationPage',
   components: {
     BaseTable,
-    AddStudentModal, // Đăng ký component modal
+    BaseImport,
+    AddStudentModal,
   },
   data() {
     return {
       isMobileDevice: false,
       loading: false,
-      isAddModalOpen: false, // Biến điều khiển trạng thái ẩn/hiện modal thêm mới
+      isAddModalOpen: false,
       filters: {
         search: '',
         semesterId: '',
@@ -359,10 +372,23 @@ export default {
       examOptions: [],
       termOptions: [],
 
-      importDialog: false,
-      selectedFile: null,
-      importing: false,
-      
+      loadingExport: false,
+      openImport: false,
+      loadingImport: false,
+      templateErrorUrl: '',
+      templateUrl: '',
+      urlFileCheck: '',
+      availableList: false,
+      importExamId: null,
+      importHeaders: [
+        { value: 'stt', text: 'STT', sortable: false },
+        { value: 'studentCode', text: 'Mã sinh viên', sortable: false },
+        { value: 'studentName', text: 'Họ và tên', sortable: false },
+        { value: 'className', text: 'Lớp', sortable: false },
+        { value: 'termCode', text: 'Mã học phần', sortable: false },
+        { value: 'termName', text: 'Tên học phần', sortable: false },
+      ],
+
       statusList: [
         { value: 'REGISTERED', text: 'Đã đăng ký' },
         { value: 'UNREGISTERED', text: 'Chưa đăng ký' },
@@ -383,15 +409,15 @@ export default {
       itemsPerPage: 50,
 
       tableHeaders: [
-        { value: "stt", text: "STT", align: "center", width: "60px", sortable: false },
-        { value: "student", text: "Thông tin sinh viên", width: "250px", align: "left", sortable: false },
-        { value: "examClass", text: "Lớp thi", align: "left", sortable: false },
-        { value: "exam.name", text: "Tên kỳ đăng ký thi lại", align: "left", sortable: false },
-        { value: "semesterName", text: "Học kỳ", align: "left", sortable: false },
-        { value: "termCode", text: "Mã học phần", align: "left", sortable: false },
-        { value: "termName", text: "Tên học phần", align: "left", sortable: false },
-        { value: "status", text: "Trạng thái", align: "center", sortable: false },
-        { value: "actions", text: "Chức năng", align: "center", width: "90px", sortable: false },
+        { value: 'stt', text: 'STT', align: 'center', width: '60px', sortable: false },
+        { value: 'student', text: 'Thông tin sinh viên', width: '250px', align: 'left', sortable: false },
+        { value: 'examClass', text: 'Lớp thi', align: 'left', sortable: false },
+        { value: 'exam.name', text: 'Tên kỳ đăng ký thi lại', align: 'left', sortable: false },
+        { value: 'semesterName', text: 'Học kỳ', align: 'left', sortable: false },
+        { value: 'termCode', text: 'Mã học phần', align: 'left', sortable: false },
+        { value: 'termName', text: 'Tên học phần', align: 'left', sortable: false },
+        { value: 'status', text: 'Trạng thái', align: 'center', sortable: false },
+        { value: 'actions', text: 'Chức năng', align: 'center', width: '90px', sortable: false },
       ],
     }
   },
@@ -403,6 +429,21 @@ export default {
     await this.loadData()
   },
   methods: {
+    showNotify(message, isSuccess = true) {
+      this.snackbarText = message
+      this.snackbarColor = isSuccess ? '#4caf50' : '#e53935'
+      this.snackbar = true
+    },
+
+    downloadFileLink(url) {
+      if (!url) return
+      if (typeof this.$download === 'function') {
+        this.$download(url)
+      } else {
+        window.open(url, '_blank')
+      }
+    },
+
     async fetchCatalogs() {
       try {
         const [semesterRes, examRes, termRes] = await Promise.all([
@@ -413,15 +454,15 @@ export default {
 
         if (semesterRes) {
           const list = Array.isArray(semesterRes) ? semesterRes : semesterRes.data || semesterRes.content || []
-          this.semesterOptions = list.map(item => ({ text: item.name || item.code, value: item.id }))
+          this.semesterOptions = list.map((item) => ({ text: item.name || item.code, value: item.id }))
         }
         if (examRes) {
           const list = Array.isArray(examRes) ? examRes : examRes.data || examRes.content || []
-          this.examOptions = list.map(item => ({ text: item.name || item.code, value: item.id }))
+          this.examOptions = list.map((item) => ({ text: item.name || item.code, value: item.id }))
         }
         if (termRes) {
           const list = Array.isArray(termRes) ? termRes : termRes.data || termRes.content || []
-          this.termOptions = list.map(item => ({ text: item.name || item.code, value: item.id }))
+          this.termOptions = list.map((item) => ({ text: item.name || item.code, value: item.id }))
         }
       } catch (error) {
         console.error('Lỗi tải danh mục phụ:', error)
@@ -495,30 +536,30 @@ export default {
         }
 
         const res = await authorizeService.getList(baseParams)
-        
+
         if (res) {
           const rootData = res.data !== undefined ? res.data : res
           const allItems = Array.isArray(rootData) ? rootData : (rootData.data || rootData.content || rootData.items || [])
-          
+
           const rawTotal = rootData.totalElements ?? rootData.totalRecords ?? rootData.total ?? (res.totalElements || res.totalRecords || res.total)
           this.totalRecords = rawTotal !== undefined ? Number(rawTotal) : allItems.length
 
           const rawList = Array.isArray(allItems) ? allItems : []
-          this.itemList = rawList.map(item => {
+          this.itemList = rawList.map((item) => {
             return {
               ...item,
               studentName: item.studentName || item.fullName || item.name || item.student?.fullName || item.student?.name || '---',
               studentCode: item.studentCode || item.code || item.maSv || item.student?.code || item.student?.studentCode || '---',
-              className: 
-                item.className || 
-                item.clazzName || 
-                item.classes?.name || 
-                item.classes?.code || 
-                item.class?.name || 
-                item.class?.code || 
-                item.student?.classes?.name || 
-                item.student?.clazz?.name || 
-                item.student?.className || 
+              className:
+                item.className ||
+                item.clazzName ||
+                item.classes?.name ||
+                item.classes?.code ||
+                item.class?.name ||
+                item.class?.code ||
+                item.student?.classes?.name ||
+                item.student?.clazz?.name ||
+                item.student?.className ||
                 '---',
               examClass: item.examClass || item.classExam || item.examClassName || item.classes?.code || '---',
               'exam.name': item.exam?.name || item.examName || item.examTitle || '---',
@@ -573,132 +614,160 @@ export default {
       if (!this.selectedItemToDelete) return
       this.deleting = true
       try {
-        // Lấy chính xác id của item cần xóa (hỗ trợ cả id hoặc code nếu backend dùng khóa chính khác)
         const recordId = this.selectedItemToDelete.id || this.selectedItemToDelete.code
-        
         await authorizeService.delete(recordId, 'CMS')
-        
         this.deleteDialog = false
-        this.snackbarText = 'Xóa thành công'
-        this.snackbarColor = '#4caf50'
-        this.snackbar = true
-        
-        // Tải lại danh sách sau khi xóa thành công
+        this.showNotify('Xóa thành công', true)
         await this.loadData()
       } catch (error) {
         console.error('Lỗi khi xóa:', error)
         const errorMsg = error.response?.data?.message || error.message || 'Có lỗi xảy ra khi xóa'
-        this.snackbarText = errorMsg
-        this.snackbarColor = '#e53935'
-        this.snackbar = true
+        this.showNotify(errorMsg, false)
       } finally {
         this.deleting = false
       }
     },
 
-    // Mở Modal Thêm mới khi bấm vào nút dấu cộng (+)
     openAddDialog() {
       this.isAddModalOpen = true
     },
-    // 1. Sửa hàm xuất file báo cáo để mở đúng link hoặc tải file
-    async exportReportFile() {
+
+    async handleExport() {
+      this.loadingExport = true
       try {
         const params = {
           channel: 'CMS',
-          search: this.activeFilters.search || '',
-          semesterId: this.activeFilters.semesterId || ''
+          ...(this.activeFilters.search && { search: this.activeFilters.search }),
+          ...(this.activeFilters.semesterId && { semesterId: this.activeFilters.semesterId }),
+          ...(this.activeFilters.examId && { examId: this.activeFilters.examId }),
+          ...(this.activeFilters.termId && { termId: this.activeFilters.termId }),
+          ...(this.activeFilters.status && { status: this.activeFilters.status }),
         }
-        const res = await authorizeService.exportReport(params)
-        
-        // Trích xuất chính xác chuỗi URL từ response của API
-        const responseData = res?.data !== undefined ? res.data : res
-        const downloadUrl = typeof responseData === 'string' ? responseData : (responseData?.url || responseData?.fileUrl || '')
-
-        if (downloadUrl) {
-          window.open(downloadUrl, '_blank')
-        } else {
-          this.snackbarText = 'Xuất file báo cáo thành công'
-          this.snackbarColor = '#4caf50'
-          this.snackbar = true
+        const res = await authorizeService.exportAuthorize(params)
+        const data = res?.data !== undefined ? res.data : res
+        const url = typeof data === 'string' ? data : (data?.url || data?.fileUrl || '')
+        if (url) {
+          this.$download(url)
         }
-      } catch (error) {
-        console.error('Lỗi xuất file:', error)
-        const errorMsg = error.response?.data?.message || error.message || 'Chưa chọn kỳ học hoặc lỗi xuất file'
-        this.snackbarText = errorMsg
-        this.snackbarColor = '#e53935'
-        this.snackbar = true
+      } finally {
+        this.loadingExport = false
       }
     },
 
-    // Mở modal nhập file
-    openImportDialog() {
-      this.selectedFile = null
-      this.importDialog = true
+    handleOpenImport() {
+      this.openImport = true
+      this.templateErrorUrl = ''
+      this.templateUrl = ''
+      this.urlFileCheck = ''
+      this.availableList = false
+      this.importExamId = this.extractValue(this.filters.examId) || null
+      this.getTemplateUrl()
     },
 
-    // Tải file template mẫu
-    async downloadTemplate() {
+    async getTemplateUrl() {
       try {
         const res = await authorizeService.getTemplate({ channel: 'CMS' })
-        const templateUri = res?.data?.url || res?.url || res
-        if (templateUri) {
-          window.open(templateUri, '_blank')
-        }
+        const root = res?.data !== undefined ? res.data : res
+        const inner = root?.data !== undefined ? root.data : root
+
+        const url =
+          typeof inner === 'string'
+            ? inner
+            : inner?.url ||
+              inner?.fileUrl ||
+              inner?.templateUrl ||
+              inner?.path ||
+              root?.url ||
+              (typeof root === 'string' ? root : '')
+
+        this.templateUrl = url || ''
       } catch (error) {
         console.error('Lỗi tải template:', error)
+        this.templateUrl = ''
       }
     },
 
-    // 2. Sửa hàm xử lý Import: Chỉ Import khi API check trả về hợp lệ
-    async handleImportSubmit() {
-      if (!this.selectedFile) {
-        this.snackbarText = 'Vui lòng chọn tệp đính kèm'
-        this.snackbarColor = '#e53935'
-        this.snackbar = true
+    handleCloseImport() {
+      this.openImport = false
+      this.availableList = false
+      this.templateErrorUrl = ''
+      this.urlFileCheck = ''
+    },
+
+    async handleImport(file) {
+      this.loadingImport = true
+      try {
+        const res = await authorizeService.checkImport(file, 'CMS')
+        const data = res?.data !== undefined ? res.data : res
+
+        if (!this.$refs.Import) return
+
+        const objects = Array.isArray(data?.objects) ? data.objects : []
+        if (objects.length > 0) {
+          this.$refs.Import.list = [...objects]
+          this.availableList = true
+        }
+
+        if (data?.status === 1) {
+          this.templateErrorUrl = ''
+          this.urlFileCheck = data?.file?.url || ''
+          this.$refs.Import.showFile = false
+          this.$refs.Import.headers = [...this.importHeaders]
+          return
+        }
+
+        const headerErrors = [...this.importHeaders]
+          objects.forEach((item) => {
+            if (item.messErrors) item.messageError = `${item.messErrors}<br>`
+          })
+          headerErrors.splice(1, 0, {
+            value: 'messageError',
+            text: 'Thông tin lỗi',
+            sortable: false,
+            width: 250,
+            cellClass: 'error--text',
+          })
+        this.$refs.Import.headers = [...headerErrors]
+        this.$refs.Import.errMsg = data?.message || 'File có lỗi dữ liệu'
+        this.templateErrorUrl = data?.file?.url || ''
+        this.showNotify(data?.message || 'File có lỗi dữ liệu', false)
+      } catch (error) {
+        console.error('Lỗi kiểm tra file import:', error)
+        const errorMsg = error.response?.data?.message || error.message || 'Lỗi kiểm tra file'
+        this.showNotify(errorMsg, false)
+      } finally {
+        this.loadingImport = false
+      }
+    },
+
+    async handleSaveImport(data) {
+      if (!this.importExamId) {
+        this.showNotify('Vui lòng chọn kỳ thi lại', false)
         return
       }
 
-      this.importing = true
+      this.loadingImport = true
       try {
-        const formData = new FormData()
-        formData.append('file', this.selectedFile)
-
-        // 1. Gọi API check trước
-        const checkRes = await authorizeService.checkImportFile(formData, 'CMS')
-        const checkData = checkRes?.data !== undefined ? checkRes.data : checkRes
-
-        // Kiểm tra kỹ các trường hợp báo lỗi từ API check
-        // (Ví dụ: code khác 0/200, hoặc có thuộc tính error/message lỗi)
-        if (checkData) {
-          if (checkData.code && checkData.code !== 0 && checkData.code !== 200) {
-            throw new Error(checkData.message || 'File không hợp lệ')
-          }
-          if (checkData.error || checkData.success === false) {
-            throw new Error(checkData.message || checkData.error || 'Lỗi kiểm tra file')
-          }
-        }
-
-        // 2. CHỈ KHI check thành công không có lỗi thì mới gọi API import chính thức
-        await authorizeService.importFile(formData, 'CMS')
-
-        this.importDialog = false
-        this.snackbarText = 'Import file thành công'
-        this.snackbarColor = '#4caf50'
-        this.snackbar = true
-        
+        await authorizeService.confirmImport(
+          {
+            authorizedExamRegistrationListDtos: [...data],
+            examId: this.importExamId,
+            fileUrl: this.urlFileCheck,
+          },
+          'CMS'
+        )
+        this.showNotify('Import dữ liệu thành công', true)
+        this.handleCloseImport()
         await this.loadData()
       } catch (error) {
-        console.error('Lỗi import file:', error)
-        // Lấy chính xác thông báo lỗi từ backend trả về khi check file thất bại
-        const errorMsg = error.response?.data?.message || error.message || 'Lỗi import file'
-        this.snackbarText = errorMsg
-        this.snackbarColor = '#e53935'
-        this.snackbar = true
+        console.error('Lỗi xác nhận import:', error)
+        const errorMsg = error.response?.data?.message || error.message || 'Lỗi import dữ liệu'
+        this.showNotify(errorMsg, false)
       } finally {
-        this.importing = false
+        this.loadingImport = false
       }
     },
-  }
+  },
 }
 </script>
 

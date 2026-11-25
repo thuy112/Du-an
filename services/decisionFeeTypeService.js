@@ -13,30 +13,34 @@ export default {
   getMajorList(params) {
     return Api.get('/api/major/list', params)
   },
-  createItem(data, channel = 'CMS') {
-    return Api.post('/api/decisionFee', data, { params: { channel } })
-  },
-  updateItem(id, data, channel = 'CMS') {
-    return Api.put(`/api/decisionFee/${id}`, data, { params: { channel } })
-  },
   deleteItem(id, channel = 'CMS') {
     return Api.delete(`/api/decisionFee/${id}`, { data: { channel } })
+  },
+  uploadFile(formData, channel = 'CMS') {
+    return Api.post('/api/file/upload', formData, {
+      params: { channel },
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
   },
   downloadTemplate(channel = 'CMS') {
     return Api.get('/api/decisionFee/template', { params: { channel }, responseType: 'blob' })
   },
-  // Kiểm tra file excel trước khi import
   checkImportFile(formData, channel = 'CMS') {
     return Api.post('/api/decisionFee/import/check', formData, {
       params: { channel },
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { 'Content-Type': 'multipart/form-data' },
     })
   },
-  // Thực hiện import file chính thức
   importFile(formData, channel = 'CMS') {
     return Api.post('/api/decisionFee/import', formData, {
       params: { channel },
-      headers: { 'Content-Type': 'multipart/form-data' }
+      headers: { 'Content-Type': 'multipart/form-data' },
     })
-  }
+  },
+  createItem(params) {
+    return Api.post("/api/decisionFee", params);
+  },
+  updateItem(id) {
+    return Api.put(`/api/decisionFee/${id}`)
+  },
 }

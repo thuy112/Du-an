@@ -11,10 +11,9 @@
       <v-card-text class="pa-6" style="max-height: 75vh; overflow-y: auto;">
         <!-- Lớp thi (*) -->
         <div class="mb-4">
-          <label class="d-block mb-1 font-weight-medium text-body-2" style="color: #333;">Lớp thi (<span style="color: #d32f2f;">*</span>)</label>
           <v-text-field
             v-model="form.className"
-            placeholder="Nhập tên lớp thi"
+            label="Nhập tên lớp thi"
             outlined
             dense
             hide-details
@@ -24,13 +23,12 @@
 
         <!-- Học kỳ (*) -->
         <div class="mb-4">
-          <label class="d-block mb-1 font-weight-medium text-body-2" style="color: #333;">Học kỳ (<span style="color: #d32f2f;">*</span>)</label>
           <v-select
             v-model="form.semesterId"
             :items="semesterOptions"
             item-text="text"
             item-value="value"
-            placeholder="Chọn học kỳ"
+            label="Chọn học kỳ"
             outlined
             dense
             hide-details
@@ -41,13 +39,12 @@
 
         <!-- Kỳ thi (*) -->
         <div class="mb-4">
-          <label class="d-block mb-1 font-weight-medium text-body-2" style="color: #333;">Kỳ thi (<span style="color: #d32f2f;">*</span>)</label>
           <v-select
             v-model="form.examId"
             :items="examOptions"
             item-text="text"
             item-value="value"
-            placeholder="Chọn kỳ thi"
+            label="Chọn kỳ thi"
             outlined
             dense
             hide-details
@@ -58,13 +55,12 @@
 
         <!-- Học phần (*) -->
         <div class="mb-4">
-          <label class="d-block mb-1 font-weight-medium text-body-2" style="color: #333;">Học phần (<span style="color: #d32f2f;">*</span>)</label>
           <v-select
             v-model="form.termId"
             :items="termOptions"
             item-text="text"
             item-value="value"
-            placeholder="Chọn học phần"
+            label="Chọn học phần"
             outlined
             dense
             hide-details
@@ -75,7 +71,6 @@
 
         <!-- Thời gian bắt đầu -->
         <div class="mb-4">
-          <label class="d-block mb-1 font-weight-medium text-body-2" style="color: #333;">Thời gian bắt đầu</label>
           <v-menu
             v-model="menuStartTime"
             :close-on-content-click="false"
@@ -88,7 +83,7 @@
             <template v-slot:activator="{ on, attrs }">
               <v-text-field
                 :value="form.startTime"
-                placeholder="DD/MM/YYYY HH:mm:ss"
+                label="DD/MM/YYYY HH:mm:ss"
                 readonly
                 outlined
                 dense
@@ -125,7 +120,6 @@
 
         <!-- Thời gian kết thúc -->
         <div class="mb-2">
-          <label class="d-block mb-1 font-weight-medium text-body-2" style="color: #333;">Thời gian kết thúc</label>
           <v-menu
             v-model="menuEndTime"
             :close-on-content-click="false"
@@ -138,7 +132,7 @@
             <template v-slot:activator="{ on, attrs }">
               <v-text-field
                 :value="form.endTime"
-                placeholder="DD/MM/YYYY HH:mm:ss"
+                label="DD/MM/YYYY HH:mm:ss"
                 readonly
                 outlined
                 dense

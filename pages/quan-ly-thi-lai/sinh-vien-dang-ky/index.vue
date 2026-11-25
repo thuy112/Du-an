@@ -352,7 +352,8 @@
 
     <!-- MODAL THÊM MỚI ĐĂNG KÝ -->
     <RegisterAddModal
-      v-model="addModalVisible"
+      :open="addModalVisible"
+      @toggle="addModalVisible = false"
       @success="loadData"
     />
   </div>
@@ -361,7 +362,7 @@
 <script>
 import BaseTable from '~/components/Base/BaseTable.vue'
 import registerService from '~/services/registerService'
-import RegisterAddModal from '~/components/RegisterAddModal.vue' // Import modal thêm mới
+import RegisterAddModal from '~/components/RegisterAddModal.vue' 
 
 export default {
   name: 'RegisterStudentPage',
