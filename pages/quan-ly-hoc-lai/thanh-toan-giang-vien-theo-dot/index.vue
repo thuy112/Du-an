@@ -205,34 +205,34 @@
           <v-menu offset-y left>
             <template v-slot:activator="{ on, attrs }">
               <v-btn icon small v-bind="attrs" v-on="on">
-                <v-icon size="20">mdi-dots-vertical</v-icon>
+                <v-icon size="24">mdi-dots-vertical</v-icon>
               </v-btn>
             </template>
             <v-list dense class="action-dropdown-list">
               <v-list-item @click="viewDetail(item)">
                 <v-list-item-icon class="mr-2">
-                  <v-icon small color="#00bcd4">mdi-eye-outline</v-icon>
+                  <v-icon size="22" color="#00bcd4">mdi-eye</v-icon>
                 </v-list-item-icon>
                 <v-list-item-title>Chi tiết</v-list-item-title>
               </v-list-item>
 
               <v-list-item @click="exportExcelSummary(item)">
                 <v-list-item-icon class="mr-2">
-                  <v-icon small color="#4caf50">mdi-export</v-icon>
+                  <v-icon size="22" color="#4caf50">mdi-export</v-icon>
                 </v-list-item-icon>
                 <v-list-item-title>Xuất Excel file tổng hợp</v-list-item-title>
               </v-list-item>
 
               <v-list-item @click="exportExcelDetail(item)">
                 <v-list-item-icon class="mr-2">
-                  <v-icon small color="#4caf50">mdi-export</v-icon>
+                  <v-icon size="22" color="#4caf50">mdi-export</v-icon>
                 </v-list-item-icon>
                 <v-list-item-title>Xuất Excel file chi tiết</v-list-item-title>
               </v-list-item>
 
               <v-list-item @click="exportExcelCompact(item)">
                 <v-list-item-icon class="mr-2">
-                  <v-icon small color="#4caf50">mdi-export</v-icon>
+                  <v-icon size="22" color="#4caf50">mdi-export</v-icon>
                 </v-list-item-icon>
                 <v-list-item-title>Xuất Excel file chi tiết (Rút gọn)</v-list-item-title>
               </v-list-item>
@@ -240,7 +240,7 @@
               <!-- Nếu là Chờ thanh toán: Hiện nút Cập nhật -->
               <v-list-item v-if="item.paymentFeeStatus === 'WAIT_PAID'" @click="updateRecord(item)">
                 <v-list-item-icon class="mr-2">
-                  <v-icon small color="#ffae1f">mdi-pencil-outline</v-icon>
+                  <v-icon size="22" color="#ffae1f">mdi-pencil</v-icon>
                 </v-list-item-icon>
                 <v-list-item-title>Cập nhật</v-list-item-title>
               </v-list-item>
@@ -248,14 +248,14 @@
               <!-- Nếu là Đã thanh toán: Đổi thành Gửi mail thông báo (Ảnh 3) -->
               <v-list-item v-if="item.paymentFeeStatus === 'COMPLETE_PAID'" @click="sendEmailNotification(item)">
                 <v-list-item-icon class="mr-2">
-                  <v-icon small color="#9c27b0">mdi-email-outline</v-icon>
+                  <v-icon size="22" color="purple">mdi-email</v-icon>
                 </v-list-item-icon>
                 <v-list-item-title>Gửi mail thông báo</v-list-item-title>
               </v-list-item>
 
               <v-list-item @click="deleteRecord(item)">
                 <v-list-item-icon class="mr-2">
-                  <v-icon small color="#f44336">mdi-delete-outline</v-icon>
+                  <v-icon size="22" color="#f44336">mdi-trash-can</v-icon>
                 </v-list-item-icon>
                 <v-list-item-title class="red--text">Xóa</v-list-item-title>
               </v-list-item>

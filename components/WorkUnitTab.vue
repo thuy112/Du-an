@@ -1,11 +1,11 @@
 <template>
-  <div class="d-flex flex-column h-100" style="min-height: 0; overflow: hidden;">
-    <div class="text-h6 font-weight-bold black--text mb-3 flex-shrink-0">
+  <div class="work-unit-tab d-flex flex-column bg-white">
+    <div class="text-h6 font-weight-bold black--text mb-2 flex-shrink-0">
       Danh sách đơn vị công tác (<span class="text-red-bold">{{ totalRecords }}</span>)
     </div>
 
-    <!-- Bộ lọc -->
-    <div class="filter-container mb-3 sticky-filter flex-shrink-0">
+    <!-- Bộ lọc cố định phía trên -->
+    <div class="filter-container mb-2 sticky-filter flex-shrink-0">
       <div class="d-flex align-center flex-wrap" style="gap: 8px; padding: 6px;">
         <v-text-field
           v-model="filters.search"
@@ -47,8 +47,8 @@
       </div>
     </div>
 
-    <!-- Vùng Bảng dữ liệu -->
-    <div class="table-scroll-container flex-grow-1" style="overflow: auto; min-height: 0;">
+    <!-- Vùng Bảng dữ liệu cuộn độc lập ở giữa -->
+    <div class="table-scroll-container">
       <BaseTable
         :headers="headers"
         :items="itemList"
@@ -61,16 +61,16 @@
         @per-page-change="handlePerPageChange"
       >
         <template #[`item.stt`]="{ index }">
-          <span>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</span>
+          <span class="mobile-break-text">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</span>
         </template>
         <template #[`item.code`]="{ item }">
-          <span class="font-weight-medium">{{ item.code || '-' }}</span>
+          <span class="font-weight-medium mobile-break-text">{{ item.code || '-' }}</span>
         </template>
         <template #[`item.name`]="{ item }">
-          <span>{{ item.name || '-' }}</span>
+          <span class="mobile-break-text">{{ item.name || '-' }}</span>
         </template>
         <template #[`item.facultySchool`]="{ item }">
-          <span>{{ (item.address || item.facultySchool || '').trim() || '-' }}</span>
+          <span class="mobile-break-text">{{ (item.address || item.facultySchool || '').trim() || '-' }}</span>
         </template>
         <template #[`item.status`]="{ item }">
           <ChangeableStatus
@@ -90,64 +90,16 @@
       </BaseTable>
     </div>
 
-    <!-- Phân trang -->
-    <div class="pagination-bottom-container mt-2 pt-2 d-flex align-center justify-end flex-wrap gap-3 sticky-bottom-bar border-top flex-shrink-0" style="padding: 8px 16px;">
-      <div class="d-flex align-center" style="gap: 16px;">
-        <div class="d-flex align-center" style="gap: 8px;">
-          <span style="font-size: 13px; color: #666;">Bản ghi</span>
-          <v-select
-            v-model="itemsPerPage"
-            :items="[5, 10, 20, 50, 100]"
-            outlined
-            dense
-            hide-details
-            style="width: 80px;"
-            @change="handlePerPageChange(itemsPerPage)"
-          ></v-select>
-        </div>
-
-        <div class="d-flex align-center" style="gap: 8px;">
-          <span style="font-size: 13px; color: #666;">Trang</span>
-          <v-text-field
-            v-model.number="pageInput"
-            outlined
-            dense
-            hide-details
-            type="number"
-            style="width: 70px;"
-            @keyup.enter="goToPage"
-          ></v-text-field>
-          <v-btn color="#A2212B" dark depressed class="text-none px-3" height="36" @click="goToPage">Đi</v-btn>
-        </div>
-
-        <div class="d-flex align-center" style="gap: 4px;">
-          <v-btn icon outlined small color="grey" :disabled="currentPage <= 1" @click="changePage(currentPage - 1)">
-            <v-icon small>mdi-chevron-left</v-icon>
-          </v-btn>
-          
-          <template v-for="page in displayedPages">
-            <v-btn
-              v-if="page !== '...'"
-              :key="page"
-              :color="currentPage === page ? '#A2212B' : 'white'"
-              :dark="currentPage === page"
-              depressed
-              small
-              class="px-2"
-              style="min-width: 32px; height: 32px;"
-              :style="currentPage !== page ? 'border: 1px solid #e0e0e0; color: #333;' : ''"
-              @click="changePage(page)"
-            >
-              {{ page }}
-            </v-btn>
-            <span v-else :key="'dot-' + page" class="px-1 text-grey">...</span>
-          </template>
-
-          <v-btn icon outlined small color="grey" :disabled="currentPage >= totalPages" @click="changePage(currentPage + 1)">
-            <v-icon small>mdi-chevron-right</v-icon>
-          </v-btn>
-        </div>
-      </div>
+    <!-- Phân trang cố định phía dưới -->
+    <div class="pagination-bottom-container mt-2 pt-2 d-flex align-center justify-end flex-wrap gap-2 sticky-bottom-bar border-top flex-shrink-0">
+      <Pagination
+        :page="currentPage"
+        :page-count="totalPages"
+        :page-size="itemsPerPage"
+        :total-record="totalRecords"
+        @changePage="changePage"
+        @changePageSize="handlePerPageChange"
+      />
     </div>
 
     <!-- DIALOG THÊM MỚI / CẬP NHẬT ĐƠN VỊ CÔNG TÁC -->
@@ -249,11 +201,12 @@
 <script>
 import BaseTable from '~/components/Base/BaseTable.vue'
 import ChangeableStatus from '~/components/Base/ChangeableStatus.vue'
+import Pagination from '~/components/Base/Pagination.vue'
 import unitService from '~/services/unitAndTrainingService'
 
 export default {
   name: 'WorkUnitTab',
-  components: { BaseTable, ChangeableStatus },
+  components: { BaseTable, ChangeableStatus, Pagination },
   props: {
     statusList: { type: Array, default: () => [] }
   },
@@ -268,7 +221,7 @@ export default {
       itemsPerPage: 50,
       filters: { search: '', status: '' },
       activeFilters: { search: '', status: '' },
-      
+
       // Quản lý Modal Thêm / Sửa
       dialog: false,
       isEdit: false,
@@ -295,26 +248,6 @@ export default {
         { text: 'Trạng thái', value: 'status', align: 'center', minWidth: '140px', sortable: false },
         { text: 'Chức năng', value: 'actions', align: 'center', width: '100px', sortable: false },
       ]
-    }
-  },
-  computed: {
-    displayedPages() {
-      const total = this.totalPages
-      const current = this.currentPage
-      const pages = []
-
-      if (total <= 7) {
-        for (let i = 1; i <= total; i++) {
-          pages.push(i)
-        }
-      } else if (current <= 4) {
-        pages.push(1, 2, 3, 4, 5, '...', total)
-      } else if (current >= total - 3) {
-        pages.push(1, '...', total - 4, total - 3, total - 2, total - 1, total)
-      } else {
-        pages.push(1, '...', current - 1, current, current + 1, '...', total)
-      }
-      return pages
     }
   },
   async mounted() {
@@ -348,12 +281,14 @@ export default {
     handleSearch() {
       this.activeFilters = { ...this.filters }
       this.currentPage = 1
+      this.pageInput = 1
       this.loadData()
     },
     refreshData() {
       this.filters = { search: '', status: '' }
       this.activeFilters = { search: '', status: '' }
       this.currentPage = 1
+      this.pageInput = 1
       this.loadData()
     },
     changePage(page) {
@@ -362,14 +297,10 @@ export default {
       this.pageInput = page
       this.loadData()
     },
-    goToPage() {
-      const p = parseInt(this.pageInput)
-      if (p >= 1 && p <= this.totalPages) this.changePage(p)
-      else this.pageInput = this.currentPage
-    },
     handlePerPageChange(size) {
       this.itemsPerPage = size
       this.currentPage = 1
+      this.pageInput = 1
       this.loadData()
     },
     async handleStatusChange(item, selectedItem) {
@@ -468,9 +399,72 @@ export default {
 
 <style scoped>
 .text-red-bold { color: #A62229 !important; }
+.bg-white { background-color: #ffffff !important; }
 .filter-input >>> .v-input__slot { border-radius: 6px !important; min-height: 38px !important; }
 .btn-square-action { border-radius: 6px !important; height: 38px !important; min-width: 38px !important; }
-.sticky-filter, .sticky-bottom-bar { background-color: #ffffff; }
-.table-scroll-container >>> th { position: sticky !important; top: 0; z-index: 2; background-color: #f5f5f5 !important; }
+.border-top { border-top: 1px solid #e0e0e0; }
+.sticky-filter, .sticky-bottom-bar { background-color: #ffffff; flex-shrink: 0; }
+
+.table-scroll-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.table-scroll-container >>> th {
+  position: sticky !important;
+  top: 0;
+  z-index: 2;
+  background-color: #f5f5f5 !important;
+}
+
+.pagination-bottom-container {
+  padding: 6px 12px 10px !important;
+  position: relative;
+  z-index: 4;
+}
+
 ::v-deep .v-data-footer { display: none !important; }
+
+@media (min-width: 600px) {
+  .work-unit-tab {
+    height: calc(100dvh - 175px);
+    min-height: 0;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 599px) {
+  .work-unit-tab {
+    height: calc(100dvh - 84px);
+    min-height: 0;
+    max-width: 100vw;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .filter-container {
+    margin-bottom: 4px !important;
+  }
+
+  .table-scroll-container {
+    overflow-x: hidden;
+  }
+
+  .pagination-bottom-container {
+    margin-top: 4px !important;
+    padding: 4px 8px 6px !important;
+  }
+
+  .mobile-break-text,
+  .table-scroll-container >>> .v-data-table__mobile-row__cell {
+    max-width: 62%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+}
 </style>

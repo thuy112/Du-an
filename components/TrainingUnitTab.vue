@@ -1,11 +1,11 @@
 <template>
-  <div class="d-flex flex-column h-100" style="min-height: 0; overflow: hidden;">
-    <div class="text-h6 font-weight-bold black--text mb-3 flex-shrink-0">
+  <div class="training-unit-tab d-flex flex-column bg-white">
+    <div class="text-h6 font-weight-bold black--text mb-2 flex-shrink-0">
       Danh sách địa điểm đào tạo (<span class="text-red-bold">{{ totalRecords }}</span>)
     </div>
 
-    <!-- Bộ lọc -->
-    <div class="filter-container mb-3 sticky-filter flex-shrink-0">
+    <!-- Bộ lọc cố định phía trên -->
+    <div class="filter-container mb-2 sticky-filter flex-shrink-0">
       <div class="d-flex align-center flex-wrap" style="gap: 8px; padding: 6px;">
         <v-text-field
           v-model="filters.search"
@@ -61,8 +61,8 @@
       </div>
     </div>
 
-    <!-- Vùng Bảng dữ liệu -->
-    <div class="table-scroll-container flex-grow-1" style="overflow: auto; min-height: 0;">
+    <!-- Vùng Bảng dữ liệu cuộn độc lập ở giữa -->
+    <div class="table-scroll-container">
       <BaseTable
         :headers="headers"
         :items="itemList"
@@ -75,16 +75,16 @@
         @per-page-change="handlePerPageChange"
       >
         <template #[`item.stt`]="{ index }">
-          <span>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</span>
+          <span class="mobile-break-text">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</span>
         </template>
         <template #[`item.code`]="{ item }">
-          <span class="font-weight-medium">{{ item.code || '-' }}</span>
+          <span class="font-weight-medium mobile-break-text">{{ item.code || '-' }}</span>
         </template>
         <template #[`item.name`]="{ item }">
-          <span>{{ item.name || '-' }}</span>
+          <span class="mobile-break-text">{{ item.name || '-' }}</span>
         </template>
         <template #[`item.address`]="{ item }">
-          <span>{{ (item.address || '').trim() || '-' }}</span>
+          <span class="mobile-break-text">{{ (item.address || '').trim() || '-' }}</span>
         </template>
         <template #[`item.status`]="{ item }">
           <ChangeableStatus
@@ -104,41 +104,42 @@
       </BaseTable>
     </div>
 
-    <!-- Phân trang -->
-    <div class="pagination-bottom-container mt-2 pt-2 d-flex align-center justify-end flex-wrap gap-3 sticky-bottom-bar border-top flex-shrink-0" style="padding: 8px 16px;">
-      <div class="d-flex align-center" style="gap: 16px;">
-        <div class="d-flex align-center" style="gap: 8px;">
-          <span style="font-size: 13px; color: #666;">Bản ghi</span>
-          <v-select
-            v-model="itemsPerPage"
-            :items="[5, 10, 20, 50, 100]"
-            outlined
-            dense
-            hide-details
-            style="width: 80px;"
-            @change="handlePerPageChange(itemsPerPage)"
-          ></v-select>
-        </div>
+    <!-- Phân trang cố định phía dưới -->
+    <div class="pagination-bottom-container mt-2 pt-2 d-flex align-center justify-end flex-wrap gap-2 sticky-bottom-bar border-top flex-shrink-0">
+      <div class="d-flex align-center flex-wrap justify-end" style="gap: 8px;">
+        <v-select
+          v-model="itemsPerPage"
+          :items="[5, 10, 20, 50, 100]"
+          label="Bản ghi"
+          outlined
+          dense
+          hide-details
+          :menu-props="{ attach: false, top: true, offsetY: true, nudgeTop: 8, contentClass: 'record-count-menu', zIndex: 10 }"
+          class="pagination-input"
+          style="width: 82px;"
+          @change="handlePerPageChange(itemsPerPage)"
+        ></v-select>
 
-        <div class="d-flex align-center" style="gap: 8px;">
-          <span style="font-size: 13px; color: #666;">Trang</span>
+        <div class="d-flex align-center" style="gap: 6px;">
           <v-text-field
             v-model.number="pageInput"
+            label="Trang"
             outlined
             dense
             hide-details
             type="number"
-            style="width: 70px;"
+            class="pagination-input"
+            style="width: 68px;"
             @keyup.enter="goToPage"
           ></v-text-field>
-          <v-btn color="#A2212B" dark depressed class="text-none px-3" height="36" @click="goToPage">Đi</v-btn>
+          <v-btn color="#A2212B" dark depressed class="text-none px-3 rounded-sm" height="36" @click="goToPage">Đi</v-btn>
         </div>
 
         <div class="d-flex align-center" style="gap: 4px;">
           <v-btn icon outlined small color="grey" :disabled="currentPage <= 1" @click="changePage(currentPage - 1)">
             <v-icon small>mdi-chevron-left</v-icon>
           </v-btn>
-          
+
           <template v-for="page in displayedPages">
             <v-btn
               v-if="page !== '...'"
@@ -147,7 +148,7 @@
               :dark="currentPage === page"
               depressed
               small
-              class="px-2"
+              class="px-2 rounded-sm"
               style="min-width: 32px; height: 32px;"
               :style="currentPage !== page ? 'border: 1px solid #e0e0e0; color: #333;' : ''"
               @click="changePage(page)"
@@ -284,7 +285,7 @@ export default {
       trainingMethodOptions: [],
       filters: { search: '', trainingMethodId: '', status: '' },
       activeFilters: { search: '', trainingMethodId: '', status: '' },
-      
+
       // Quản lý Dialog Thêm / Sửa
       dialog: false,
       isEdit: false,
@@ -377,12 +378,14 @@ export default {
     handleSearch() {
       this.activeFilters = { ...this.filters }
       this.currentPage = 1
+      this.pageInput = 1
       this.loadData()
     },
     refreshData() {
       this.filters = { search: '', trainingMethodId: '', status: '' }
       this.activeFilters = { search: '', trainingMethodId: '', status: '' }
       this.currentPage = 1
+      this.pageInput = 1
       this.loadData()
     },
     changePage(page) {
@@ -399,6 +402,7 @@ export default {
     handlePerPageChange(size) {
       this.itemsPerPage = size
       this.currentPage = 1
+      this.pageInput = 1
       this.loadData()
     },
     async handleStatusChange(item, selectedItem) {
@@ -497,9 +501,76 @@ export default {
 
 <style scoped>
 .text-red-bold { color: #A62229 !important; }
+.bg-white { background-color: #ffffff !important; }
 .filter-input >>> .v-input__slot { border-radius: 6px !important; min-height: 38px !important; }
 .btn-square-action { border-radius: 6px !important; height: 38px !important; min-width: 38px !important; }
-.sticky-filter, .sticky-bottom-bar { background-color: #ffffff; }
-.table-scroll-container >>> th { position: sticky !important; top: 0; z-index: 2; background-color: #f5f5f5 !important; }
+.border-top { border-top: 1px solid #e0e0e0; }
+.sticky-filter, .sticky-bottom-bar { background-color: #ffffff; flex-shrink: 0; }
+.pagination-input >>> .v-input__control { min-height: 36px !important; }
+.record-count-menu { top: auto !important; bottom: 64px !important; }
+
+.training-unit-tab {
+  height: calc(100dvh - 130px);
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-scroll-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: auto;
+}
+
+.table-scroll-container >>> th {
+  position: sticky !important;
+  top: 0;
+  z-index: 2;
+  background-color: #f5f5f5 !important;
+}
+
+.pagination-bottom-container {
+  padding: 6px 12px 10px !important;
+  position: relative;
+  z-index: 4;
+}
+
 ::v-deep .v-data-footer { display: none !important; }
+
+@media (max-width: 599px) {
+  .training-unit-tab {
+    height: calc(100dvh - 84px);
+    min-height: 0;
+    max-width: 100vw;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .filter-container {
+    margin-bottom: 4px !important;
+  }
+
+  .table-scroll-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .pagination-bottom-container {
+    margin-top: 4px !important;
+    padding: 4px 8px 6px !important;
+    flex-shrink: 0;
+  }
+
+  .mobile-break-text,
+  .table-scroll-container >>> .v-data-table__mobile-row__cell {
+    max-width: 62%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+}
 </style>

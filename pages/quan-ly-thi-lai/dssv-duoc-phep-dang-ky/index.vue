@@ -1,5 +1,5 @@
 <template>
-  <div class="authorize-registration-page pa-3 pa-md-4 bg-white" :class="{ 'is-mobile-device': isMobileDevice }">
+  <div class="training-method-page authorize-registration-page pa-3 pa-md-4 bg-white" :class="{ 'is-mobile-device': isMobileDevice }">
     <!-- TIÊU ĐỀ TRANG -->
     <div class="text-h6 font-weight-bold black--text mb-3">
       Danh sách sinh viên được đăng ký (<span class="text-red-bold">{{ totalRecords }}</span>)
@@ -845,5 +845,11 @@ export default {
 
 ::v-deep .v-data-footer {
   display: none !important;
+}
+.training-method-page {
+  height: calc(100dvh - 64px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 </style>

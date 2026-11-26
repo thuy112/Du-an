@@ -1,5 +1,5 @@
 <template>
-  <div class="authorize-page pa-3 pa-md-4 bg-white" :class="{ 'is-mobile-device': isMobileDevice }">
+    <div class="training-method-page d-flex flex-column pa-3 pa-md-4 bg-white" :class="{ 'is-mobile-device': isMobileDevice }">
     <!-- TIÊU ĐỀ TRANG -->
     <div class="text-h6 font-weight-bold black--text mb-3">
       Danh sách sinh viên được đăng ký (<span class="text-red-bold">{{ totalRecords }}</span>)
@@ -65,15 +65,15 @@
         <!-- Nút thao tác (Có cả nút Thêm mới dấu + màu đỏ) -->
         <div class="d-flex align-center" style="gap: 5px;">
           <v-btn icon color="#A62229" class="btn-square-action" @click="refreshData" title="Làm mới">
-            <v-icon size="22">mdi-refresh</v-icon>
+            <v-icon size="24">mdi-refresh</v-icon>
           </v-btn>
 
           <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" @click="handleSearch" title="Tìm kiếm">
-            <v-icon size="22">mdi-magnify</v-icon>
+            <v-icon size="24">mdi-magnify</v-icon>
           </v-btn>
 
           <v-btn color="#A62229" dark class="btn-square-action min-w-0 px-3" elevation="0" @click="openAddDialog" title="Thêm mới">
-            <v-icon size="22">mdi-plus</v-icon>
+            <v-icon size="24">mdi-plus</v-icon>
           </v-btn>
         </div>
       </div>
@@ -125,7 +125,7 @@
         <template #[`item.actions`]="{ item }">
           <div class="d-flex align-center justify-center" style="gap: 4px;" v-if="item.status !== 'REGISTERED'">
             <v-btn icon small color="error" @click="handleDelete(item)" title="Xóa">
-              <v-icon size="18">mdi-delete</v-icon>
+              <v-icon size="24">mdi-delete</v-icon>
             </v-btn>
           </div>
         </template>
@@ -497,4 +497,10 @@ export default {
 }
 .table-scroll-container { overflow-x: auto; }
 ::v-deep .v-data-footer { display: none !important; }
+.training-method-page {
+  height: calc(100dvh - 64px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
 </style>

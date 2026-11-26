@@ -1,12 +1,12 @@
 <template>
-  <div class="training-method-page pa-3 pa-md-4 bg-white" :class="{ 'is-mobile-device': isMobileDevice }">
+  <div class="training-method-page d-flex flex-column pa-3 pa-md-4 bg-white" :class="{ 'is-mobile-device': isMobileDevice }">
     <!-- TIÊU ĐỀ TRANG -->
-    <div class="text-h6 font-weight-bold black--text mb-3">
+    <div class="text-h6 font-weight-bold black--text mb-2 flex-shrink-0">
       Danh sách hình thức đào tạo (<span class="text-red-bold">{{ totalRecords }}</span>)
     </div>
 
     <!-- BỘ LỌC TÌM KIẾM CỐ ĐỊNH PHÍA TRÊN -->
-    <div class="filter-container mb-3 sticky-filter">
+    <div class="filter-container mb-2 sticky-filter flex-shrink-0">
       <div class="d-flex align-center flex-wrap" style="gap: 8px; padding: 6px;">
         <!-- Ô tìm kiếm -->
         <v-text-field
@@ -61,54 +61,54 @@
         hide-default-footer
         @page-change="changePage"
         @per-page-change="handleItemsPerPageChange"
-        >
+      >
         <!-- Cột STT -->
         <template #[`item.stt`]="{ index }">
-            <span>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</span>
+          <span>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</span>
         </template>
 
         <!-- Mã hình thức đào tạo -->
         <template #[`item.code`]="{ item }">
-            <span class="font-weight-medium">{{ item.code || '-' }}</span>
+          <span class="font-weight-medium">{{ item.code || '-' }}</span>
         </template>
 
         <!-- Tên hình thức đào tạo -->
         <template #[`item.name`]="{ item }">
-            <span>{{ item.name || '-' }}</span>
+          <span>{{ item.name || '-' }}</span>
         </template>
 
         <!-- Số năm đào tạo -->
         <template #[`item.yearsOfTraining`]="{ item }">
-            <span>{{ item.yearsOfTraining ?? item.durationYears ?? item.years ?? 0 }}</span>
+          <span>{{ item.yearsOfTraining ?? item.durationYears ?? item.years ?? 0 }}</span>
         </template>
 
         <!-- Loại hình đào tạo -->
         <template #[`item.trainingTypes`]="{ item }">
-            <span>{{ getDisplayType(item.trainingTypes || item.type || item.trainingType) }}</span>
+          <span>{{ getDisplayType(item.trainingTypes || item.type || item.trainingType) }}</span>
         </template>
 
         <!-- Trạng thái -->
         <template #[`item.status`]="{ item }">
-            <ChangeableStatus
+          <ChangeableStatus
             :status="item.status"
             :statusList="statusList"
             @changeStatus="(selectedItem) => handleStatusChange(item, selectedItem)"
-            >
+          >
             <template #content="{ data }">
-                Bạn có chắc chắn muốn đổi trạng thái sang 
-                <span class="font-weight-bold red--text">{{ data.text }}</span> không?
+              Bạn có chắc chắn muốn đổi trạng thái sang
+              <span class="font-weight-bold red--text">{{ data.text }}</span> không?
             </template>
-            </ChangeableStatus>
+          </ChangeableStatus>
         </template>
-    </BaseTable>
+      </BaseTable>
     </div>
 
-    <!-- THANH PHÂN TRANG PHÍA DƯỚI -->
-    <div class="pagination-bottom-container mt-4 pt-3 d-flex align-center justify-space-between flex-wrap gap-3 sticky-bottom-bar border-top">
-      <div></div> <!-- Khoảng trống bên trái -->
+    <!-- THANH PHÂN TRANG CỐ ĐỊNH PHÍA DƯỚI -->
+    <div class="pagination-bottom-container mt-2 pt-2 pb-1 d-flex align-center justify-space-between flex-wrap gap-2 sticky-bottom-bar border-top flex-shrink-0">
+      <div></div>
 
       <!-- Cụm phân trang phía bên phải -->
-      <div class="d-flex align-center custom-pagination-group" style="gap: 8px;">
+      <div class="d-flex align-center flex-wrap custom-pagination-group" style="gap: 8px;">
         <v-select
           v-model="itemsPerPage"
           :items="[5, 10, 20, 50, 100]"
@@ -141,7 +141,7 @@
           <v-icon small>mdi-chevron-left</v-icon>
         </v-btn>
 
-        <div class="d-flex align-center" style="gap: 4px;">
+        <div class="d-flex align-center flex-wrap" style="gap: 4px;">
           <template v-for="p in totalPages">
             <v-btn
               v-if="p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)"
@@ -165,6 +165,7 @@
         </v-btn>
       </div>
     </div>
+
     <!-- THÔNG BÁO TOAST GÓC TRÊN BÊN PHẢI -->
     <v-snackbar
       v-model="snackbar.show"
@@ -186,7 +187,6 @@
           <v-icon small>mdi-close</v-icon>
         </v-btn>
       </template>
-      <!-- Thanh chạy thời gian ở dưới -->
       <v-progress-linear
         v-model="snackbar.progress"
         color="white"
@@ -425,8 +425,26 @@ export default {
   height: 38px !important;
   min-width: 38px !important;
 }
-.cursor-pointer {
-  cursor: pointer;
+.border-top {
+  border-top: 1px solid #e0e0e0;
+}
+.border-bottom {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.training-method-page {
+  height: calc(100dvh - 64px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.sticky-top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: #ffffff;
+  flex-shrink: 0;
 }
 
 .sticky-filter {
@@ -436,11 +454,10 @@ export default {
   background-color: #ffffff;
 }
 
-.sticky-bottom-bar {
-  background-color: #ffffff;
-}
-
 .table-scroll-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
   overflow-x: auto;
 }
 
@@ -451,7 +468,26 @@ export default {
   background-color: #f5f5f5 !important;
 }
 
+.sticky-bottom-bar {
+  background-color: #ffffff;
+  position: relative;
+  z-index: 4;
+}
+
 ::v-deep .v-data-footer {
   display: none !important;
+}
+
+@media (max-width: 599px) {
+  .training-method-page {
+    height: 100dvh;
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+  .table-scroll-container >>> .v-data-table__mobile-row__cell {
+    max-width: 62%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
 }
 </style>

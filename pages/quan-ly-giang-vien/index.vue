@@ -30,7 +30,7 @@
             dense
             hide-details
             clearable
-            :menu-props="{ attach: true, offsetY: true, zIndex: 999 }"
+            :menu-props="{ offsetY: true, zIndex: 10 }"
             class="bg-white filter-item select-sm custom-outlined-input"
           ></v-select>
 
@@ -43,7 +43,7 @@
             dense
             hide-details
             clearable
-            :menu-props="{ attach: true, offsetY: true, zIndex: 999 }"
+            :menu-props="{ offsetY: true, zIndex: 10 }"
             class="bg-white filter-item select-md custom-outlined-input"
           ></v-select>
 
@@ -56,7 +56,7 @@
             dense
             hide-details
             clearable
-            :menu-props="{ attach: true, offsetY: true, zIndex: 999 }"
+            :menu-props="{ offsetY: true, zIndex: 10 }"
             class="bg-white filter-item select-md custom-outlined-input"
           ></v-select>
 
@@ -69,7 +69,7 @@
             dense
             hide-details
             clearable
-            :menu-props="{ attach: true, offsetY: true, zIndex: 999 }"
+            :menu-props="{ offsetY: true, zIndex: 10 }"
             class="bg-white filter-item select-lg custom-outlined-input"
           ></v-select>
 
@@ -1074,11 +1074,15 @@ export default {
 }
 </script>
 
-<!-- Style toàn cục đặt ngoài scoped để tác động trực tiếp vào v-snackbar của Vuetify -->
+<!-- Style toàn cục đặt ngoài scoped để tác động trực tiếp vào v-snackbar và menu của Vuetify -->
 <style>
 /* Chỉ tăng z-index cực cao để nằm trên header, KHÔNG dùng margin âm nữa */
 .v-snack {
   z-index: 9999999 !important;
+}
+
+.v-menu__content {
+  position: absolute !important;
 }
 </style>
 <style scoped>
@@ -1123,7 +1127,7 @@ export default {
 .top-filter-bar {
   flex-shrink: 0;
   position: relative;
-  z-index: 10;
+  z-index: 1;
 }
 .filter-item {
   flex: 1 1 100%;
@@ -1252,6 +1256,12 @@ export default {
     height: auto;
     min-height: 100vh;
     overflow: visible;
+    position: relative;
+    z-index: 1;
+  }
+  .top-filter-bar {
+    position: relative;
+    z-index: 1 !important;
   }
   .info-block {
     text-align: right !important;
@@ -1263,8 +1273,5 @@ export default {
 
 .custom-toast >>> .v-snack__wrapper {
   border-radius: 8px !important;
-}
-.v-menu__content {
-  position: absolute !important;
 }
 </style>

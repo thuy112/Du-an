@@ -1,13 +1,13 @@
 <template>
   <div class="fee-teacher-page pa-3 pa-md-4 bg-white" :class="{ 'is-mobile-device': isMobileDevice }">
-    <div class="sticky-toolbar">
+    <div class="sticky-toolbar flex-shrink-0">
       <!-- TIÊU ĐỀ TRANG -->
-      <div class="text-h6 font-weight-bold black--text mb-3">
+      <div class="text-h6 font-weight-bold black--text mb-2">
         Danh sách thanh toán giảng viên theo lớp (<span class="text-red-bold">{{ totalRecords }}</span>)
       </div>
 
       <!-- BỘ LỌC TÌM KIẾM CỐ ĐỊNH PHÍA TRÊN -->
-      <div class="filter-container mb-3">
+      <div class="filter-container mb-2">
         <div class="filter-grid">
           <v-select
             v-model="filters.teacherId"
@@ -96,7 +96,7 @@
       >
         <!-- Cột STT -->
         <template #[`item.index`]="{ index }">
-          <span>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</span>
+          <span class="mobile-break-text">{{ (currentPage - 1) * itemsPerPage + index + 1 }}</span>
         </template>
 
         <!-- Cột Loại lớp -->
@@ -113,42 +113,42 @@
 
         <!-- Đợt học lại -->
         <template #[`item.examName`]="{ item }">
-          <span>{{ item.examName || '-' }}</span>
+          <span class="mobile-break-text">{{ item.examName || '-' }}</span>
         </template>
 
         <!-- Thu học phí SV -->
         <template #[`item.tuitionCoefficient`]="{ item }">
-          <span>{{ item.coefficient ?? '-' }}</span>
+          <span class="mobile-break-text">{{ item.coefficient ?? '-' }}</span>
         </template>
 
         <!-- Thanh toán giảng dạy -->
         <template #[`item.teacherCoefficient`]="{ item }">
-          <span>{{ item.coefficientTeacher ?? '-' }}</span>
+          <span class="mobile-break-text">{{ item.coefficientTeacher ?? '-' }}</span>
         </template>
 
         <!-- Số tín chỉ học phí -->
         <template #[`item.creditTuition`]="{ item }">
-          <span>{{ item.creditTuition ?? '-' }}</span>
+          <span class="mobile-break-text">{{ item.creditTuition ?? '-' }}</span>
         </template>
 
         <!-- Giảng viên -->
         <template #[`item.teacherName`]="{ item }">
-          <span>{{ item.teacherName || '-' }}</span>
+          <span class="mobile-break-text">{{ item.teacherName || '-' }}</span>
         </template>
 
         <!-- Tên học phần -->
         <template #[`item.courseName`]="{ item }">
-          <span>{{ item.courseName || '-' }}</span>
+          <span class="mobile-break-text">{{ item.courseName || '-' }}</span>
         </template>
 
         <!-- Tổng phí -->
         <template #[`item.totalFee`]="{ item }">
-          <span>{{ formatMoney(item.totalFee) }}</span>
+          <span class="mobile-break-text">{{ formatMoney(item.totalFee) }}</span>
         </template>
 
         <!-- Thuế thu nhập cá nhân -->
         <template #[`item.totalTaxFee`]="{ item }">
-          <span>{{ formatMoney(item.totalTaxFee) }}</span>
+          <span class="mobile-break-text">{{ formatMoney(item.totalTaxFee) }}</span>
         </template>
 
         <!-- File thông tin -->
@@ -196,8 +196,8 @@
             @changeStatus="(selectedItem) => handleStatusChange(item, selectedItem)"
           >
             <template #content="{ data }">
-              Bạn có chắc chắn muốn đổi trạng thái từ 
-              <span class="font-weight-bold red--text">{{ getStatusText(item.status) }}</span> sang 
+              Bạn có chắc chắn muốn đổi trạng thái từ
+              <span class="font-weight-bold red--text">{{ getStatusText(item.status) }}</span> sang
               <span class="font-weight-bold red--text">{{ data.text }}</span> không?
             </template>
           </ChangeableStatus>
@@ -232,20 +232,20 @@
     </div>
 
     <!-- THANH BOTTOM ACTIONS & PHÂN TRANG CỐ ĐỊNH PHÍA DƯỚI -->
-    <div class="pagination-bottom-container mt-4 pt-3 d-flex align-center justify-space-between flex-wrap gap-3 sticky-bottom-bar border-top">
-      <div class="d-flex align-center" style="gap: 8px;">
-        <v-btn disabled color="grey lighten-3" class="text-dark text-none font-weight-medium rounded-sm text-nowrap px-2" height="28" width="286" elevation="0" style="font-size: 12px; border-radius: 4px !important;">
+    <div class="pagination-bottom-container mt-2 pt-2 d-flex align-center justify-space-between flex-wrap gap-2 sticky-bottom-bar border-top flex-shrink-0">
+      <div class="d-flex align-center flex-wrap" style="gap: 8px;">
+        <v-btn disabled color="grey lighten-3" class="text-dark text-none font-weight-medium rounded-sm text-nowrap px-2" height="28" elevation="0" style="font-size: 12px; border-radius: 4px !important;">
           <v-icon left x-small color="grey darken-2">mdi-export</v-icon>
           XUẤT GIẤY XÁC NHẬN THANH TOÁN (A5)
         </v-btn>
 
-        <v-btn color="#4caf50" dark class="text-none font-weight-medium rounded-sm text-nowrap px-2" height="28" width="286" elevation="0" style="font-size: 12px; border-radius: 4px !important;" @click="exportExcel">
+        <v-btn color="#4caf50" dark class="text-none font-weight-medium rounded-sm text-nowrap px-2" height="28" elevation="0" style="font-size: 12px; border-radius: 4px !important;" @click="exportExcel">
           <v-icon left x-small>mdi-export</v-icon>
           XUẤT FILE DANH SÁCH THANH TOÁN
         </v-btn>
       </div>
 
-      <div class="d-flex align-center custom-pagination-group" style="gap: 8px;">
+      <div class="d-flex align-center flex-wrap custom-pagination-group" style="gap: 8px;">
         <v-select
           v-model="itemsPerPage"
           :items="[5, 10, 20, 50, 100]"
@@ -278,7 +278,7 @@
           <v-icon small>mdi-chevron-left</v-icon>
         </v-btn>
 
-        <div class="d-flex align-center" style="gap: 4px;">
+        <div class="d-flex align-center flex-wrap" style="gap: 4px;">
           <template v-for="p in totalPages">
             <v-btn
               v-if="p === 1 || p === totalPages || (p >= currentPage - 1 && p <= currentPage + 1)"
@@ -326,7 +326,7 @@
             <v-col cols="6" class="py-1"><strong>Tổng phí:</strong> <span class="error--text font-weight-medium">{{ formatMoney(detailData.totalFee ?? detailData.tongPhi) }}</span></v-col>
             <v-col cols="6" class="py-1"><strong>Thuế thu nhập cá nhân:</strong> <span class="error--text font-weight-medium">{{ formatMoney(detailData.totalTaxFee ?? detailData.pit ?? detailData.thueThuNhap) }}</span></v-col>
             <v-col cols="12" class="py-1"><strong>Trạng thái:</strong> <span class="error--text font-weight-medium">{{ getStatusText(detailData.status || detailData.paymentFeeStatus) }}</span></v-col>
-            
+
             <v-col cols="12" class="d-flex align-center mt-2">
               <strong class="mr-3">File thông tin:</strong>
               <template v-if="detailData.fileInform || detailData.filePath || detailData.file">
@@ -346,7 +346,7 @@
         </v-card-text>
         <v-card-actions class="px-6 pb-4">
           <v-spacer></v-spacer>
-          <v-btn color="error" depressed class="white--text px-5" @click="detailDialog = false">Đóng</v-btn>
+          <v-btn color="#a2212b" depressed class="white--text px-5" @click="detailDialog = false">Đóng</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -916,80 +916,39 @@ export default {
 </script>
 
 <style scoped>
-.text-red-bold {
-  color: #A62229 !important;
-}
+.text-red-bold { color: #A62229 !important; }
+.bg-white { background-color: #ffffff !important; }
+.cursor-pointer { cursor: pointer; }
+
 .file-update-title {
   min-height: 50px;
   background-color: #a2212b !important;
   border-bottom: 1px solid #e0e0e0;
   font-size: 22px;
 }
-.file-update-content {
-  min-height: 128px;
-}
-.current-file-row {
-  min-height: 38px;
-  font-size: 14px;
-  color: #666;
-}
-.file-update-accent {
-  color: #a2212b;
-}
-.file-update-input {
-  flex: 1 1 auto;
-  min-width: 0;
-  margin-top: 6px;
-  font-size: 14px;
-}
-.current-file-download {
-  flex: 0 0 auto;
-}
-.file-update-select-row {
-  gap: 8px;
-}
-.file-update-actions {
-  min-height: 60px;
-  border-top: 1px solid #e0e0e0;
-}
-.file-update-save {
-  min-width: 90px;
-  min-height: 42px;
-  border-radius: 10px;
-  font-size: 16px;
-}
-.detail-dialog >>> .error--text {
-  color: #a2212b !important;
-}
-.bg-white {
-  background-color: #ffffff !important;
-}
-.filter-input >>> .v-input__slot {
-  border-radius: 6px !important;
-  min-height: 38px !important;
-}
-.btn-square-action {
-  border-radius: 6px !important;
-  height: 38px !important;
-  min-width: 38px !important;
-}
-.cursor-pointer {
-  cursor: pointer;
-}
+.file-update-content { min-height: 128px; }
+.current-file-row { min-height: 38px; font-size: 14px; color: #666; }
+.file-update-input { flex: 1 1 auto; min-width: 0; margin-top: 6px; font-size: 14px; }
+.current-file-download { flex: 0 0 auto; }
+.file-update-select-row { gap: 8px; }
+.file-update-actions { min-height: 60px; border-top: 1px solid #e0e0e0; }
+.file-update-save { min-width: 90px; min-height: 42px; border-radius: 10px; font-size: 16px; }
+.detail-dialog >>> .error--text { color: #a2212b !important; }
 
-.sticky-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  flex: 0 0 auto;
-  background-color: #ffffff;
-}
+.filter-input >>> .v-input__slot { border-radius: 6px !important; min-height: 38px !important; }
+.btn-square-action { border-radius: 6px !important; height: 38px !important; min-width: 38px !important; }
 
 .fee-teacher-page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px);
+  height: calc(100dvh - 64px);
   overflow: hidden;
+}
+
+.sticky-toolbar {
+  flex-shrink: 0;
+  background-color: #ffffff;
+  z-index: 5;
 }
 
 .filter-grid {
@@ -1000,25 +959,14 @@ export default {
   padding: 6px;
 }
 
-.status-filter {
-  grid-column: 1 / span 3;
-}
-
-.filter-actions {
-  grid-column: 4;
-  grid-row: 2;
-  gap: 5px;
-}
-
-.sticky-bottom-bar {
-  background-color: #ffffff;
-  flex: 0 0 auto;
-}
+.status-filter { grid-column: 1 / span 3; }
+.filter-actions { grid-column: 4; grid-row: 2; gap: 5px; }
 
 .table-scroll-container {
-  overflow-x: auto;
   flex: 1 1 auto;
   min-height: 0;
+  overflow-y: auto;
+  overflow-x: auto;
 }
 
 .table-scroll-container >>> th {
@@ -1028,56 +976,43 @@ export default {
   background-color: #f5f5f5 !important;
 }
 
-.pagination-bottom-container {
-  overflow-x: auto;
+.sticky-bottom-bar {
+  background-color: #ffffff;
+  flex-shrink: 0;
+  z-index: 4;
 }
 
-::v-deep .v-data-footer {
-  display: none !important;
+.pagination-bottom-container {
+  padding: 6px 8px 10px !important;
 }
+
+::v-deep .v-data-footer { display: none !important; }
 
 @media (max-width: 800px) {
-  .filter-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
-  }
-
-  .status-filter {
-    grid-column: 1 / span 2;
-  }
-
-  .filter-actions {
-    grid-column: 3;
-  }
+  .filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) auto; }
+  .status-filter { grid-column: 1 / span 2; }
+  .filter-actions { grid-column: 3; }
 }
 
 @media (max-width: 599px) {
   .fee-teacher-page {
-    height: auto;
-    min-height: calc(100vh - 56px);
-    overflow: visible;
+    height: calc(100dvh - 56px);
+    max-width: 100vw;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
-  .sticky-toolbar {
-    top: 0;
-  }
-
-  .filter-grid {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
+  .filter-grid { grid-template-columns: minmax(0, 1fr) auto; }
   .filter-grid > .filter-input,
-  .status-filter {
-    grid-column: 1 / -1;
-  }
+  .status-filter { grid-column: 1 / -1; }
+  .filter-actions { grid-column: 2; grid-row: auto; }
 
-  .filter-actions {
-    grid-column: 2;
-    grid-row: auto;
-  }
-
-  .table-scroll-container {
-    flex: 0 0 auto;
-    min-height: 0;
+  .mobile-break-text,
+  .table-scroll-container >>> .v-data-table__mobile-row__cell {
+    max-width: 62%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 }
 </style>

@@ -59,8 +59,8 @@ export default {
     return Api.get('/api/redefense/register/list-by-term-and-exam',params)
   },
   // Cập nhật hội đồng (PUT /api/redefense/examSession/{id})
-  updateExamSession(id, data, channel) {
-    return Api.put(`/api/redefense/examSession/${id}`, data, { params: { channel } })
+  updateExamSession(params) {
+    return Api.put(`/api/redefense/examSession/${params.id}`, params);
   },
   getResultList(params) {
     return Api.get('/api/redefense/result', params) 

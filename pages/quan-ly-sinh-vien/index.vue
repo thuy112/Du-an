@@ -1,85 +1,99 @@
 <template>
   <div class="student-page d-flex flex-column pa-2 pa-sm-4 bg-white">
     <!-- THANH TÌM KIẾM CỐ ĐỊNH PHÍA TRÊN -->
-    <div class="top-filter-bar bg-white py-3 px-1">
-      <div
-        class="d-flex align-center justify-space-between flex-wrap gap-2 width-100"
-      >
-        <div class="text-subtitle-1 font-weight-bold mr-2 text-no-wrap">
-          Danh sách sinh viên ({{ filteredStudents.length }})
-        </div>
-
-        <div
-          class="d-flex align-center gap-2 flex-wrap flex-grow-1 justify-end"
-        >
-          <v-text-field
-            v-model="filters.search"
-            placeholder="Tìm theo tên, MSSV"
-            outlined
-            dense
-            hide-details
-            class="bg-white filter-item search-input custom-outlined-input"
-            @keyup.enter="search"
-          ></v-text-field>
-
-          <v-select
-            v-model="filters.class"
-            :items="classOptions"
-            placeholder="Lớp sinh viên"
-            outlined
-            dense
-            hide-details
-            clearable
-            :menu-props="{ attach: true, offsetY: true, zIndex: 999 }"
-            class="bg-white filter-item select-md custom-outlined-input"
-          ></v-select>
-
-          <!-- Lọc trạng thái trên thanh tìm kiếm -->
-          <v-select
-            v-model="filters.status"
-            :items="studentStatusList"
-            item-text="text"
-            item-value="value"
-            placeholder="Trạng thái"
-            outlined
-            dense
-            hide-details
-            clearable
-            :menu-props="{ attach: true, offsetY: true, zIndex: 999 }"
-            class="bg-white filter-item select-md custom-outlined-input"
-          ></v-select>
-
-          <div class="d-flex gap-2 align-center">
-            <v-btn
-              icon
-              color="#a2212b"
-              class="rounded-sm action-btn"
-              @click="resetFilters"
-            >
-              <v-icon color="#a2212b" size="24">mdi-refresh</v-icon>
-            </v-btn>
-
-            <v-btn
-              outlined
-              color="#a2212b"
-              class="min-w-0 px-3 rounded-sm action-btn"
-              @click="openFilterDialog"
-            >
-              <v-icon size="24">mdi-filter-variant-plus</v-icon>
-            </v-btn>
-
-            <v-btn
-              color="#a2212b"
-              dark
-              elevation="0"
-              class="min-w-0 px-3 rounded-sm action-btn"
-              @click="search"
-            >
-              <v-icon size="24">mdi-magnify</v-icon>
-            </v-btn>
+    <div class="top-filter-bar bg-white py-2 px-1">
+      <v-row align="center" justify="space-between" dense>
+        <v-col cols="12" md="auto" class="py-1">
+          <div class="text-subtitle-1 font-weight-bold">
+            Danh sách sinh viên ({{ filteredStudents.length }})
           </div>
-        </div>
-      </div>
+        </v-col>
+
+        <v-col cols="12" md="auto" class="flex-grow-1 py-1">
+          <v-row dense justify="end" align="center">
+            <v-col cols="12" sm="6" md="auto">
+              <v-text-field
+                v-model="filters.search"
+                placeholder="Tìm theo tên, MSSV"
+                outlined
+                dense
+                hide-details
+                class="bg-white filter-item search-input custom-outlined-input"
+                @keyup.enter="search"
+              ></v-text-field>
+            </v-col>
+
+            <v-col cols="12" sm="6" md="auto">
+              <v-select
+                v-model="filters.class"
+                :items="classOptions"
+                placeholder="Lớp sinh viên"
+                outlined
+                dense
+                hide-details
+                clearable
+                :menu-props="{ offsetY: true, zIndex: 10 }"
+                class="bg-white filter-item select-md custom-outlined-input"
+              ></v-select>
+            </v-col>
+
+            <!-- Lọc trạng thái trên thanh tìm kiếm -->
+            <v-col cols="12" sm="6" md="auto">
+              <v-select
+                v-model="filters.status"
+                :items="studentStatusList"
+                item-text="text"
+                item-value="value"
+                placeholder="Trạng thái"
+                outlined
+                dense
+                hide-details
+                clearable
+                :menu-props="{ offsetY: true, zIndex: 10 }"
+                class="bg-white filter-item select-md custom-outlined-input"
+              ></v-select>
+            </v-col>
+
+            <v-col
+              cols="12"
+              sm="6"
+              md="auto"
+              class="d-flex gap-2 align-center justify-end"
+            >
+              <v-btn
+                icon
+                color="#a2212b"
+                class="rounded-sm action-btn"
+                aria-label="Làm mới bộ lọc"
+                @click="resetFilters"
+              >
+                <v-icon color="#a2212b" size="24">mdi-refresh</v-icon>
+              </v-btn>
+
+              <v-btn
+                outlined
+                color="#a2212b"
+                class="min-w-0 px-3 rounded-sm action-btn"
+                aria-label="Lọc nâng cao"
+                @click="openFilterDialog"
+              >
+                <v-icon size="24">mdi-filter-variant-plus</v-icon>
+              </v-btn>
+
+              <v-btn
+                color="#a2212b"
+                dark
+                elevation="0"
+                class="min-w-0 px-3 rounded-sm action-btn"
+                aria-label="Tìm kiếm"
+                @click="search"
+              >
+                <v-icon size="24">mdi-magnify</v-icon>
+              </v-btn>
+            </v-col>
+          </v-row>
+        </v-col>
+      </v-row>
     </div>
 
     <!-- DIALOG LỌC NÂNG CAO -->
@@ -162,6 +176,7 @@
       :items="paginatedStudents"
       hide-default-footer
       disable-pagination
+      class="student-table"
     >
       <template #[`item.stt`]="{ index }">
         <span class="font-weight-medium">{{
@@ -173,24 +188,24 @@
       <template #[`item.generalInfo`]="{ item }">
         <div class="py-2 info-block">
           <div
-            class="font-weight-bold red--text text--darken-3 mb-1"
+            class="font-weight-bold red--text text--darken-3 mb-1 mobile-break-text"
             style="font-size: 15px"
           >
             {{ item.fullName }}
           </div>
-          <div class="text-body-2 text--secondary mb-1">
+          <div class="text-body-2 text--secondary mb-1 mobile-break-text">
             MSSV:
             <span class="red--text text--darken-2 font-weight-bold">{{
               item.code
             }}</span>
           </div>
-          <div class="text-body-2 text--secondary mb-1">
+          <div class="text-body-2 text--secondary mb-1 mobile-break-text">
             Email:
             <span class="red--text text--darken-2 font-weight-bold">{{
               item.email
             }}</span>
           </div>
-          <div class="text-body-2 text--secondary">
+          <div class="text-body-2 text--secondary mobile-break-text">
             CCCD:
             <span class="red--text text--darken-2 font-weight-bold">{{
               item.citizen
@@ -211,13 +226,30 @@
       <!-- CHỨC NĂNG -->
       <template #[`item.actions`]="{ item }">
         <div class="d-flex align-center gap-1 action-icons">
-          <v-btn icon x-small color="cyan darken-1" @click="viewDetail(item)">
+          <v-btn
+            icon
+            x-small
+            color="cyan darken-1"
+            aria-label="Xem chi tiết"
+            @click="viewDetail(item)"
+          >
             <v-icon size="24" color="blue">mdi-eye</v-icon>
           </v-btn>
-          <v-btn icon x-small @click="handleUpdate(item)">
+          <v-btn
+            icon
+            x-small
+            aria-label="Chỉnh sửa"
+            @click="handleUpdate(item)"
+          >
             <v-icon size="24" color="warning">mdi-pencil</v-icon>
           </v-btn>
-          <v-btn icon x-small color="teal" @click="checkHistory(item)">
+          <v-btn
+            icon
+            x-small
+            color="teal"
+            aria-label="Lịch sử sinh viên"
+            @click="checkHistory(item)"
+          >
             <v-icon size="24" color="green">mdi-table-account</v-icon>
           </v-btn>
         </div>
@@ -315,31 +347,33 @@
             </v-btn>
           </div>
 
-          <v-simple-table class="border rounded-sm">
-            <thead>
-              <tr class="grey lighten-4">
-                <th class="font-weight-bold">STT</th>
-                <th class="font-weight-bold">Tên học phần</th>
-                <th class="font-weight-bold">Mã học phần</th>
-                <th class="font-weight-bold">Quy trình học tập</th>
-                <th class="font-weight-bold">Thời gian hoàn thành</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="filteredHistoryData.length === 0">
-                <td colspan="5" class="text-center py-4 grey--text">
-                  Không có dữ liệu
-                </td>
-              </tr>
-              <tr v-for="(item, idx) in filteredHistoryData" :key="idx">
-                <td>{{ idx + 1 }}</td>
-                <td>{{ item.tenHocPhan }}</td>
-                <td>{{ item.maHocPhan }}</td>
-                <td>{{ item.quyTrinh }}</td>
-                <td>{{ item.thoiGianHoanThanh }}</td>
-              </tr>
-            </tbody>
-          </v-simple-table>
+          <div class="overflow-x-auto">
+            <v-simple-table class="border rounded-sm">
+              <thead>
+                <tr class="grey lighten-4">
+                  <th class="font-weight-bold">STT</th>
+                  <th class="font-weight-bold">Tên học phần</th>
+                  <th class="font-weight-bold">Mã học phần</th>
+                  <th class="font-weight-bold">Quy trình học tập</th>
+                  <th class="font-weight-bold">Thời gian hoàn thành</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-if="filteredHistoryData.length === 0">
+                  <td colspan="5" class="text-center py-4 grey--text">
+                    Không có dữ liệu
+                  </td>
+                </tr>
+                <tr v-for="(item, idx) in filteredHistoryData" :key="idx">
+                  <td>{{ idx + 1 }}</td>
+                  <td>{{ item.tenHocPhan }}</td>
+                  <td>{{ item.maHocPhan }}</td>
+                  <td>{{ item.quyTrinh }}</td>
+                  <td>{{ item.thoiGianHoanThanh }}</td>
+                </tr>
+              </tbody>
+            </v-simple-table>
+          </div>
         </v-card-text>
 
         <v-card-actions class="justify-end pa-3 border-top">
@@ -356,19 +390,19 @@
 
     <!-- THANH PHÂN TRANG & EXCEL -->
     <div
-      class="bottom-bar d-flex align-center justify-space-between flex-nowrap py-2 px-3 mt-auto bg-white border-top"
+      class="bottom-bar d-flex flex-column flex-sm-row align-stretch align-sm-center justify-sm-space-between flex-wrap gap-2 py-2 px-2 px-sm-3 mt-auto bg-white border-top"
     >
       <v-btn
         color="#2e7d32"
         dark
         elevation="0"
-        class="text-capitalize rounded px-4 font-weight-bold"
+        class="text-capitalize rounded px-4 font-weight-bold align-self-start align-self-sm-auto"
         @click="exportToExcel"
       >
         <v-icon left small>mdi-export</v-icon> XUẤT FILE EXCEL
       </v-btn>
 
-      <div class="d-flex align-center gap-2 flex-nowrap">
+      <div class="d-flex align-center gap-2 flex-wrap justify-start justify-sm-end">
         <v-select
           v-model="itemsPerPage"
           :items="[10, 20, 50, 100, 200, 500, 1000]"
@@ -376,7 +410,7 @@
           dense
           outlined
           hide-details
-          :menu-props="{ attach: false, top: true, offsetY: true, nudgeTop: 8, contentClass: 'record-count-menu', zIndex: 999 }"
+          :menu-props="{ attach: false, top: true, offsetY: true, nudgeTop: 8, contentClass: 'record-count-menu', zIndex: 10 }"
           class="pagination-input"
           style="width: 85px"
           @change="onItemsPerPageChange"
@@ -403,7 +437,7 @@
           >Đi</v-btn
         >
 
-        <div class="d-flex align-center gap-1">
+        <div class="d-flex align-center gap-1 flex-wrap">
           <v-btn icon small :disabled="page <= 1" @click="changePage(page - 1)"
             ><v-icon>mdi-chevron-left</v-icon></v-btn
           >
@@ -452,43 +486,43 @@
         <v-col cols="12">
           <base-title title="Thông tin cá nhân" />
         </v-col>
-        <v-col cols="6">
+        <v-col cols="12" sm="6">
           <base-detail-item :value="detailItem?.fullName" title="Họ tên" />
         </v-col>
-        <v-col cols="6">
+        <v-col cols="12" sm="6">
           <base-detail-item :value="getGender(detailItem?.gender)" title="Giới tính" />
         </v-col>
 
-        <v-col cols="6">
+        <v-col cols="12" sm="6">
           <base-detail-item :value="detailItem?.code" title="Mã số sinh viên" />
         </v-col>
-        <v-col cols="6">
+        <v-col cols="12" sm="6">
           <base-detail-item :value="detailItem?.citizen" title="CCCD" />
         </v-col>
-        <v-col cols="6">
+        <v-col cols="12" sm="6">
           <base-detail-item
             :value="$formatDate ? $formatDate(detailItem?.birthday) : detailItem?.birthday"
             title="Ngày sinh"
           />
         </v-col>
 
-        <v-col cols="6">
+        <v-col cols="12" sm="6">
           <base-detail-item :value="detailItem?.email" title="Email trường" />
         </v-col>
-        <v-col cols="6">
+        <v-col cols="12" sm="6">
           <base-detail-item :value="detailItem?.birthplace" title="Nơi sinh" />
         </v-col>
 
-        <v-col cols="6">
+        <v-col cols="12" sm="6">
           <base-detail-item :value="detailItem?.emailOther" title="Email cá nhân" />
         </v-col>
-        <v-col cols="6">
+        <v-col cols="12" sm="6">
           <base-detail-item :value="detailItem?.homeTown" title="Trú quán" />
         </v-col>
-        <v-col cols="6">
+        <v-col cols="12" sm="6">
           <base-detail-item :value="detailItem?.ethnicity" title="Dân tộc" />
         </v-col>
-        <v-col cols="6">
+        <v-col cols="12" sm="6">
           <base-detail-item :value="detailItem?.address" title="Địa chỉ liên hệ" />
         </v-col>
         <v-col cols="12" md="6">
@@ -501,7 +535,7 @@
             </template>
           </base-detail-item>
         </v-col>
-        <v-col cols="6">
+        <v-col cols="12" sm="6">
           <base-detail-item :value="detailItem?.phone" title="SĐT" />
         </v-col>
 
@@ -519,13 +553,13 @@
           >
             <template #content>
               <v-row dense>
-                <v-col cols="6" md="4">
+                <v-col cols="12" sm="6" md="4">
                   <base-detail-item
                     :value="detailTrainingUnit?.code"
                     title="Mã địa điểm đào tạo"
                   />
                 </v-col>
-                <v-col v-if="detailTrainingUnit?.address">
+                <v-col v-if="detailTrainingUnit?.address" cols="12" sm="6" md="8">
                   <base-detail-item
                     :value="detailTrainingUnit?.address"
                     title="Địa chỉ"
@@ -561,13 +595,13 @@
           >
             <template #content>
               <v-row dense>
-                <v-col cols="6" md="3">
+                <v-col cols="12" sm="6" md="3">
                   <base-detail-item
                     :value="detailCourse?.code"
                     title="Mã khóa học"
                   />
                 </v-col>
-                <v-col cols="12" md="6">
+                <v-col cols="12" sm="6" md="6">
                   <base-detail-item title="Thời gian">
                     <template #value>
                       <span
@@ -600,7 +634,7 @@
           >
             <template #content>
               <v-row dense>
-                <v-col cols="6" md="4">
+                <v-col cols="12" sm="6" md="4">
                   <base-detail-item
                     :value="detailTrainingType?.code"
                     title="Mã loại hình đào tạo"
@@ -620,7 +654,7 @@
           >
             <template #content>
               <v-row dense>
-                <v-col cols="6" md="4">
+                <v-col cols="12" sm="6" md="4">
                   <base-detail-item
                     :value="detailTrainingMethod?.code"
                     title="Mã hình thức đào tạo"
@@ -638,7 +672,7 @@
           >
             <template #content>
               <v-row dense>
-                <v-col cols="6" md="3">
+                <v-col cols="12" sm="6" md="3">
                   <base-detail-item
                     :value="detailMajor?.code"
                     title="Mã ngành"
@@ -1366,182 +1400,58 @@ export default {
 </script>
 
 <style scoped>
-.gap-1 {
-  gap: 4px;
-}
-.gap-2 {
-  gap: 8px;
-}
+.gap-1 { gap: 4px; }
+.gap-2 { gap: 8px; }
+.top-filter-bar, .bottom-bar { flex-shrink: 0; background-color: #ffffff; }
+.filter-item { width: 100%; }
+.action-btn { height: 36px !important; min-height: 36px !important; }
+.border-top { border-top: 1px solid #e0e0e0; }
 
-.top-filter-bar {
-  flex-shrink: 0;
+.custom-outlined-input >>> .v-input__control,
+.pagination-input >>> .v-input__control {
+  min-height: 34px !important;
 }
-.filter-item {
-  flex-grow: 1;
-  flex-shrink: 1;
-}
-.search-input {
-  min-width: 150px;
-  max-width: 200px;
-}
-.select-md {
-  min-width: 140px;
-  max-width: 180px;
-}
-.action-btn {
-  height: 40px !important;
-  min-height: 40px !important;
-}
-
-.custom-outlined-input >>> .v-input__control {
-  min-height: 38px !important;
+.custom-outlined-input >>> .v-input__slot,
+.pagination-input >>> .v-input__slot {
+  min-height: 34px !important;
 }
 .custom-outlined-input >>> fieldset {
   border-color: #ccc !important;
   border-radius: 4px !important;
 }
-
-.section-title-indicator {
-  width: 4px;
-  height: 18px;
-  background-color: #a2212b;
-  border-radius: 2px;
-}
-
-.status-badge {
-  border-radius: 16px !important;
-  display: inline-flex;
-  align-items: center;
-}
-.status-studying {
-  background-color: #a2212b !important;
-  color: #ffffff !important;
-}
-.status-warning {
-  background-color: #ff9800 !important;
-  color: #ffffff !important;
-}
-.status-dropout {
-  background-color: #616161 !important;
-  color: #ffffff !important;
-}
-.status-unknown {
-  background-color: #9e9e9e !important;
-  color: #ffffff !important;
-}
-
-.border-top {
-  border-top: 1px solid #e0e0e0;
-}
-.bottom-bar {
-  flex-shrink: 0;
-  background-color: #ffffff;
-  overflow-x: auto;
-}
-.pagination-input >>> .v-input__control {
-  min-height: 36px !important;
-}
-
-/* Luôn mở danh sách số bản ghi phía trên ô phân trang */
-.record-count-menu {
-  top: auto !important;
-  bottom: 72px !important;
-}
-
-/* Styles cho hệ thống Toast hàng đợi (xếp chồng, có progress bar và nút X) */
-.toast-queue-container {
-  position: fixed;
-  top: 24px;
-  right: 24px;
-  z-index: 99999;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-width: 380px;
-  width: 100%;
-  pointer-events: none;
-}
-
-.custom-toast-item {
-  pointer-events: auto;
-  border-radius: 6px;
-  overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  animation: toastSlideIn 0.3s ease-out forwards;
-}
-
-.toast-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.toast-text {
-  font-size: 14px;
-  line-height: 1.4;
-  word-break: break-word;
-}
-
-.close-toast-btn {
-  opacity: 0.8;
-  transition: opacity 0.2s;
-}
-
-.close-toast-btn:hover {
-  opacity: 1;
-}
-
-.toast-progress-bar-container {
-  width: 100%;
-  height: 3px;
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.toast-progress-bar {
-  height: 100%;
-  background-color: rgba(255, 255, 255, 0.9);
-  transition: width 0.03s linear;
-}
-
-.toast-list-enter-active,
-.toast-list-leave-active {
-  transition: all 0.3s ease;
-}
-
-.toast-list-enter {
-  opacity: 0;
-  transform: translateY(-20px);
-}
-
-.toast-list-leave-to {
-  opacity: 0;
-  transform: translateX(30px);
-}
-
-@keyframes toastSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-15px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+.record-count-menu { top: auto !important; bottom: 64px !important; }
 
 @media (max-width: 599px) {
-  .student-page {
-    height: auto;
-    min-height: 100vh;
-    overflow: visible;
+  .student-page { min-height: 100dvh; max-width: 100vw; overflow-x: hidden; position: relative; z-index: 1; }
+  .top-filter-bar, .filter-item { width: 100% !important; position: relative; z-index: 1; }
+  .mobile-break-text, .student-table >>> .v-data-table__mobile-row__cell {
+    max-width: 62%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 }
+
 @media (min-width: 600px) {
   .student-page {
-    height: calc(100vh - 64px);
-    overflow: hidden;
+    height: calc(100dvh - 80px);
+    overflow: visible;
     display: flex;
     flex-direction: column;
+    padding-bottom: 8px !important;
+  }
+  .student-table {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .student-table >>> .v-data-table__wrapper {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+  }
+  .bottom-bar {
+    padding: 6px 12px !important;
   }
 }
 </style>

@@ -18,7 +18,7 @@
                 :items="classList"
                 item-text="name"
                 item-value="id"
-                placeholder="Lớp sinh viên"
+                label="Lớp sinh viên"
                 outlined
                 dense
                 hide-details
@@ -33,7 +33,7 @@
                 :items="examList"
                 item-text="name"
                 item-value="id"
-                placeholder="Đợt bảo vệ lại"
+                label="Đợt bảo vệ lại"
                 outlined
                 dense
                 hide-details
@@ -48,7 +48,7 @@
                 :items="payStatusList"
                 item-text="text"
                 item-value="value"
-                placeholder="Trạng thái trả học phí"
+                label="Trạng thái trả học phí"
                 outlined
                 dense
                 hide-details
@@ -63,7 +63,7 @@
                 :items="sendMailStatusList"
                 item-text="text"
                 item-value="value"
-                placeholder="Trạng thái gửi email"
+                label="Trạng thái gửi email"
                 outlined
                 dense
                 hide-details

@@ -4,7 +4,7 @@
     <div class="top-filter-bar bg-white py-3 px-1">
       <div class="d-flex align-center justify-space-between flex-wrap gap-2 width-100">
         <div class="text-subtitle-1 font-weight-bold mr-2 text-no-wrap">
-          Danh sách kết quả thu (<span class="red--text text--darken-2">{{ totalRecord }}</span>) 
+          Danh sách kết quả thu (<span class="red--text text--darken-2">{{ totalRecord }}</span>)
           <span class="ml-2 font-weight-regular text-body-2">
             Tổng tiền đã thu: <strong class="error--text">{{ formatCurrency(totalAmount) }}</strong>
           </span>
@@ -28,13 +28,39 @@
             item-text="text"
             item-value="value"
             placeholder="Đợt học lại"
+            multiple
             outlined
             dense
             hide-details
             clearable
             :menu-props="{ attach: true, offsetY: true, zIndex: 999 }"
-            class="bg-white filter-item select-md custom-outlined-input"
-          ></v-select>
+            class="bg-white filter-item select-md custom-outlined-input exam-multi-select"
+          >
+            <template v-slot:item="{ item, attrs, on }">
+              <v-list-item v-bind="attrs" v-on="on">
+                <v-list-item-action class="mr-3">
+                  <v-icon :color="attrs.inputValue ? '#a2212b' : ''">
+                    {{ attrs.inputValue ? 'mdi-checkbox-marked' : 'mdi-checkbox-blank-outline' }}
+                  </v-icon>
+                </v-list-item-action>
+                <v-list-item-content>
+                  <v-list-item-title>{{ item.text }}</v-list-item-title>
+                </v-list-item-content>
+              </v-list-item>
+            </template>
+
+            <template v-slot:selection="{ item, index }">
+              <span v-if="index === 0" class="text-truncate">
+                {{ item.text }}
+              </span>
+              <span
+                v-if="index === 1"
+                class="grey--text text-caption ml-1 flex-shrink-0"
+              >
+                (+{{ filters.examIds.length - 1 }})
+              </span>
+            </template>
+          </v-select>
 
           <!-- TỪ NGÀY -->
           <v-menu
@@ -186,6 +212,7 @@
         dark
         elevation="0"
         class="text-capitalize rounded px-4 font-weight-bold"
+        :loading="loadingExport"
         @click="exportExcel"
       >
         <v-icon left small>mdi-export</v-icon> XUẤT FILE BÁO CÁO
@@ -310,18 +337,19 @@ export default {
       totalRecord: 0,
       totalAmount: 0,
       isLoading: false,
+      loadingExport: false,
       menuFrom: false,
       menuTo: false,
 
       filters: {
         search: '',
-        examIds: null,
+        examIds: [],
         fromTime: '',
         toTime: '',
       },
       appliedFilters: {
         search: '',
-        examIds: null,
+        examIds: [],
         fromTime: '',
         toTime: '',
       },
@@ -330,49 +358,49 @@ export default {
       toastDuration: 3000,
 
       headers: [
-            // { value: "orderCode", text: "Số hóa đơn", sortable: false },
-            { value: "code", text: "Mã số SV", class: "text-center", sortable: false },
-            { value: "fullName", text: "Họ tên SV", sortable: false, width: 150 },
-            {
-                value: "registerStudentTerms",
-                text: "Học phần đăng ký",
-                sortable: false,
-                width: 350,
-                align: "center",
-            },
-            { value: "exam.code", text: "Đợt học lại", sortable: false, width: 150 },
-            {
-                value: "registerSemesterTerms",
-                text: "Học kỳ",
-                sortable: false,
-                width: 150,
-                align: "center",
-            },
-            { value: "totalFee", text: "Số tiền đã thu", sortable: false },
-            // { value: "dateImport", text: "Ngày Import DL", sortable: false },
-            // { value: "dateFeePaid", text: "Ngày nộp tiền", sortable: false },
-            { value: "phone", text: "Số điện thoại", sortable: false, width: 120 },
-            { value: "clazz.name", text: "Lớp", align: "center", sortable: false, width: 150 },
-            { value: "course.name", text: "Khóa", align: "center", sortable: false, width: 90 },
-            { value: "major.name", text: "Ngành", align: "center", sortable: false },
-            {
-                value: "clazz.trainingMethodName",
-                text: "Hình thức đào tạo",
-                align: "center",
-                sortable: false,
-                width: 120,
-            },
-            {
-                value: "clazz.trainingUnitName",
-                text: "Địa điểm đào tạo",
-                align: "center",
-                sortable: false,
-                width: 150,
-            },
-            { value: "type", text: "Nội dung thu", align: "center", sortable: false },
-            { value: "dateFeePaid", text: "Thời gian thu", align: "center", sortable: false },
-            // { value: "actions", text: "Chức năng", align: "center", sortable: false },
-        ],
+        // { value: "orderCode", text: "Số hóa đơn", sortable: false },
+        { value: "code", text: "Mã số SV", class: "text-center", sortable: false },
+        { value: "fullName", text: "Họ tên SV", sortable: false, width: 150 },
+        {
+          value: "registerStudentTerms",
+          text: "Học phần đăng ký",
+          sortable: false,
+          width: 350,
+          align: "center",
+        },
+        { value: "exam.code", text: "Đợt học lại", sortable: false, width: 150 },
+        {
+          value: "registerSemesterTerms",
+          text: "Học kỳ",
+          sortable: false,
+          width: 150,
+          align: "center",
+        },
+        { value: "totalFee", text: "Số tiền đã thu", sortable: false },
+        // { value: "dateImport", text: "Ngày Import DL", sortable: false },
+        // { value: "dateFeePaid", text: "Ngày nộp tiền", sortable: false },
+        { value: "phone", text: "Số điện thoại", sortable: false, width: 120 },
+        { value: "clazz.name", text: "Lớp", align: "center", sortable: false, width: 150 },
+        { value: "course.name", text: "Khóa", align: "center", sortable: false, width: 90 },
+        { value: "major.name", text: "Ngành", align: "center", sortable: false },
+        {
+          value: "clazz.trainingMethodName",
+          text: "Hình thức đào tạo",
+          align: "center",
+          sortable: false,
+          width: 120,
+        },
+        {
+          value: "clazz.trainingUnitName",
+          text: "Địa điểm đào tạo",
+          align: "center",
+          sortable: false,
+          width: 150,
+        },
+        { value: "type", text: "Nội dung thu", align: "center", sortable: false },
+        { value: "dateFeePaid", text: "Thời gian thu", align: "center", sortable: false },
+        // { value: "actions", text: "Chức năng", align: "center", sortable: false },
+      ],
 
       list: [],
       examList: [],
@@ -419,7 +447,6 @@ export default {
       }
     },
 
-    
     async fetchData() {
       try {
         this.isLoading = true
@@ -616,7 +643,6 @@ export default {
         // Tổng số trang
         this.totalPage =
           Math.ceil(this.totalRecord / this.itemsPerPage) || 1
-
       } catch (err) {
         console.error('Lỗi khi tải dữ liệu:', err)
 
@@ -632,7 +658,6 @@ export default {
         this.isLoading = false
       }
     },
-
 
     parseDateToBackend(dateStr) {
       if (!dateStr) return ''
@@ -705,6 +730,7 @@ export default {
 
       this.appliedFilters = {
         ...this.filters,
+        examIds: Array.isArray(this.filters.examIds) ? [...this.filters.examIds] : [],
         fromTime: cleanFrom,
         toTime: cleanTo,
       }
@@ -718,11 +744,16 @@ export default {
     resetFilters() {
       this.filters = {
         search: '',
-        examIds: null,
+        examIds: [],
         fromTime: '',
         toTime: '',
       }
-      this.appliedFilters = { ...this.filters }
+      this.appliedFilters = {
+        search: '',
+        examIds: [],
+        fromTime: '',
+        toTime: '',
+      }
       this.page = 1
       this.pageInput = 1
       this.fetchData()
@@ -772,6 +803,7 @@ export default {
         return dateStr
       }
     },
+
     formatSendType(type) {
       if (!type) return '---'
       // Chuyển mã code sang tiếng Việt tương ứng
@@ -785,46 +817,34 @@ export default {
     },
 
     async exportExcel() {
-            try {
-                this.loadingExport = true;
-                
-                // Nếu chưa chọn đợt học lại nào, tự động lấy tất cả ID nối bằng dấu phẩy
-                if (!this.search.examIds || !this.search.examIds.length) {
-                    const examIds = this.examList.map((item) => item.id).join(",");
-                    const res = await feeTeacherByExamService.exportResult({
-                        search: this.search.search || "",
-                        fromTime: "",
-                        toTime: "",
-                        examIds,
-                        channel: "CMS",
-                    });
-                    if (res.success || res?.data?.url) {
-                        return this.$download(res?.data?.url || res?.url);
-                    }
-                }
-                
-                // Trường hợp có chọn đợt học lại cụ thể
-                const examIds = Array.isArray(this.search.examIds) 
-                    ? this.search.examIds.join(",") 
-                    : this.search.examIds;
-                    
-                const res = await feeTeacherByExamService.exportResult({ 
-                    search: this.search.search || "",
-                    fromTime: "",
-                    toTime: "",
-                    examIds,
-                    channel: "CMS",
-                });
-                
-                if (res.success || res?.data?.url) {
-                    this.$download(res?.data?.url || res?.url);
-                }
-            } catch (error) {
-                console.error(error);
-            } finally {
-                this.loadingExport = false;
-            }
-        },
+      try {
+        this.loadingExport = true
+
+        const currentExamIds = Array.isArray(this.filters.examIds)
+          ? this.filters.examIds
+          : []
+        const examIds =
+          currentExamIds.length > 0
+            ? currentExamIds.join(',')
+            : this.examList.map((item) => item.id).join(',')
+
+        const res = await feeTeacherByExamService.exportResult({
+          search: this.filters.search || '',
+          fromTime: this.filters.fromTime || '',
+          toTime: this.filters.toTime || '',
+          examIds,
+          channel: 'CMS',
+        })
+
+        if (res.success || res?.data?.url) {
+          this.$download(res?.data?.url || res?.url)
+        }
+      } catch (error) {
+        console.error(error)
+      } finally {
+        this.loadingExport = false
+      }
+    },
 
     showToast(message, color = '#4caf50') {
       const id = Date.now() + Math.random()
@@ -912,6 +932,7 @@ export default {
       }
       return dateStr
     },
+
     formatToSend(dateStr) {
       if (!dateStr) return undefined
       // Nếu là định dạng YYYY-MM-DD
@@ -948,8 +969,8 @@ export default {
   max-width: 240px;
 }
 .select-md {
-  min-width: 150px;
-  max-width: 190px;
+  min-width: 165px;
+  max-width: 220px;
 }
 .date-input {
   min-width: 140px;
@@ -965,6 +986,11 @@ export default {
 .custom-outlined-input >>> fieldset {
   border-color: #ccc !important;
   border-radius: 4px !important;
+}
+.exam-multi-select >>> .v-select__selections {
+  flex-wrap: nowrap !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .border-top {
   border-top: 1px solid #e0e0e0;

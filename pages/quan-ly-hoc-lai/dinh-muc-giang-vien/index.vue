@@ -1,75 +1,83 @@
 <template>
-  <v-container fluid class="pa-6">
+  <div class="dinh-muc-phi-page pa-3 pa-sm-6 bg-white">
     <!-- Tiêu đề trang & Thanh công cụ -->
-    <div class="d-flex justify-space-between align-center mb-4">
-      <div class="text-subtitle-1 font-weight-bold black--text">
-        Danh sách quy định định mức phí
-        <span class="red--text">({{ filteredList.length }})</span>
-      </div>
-      <div class="d-flex align-center gap-2">
-        <!-- Bộ lọc loại lớp -->
-        <v-select
-          v-model="filters.classType"
-          :items="classTypeList"
-          label="Loại lớp"
-          outlined
-          dense
-          clearable
-          hide-details
-          style="width: 150px"
-        ></v-select>
+    <v-row align="center" justify="space-between" class="mb-4">
+      <v-col cols="12" md="auto" class="py-1">
+        <div class="text-subtitle-1 font-weight-bold black--text">
+          Danh sách quy định mức phí
+          <span class="red--text">({{ totalRecords || filteredList.length }})</span>
+        </div>
+      </v-col>
 
-        <!-- Bộ lọc hình thức đào tạo -->
-        <v-select
-          v-model="filters.trainingType"
-          :items="trainingTypeList"
-          item-text="text"
-          item-value="text"
-          label="Hình thức đào tạo"
-          outlined
-          dense
-          clearable
-          hide-details
-          style="width: 170px"
-        ></v-select>
+      <v-col cols="12" md="auto" class="py-1">
+        <div class="d-flex align-center flex-wrap justify-md-end gap-2">
+          <!-- Bộ lọc loại lớp -->
+          <v-select
+            v-model="filters.classType"
+            :items="classTypeList"
+            label="Loại lớp"
+            outlined
+            dense
+            clearable
+            hide-details
+            class="toolbar-filter"
+          ></v-select>
 
-        <!-- Nút Refresh -->
-        <v-btn icon small @click="resetAndRefresh">
-          <v-icon size="24" color="#A62229">mdi-refresh</v-icon>
-        </v-btn>
+          <!-- Bộ lọc hình thức đào tạo -->
+          <v-select
+            v-model="filters.trainingType"
+            :items="trainingTypeList"
+            item-text="text"
+            item-value="text"
+            label="Hình thức đào tạo"
+            outlined
+            dense
+            clearable
+            hide-details
+            class="toolbar-filter toolbar-filter-wide"
+          ></v-select>
 
-        <!-- Nút Tìm kiếm -->
-        <v-btn
-          color="#A62229"
-          dark
-          small
-          class="px-3"
-          elevation="0"
-          @click="handleSearch"
-        >
-          <v-icon size="24">mdi-magnify</v-icon>
-        </v-btn>
+          <!-- Cụm nút chức năng -->
+          <div class="d-flex align-center gap-2 flex-shrink-0">
+            <v-btn icon small aria-label="Làm mới" @click="resetAndRefresh">
+              <v-icon size="24" color="#A62229">mdi-refresh</v-icon>
+            </v-btn>
 
-        <!-- Nút Thêm mới -->
-        <v-btn
-          color="#A62229"
-          dark
-          small
-          class="px-3"
-          elevation="0"
-          @click="openAddModal"
-        >
-          <v-icon size="24">mdi-plus</v-icon>
-        </v-btn>
-      </div>
-    </div>
+            <v-btn
+              color="#A62229"
+              dark
+              small
+              class="px-3"
+              elevation="0"
+              aria-label="Tìm kiếm"
+              @click="handleSearch"
+            >
+              <v-icon size="24">mdi-magnify</v-icon>
+            </v-btn>
 
-    <!-- Bảng dữ liệu -->
-    <v-card flat class="rounded-lg border overflow-hidden">
+            <v-btn
+              color="#A62229"
+              dark
+              small
+              class="px-3"
+              elevation="0"
+              aria-label="Thêm mới"
+              @click="openAddModal"
+            >
+              <v-icon size="24">mdi-plus</v-icon>
+            </v-btn>
+          </div>
+        </div>
+      </v-col>
+    </v-row>
+
+    <!-- Bảng dữ liệu + Phân trang chạy theo danh sách và neo ở đáy khi cần -->
+    <v-card flat class="rounded-lg border">
       <v-data-table
         :headers="headers"
         :items="displayList"
         :loading="loading"
+        :items-per-page="-1"
         hide-default-footer
         dense
         class="elevation-0 custom-table"
@@ -95,11 +103,11 @@
         </template>
 
         <template #[`item.actions`]="{ item }">
-          <!-- Nút sửa (Cây bút) mở popup cập nhật đúng bản ghi -->
           <v-btn
             icon
             x-small
             class="amber--text text--darken-2"
+            aria-label="Chỉnh sửa"
             @click="editItem(item)"
           >
             <v-icon color="#f59e0b">mdi-pencil</v-icon>
@@ -107,65 +115,16 @@
         </template>
       </v-data-table>
 
-      <!-- Phân trang -->
-      <div class="d-flex align-center justify-end pa-3 border-t bg-white gap-3">
-        <div class="d-flex align-center gap-1 text-caption">
-          <span class="grey--text">Bản ghi</span>
-          <v-select
-            v-model="pageSize"
-            :items="[10, 20, 50, 100]"
-            dense
-            outlined
-            hide-details
-            style="width: 83px"
-            @change="handleSearch"
-          ></v-select>
-        </div>
-
-        <div class="d-flex align-center gap-1 text-caption">
-          <span class="grey--text">Trang</span>
-          <v-text-field
-            v-model="pageInput"
-            dense
-            outlined
-            hide-details
-            style="width: 50px; text-align: center"
-            @keyup.enter="handleGo"
-          ></v-text-field>
-          <v-btn
-            small
-            dark
-            color="#A62229"
-            class="text-none px-3"
-            elevation="0"
-            @click="handleGo"
-            >Đi</v-btn
-          >
-        </div>
-
-        <div class="d-flex align-center gap-1">
-          <v-btn
-            outlined
-            small
-            :disabled="page <= 1"
-            class="px-2"
-            @click="prevPage"
-          >
-            <v-icon small>mdi-chevron-left</v-icon>
-          </v-btn>
-          <v-btn small dark color="#A62229" class="px-3" elevation="0">{{
-            page
-          }}</v-btn>
-          <v-btn
-            outlined
-            small
-            :disabled="page >= totalPages"
-            class="px-2"
-            @click="nextPage"
-          >
-            <v-icon small>mdi-chevron-right</v-icon>
-          </v-btn>
-        </div>
+      <!-- Phân trang chạy theo danh sách và cố định khi chạm đáy viewport -->
+      <div class="sticky-pagination-bar d-flex justify-center justify-sm-end pa-3 border-t bg-white">
+        <BasePagination
+          :page="page"
+          :page-count="totalPages"
+          :page-size="pageSize"
+          :total-record="totalRecords"
+          @changePage="handlePageChange"
+          @changePageSize="handlePageSizeChange"
+        />
       </div>
     </v-card>
 
@@ -184,7 +143,6 @@
 
         <v-card-text class="pa-5">
           <v-form ref="form" v-model="isFormValid">
-            <!-- Loại lớp: Khóa khi sửa -->
             <v-select
               v-model="formModel.classType"
               :items="classTypeList"
@@ -196,7 +154,6 @@
               class="mb-3"
             ></v-select>
 
-            <!-- Hình thức đào tạo: Khóa khi sửa -->
             <v-select
               v-model="formModel.trainingMethodId"
               :items="trainingTypeList"
@@ -210,7 +167,6 @@
               class="mb-3"
             ></v-select>
 
-            <!-- Giá tiền -->
             <v-text-field
               v-model="formattedPrice"
               label="Giá tiền (VNĐ) *"
@@ -239,30 +195,49 @@
       </v-card>
     </v-dialog>
 
-    <!-- Snackbar thông báo ẩn/hiện chuẩn xác, không bị lỗi nền đen -->
-    <v-snackbar
-      v-model="snackbar.show"
-      :color="snackbar.isError ? 'error' : 'success'"
-      top
-      right
-      timeout="3000"
-      elevation="4"
-    >
-      <div class="d-flex align-center justify-space-between w-100">
-        <span>{{ snackbar.message }}</span>
-        <v-btn text icon x-small dark @click="snackbar.show = false">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
-      </div>
-    </v-snackbar>
-  </v-container>
+    <!-- DANH SÁCH TOAST: MỚI Ở TRÊN, CŨ TỤT XUỐNG DƯỚI, CHẠM VÀO SẼ TẮT -->
+    <div class="toast-stack-container">
+      <transition-group name="toast-slide" tag="div" class="d-flex flex-column" style="gap: 8px;">
+        <div
+          v-for="toast in toastList"
+          :key="toast.id"
+          class="custom-toast-card white--text elevation-4 cursor-pointer"
+          :style="{ backgroundColor: toast.isError ? '#d32f2f' : '#4caf50' }"
+          @click="removeToast(toast.id)"
+        >
+          <div class="d-flex align-center justify-space-between px-4 py-3">
+            <div class="d-flex align-center pr-2">
+              <v-icon dark size="20" class="mr-2 flex-shrink-0">
+                {{ toast.isError ? 'mdi-alert-circle' : 'mdi-check-circle' }}
+              </v-icon>
+              <span class="font-weight-medium text-body-2">{{ toast.message }}</span>
+            </div>
+            <v-btn icon dark x-small class="flex-shrink-0" @click.stop="removeToast(toast.id)">
+              <v-icon size="18">mdi-close</v-icon>
+            </v-btn>
+          </div>
+
+          <div class="toast-progress-track">
+            <div
+              class="toast-progress-bar"
+              :style="{ animationDuration: `${toast.duration}ms` }"
+            ></div>
+          </div>
+        </div>
+      </transition-group>
+    </div>
+  </div>
 </template>
 
 <script>
 import feeTeacherServices from '~/services/feeTeacherServics.js'
+import BasePagination from '~/components/Base/Pagination.vue'
 
 export default {
   name: 'DinhMucPhiPage',
+  components: {
+    BasePagination,
+  },
   layout: 'default',
   ssr: false,
   data() {
@@ -280,6 +255,7 @@ export default {
 
       rawList: [],
       filteredList: [],
+      totalRecords: 0,
 
       headers: [
         {
@@ -303,13 +279,12 @@ export default {
 
       page: 1,
       pageSize: 50,
-      pageInput: '1',
 
       dialogVisible: false,
       isEdit: false,
       isFormValid: true,
       formattedPrice: '',
-      
+
       formModel: {
         id: null,
         classType: null,
@@ -317,22 +292,18 @@ export default {
         fee: null,
       },
 
-      snackbar: {
-        show: false,
-        message: '',
-        isError: false,
-      },
+      toastList: [],
+      toastSeed: 0,
     }
   },
   computed: {
     totalPages() {
-      const pages = Math.ceil(this.filteredList.length / this.pageSize)
+      const total = this.totalRecords || this.filteredList.length
+      const pages = Math.ceil(total / this.pageSize)
       return pages > 0 ? pages : 1
     },
     displayList() {
-      const start = (this.page - 1) * this.pageSize
-      const end = start + this.pageSize
-      return this.filteredList.slice(start, end)
+      return this.filteredList
     },
   },
   mounted() {
@@ -348,7 +319,10 @@ export default {
 
     async fetchTrainingMethods() {
       try {
-        const res = await feeTeacherServices.getTrainingMethods({ status: 'ACTIVE', channel: 'CMS' })
+        const res = await feeTeacherServices.getTrainingMethods({
+          status: 'ACTIVE',
+          channel: 'CMS',
+        })
         const list = res?.data?.objects || res?.data || []
         this.trainingTypeList = list.map((item) => ({
           text: item.name,
@@ -366,18 +340,38 @@ export default {
           pageIndex: this.page,
           pageSize: this.pageSize,
           search: this.filters.search || '',
-          classType: this.filters.classType ? this.mapClassTypeToCode(this.filters.classType) : undefined,
+          classType: this.filters.classType
+            ? this.mapClassTypeToCode(this.filters.classType)
+            : undefined,
           channel: 'CMS',
         }
         const res = await feeTeacherServices.getFeeTeachers(params)
         const responseWrapper = res?.data || res
-        const items = Array.isArray(responseWrapper.data)
-          ? responseWrapper.data
+        const rawContainer =
+          responseWrapper?.data && !Array.isArray(responseWrapper.data)
+            ? responseWrapper.data
+            : responseWrapper
+
+        const items = Array.isArray(rawContainer?.data)
+          ? rawContainer.data
+          : Array.isArray(rawContainer?.content)
+          ? rawContainer.content
+          : Array.isArray(rawContainer?.items)
+          ? rawContainer.items
           : Array.isArray(responseWrapper?.objects)
           ? responseWrapper.objects
           : Array.isArray(responseWrapper)
           ? responseWrapper
           : []
+
+        this.totalRecords = Number(
+          rawContainer?.totalElements ??
+            rawContainer?.totalRecords ??
+            rawContainer?.total ??
+            responseWrapper?.totalElements ??
+            responseWrapper?.totalRecords ??
+            items.length
+        )
 
         this.rawList = items.map((item, index) => {
           const rawClass = (item.classType || '').trim()
@@ -401,16 +395,16 @@ export default {
             id: item.id || index + 1,
             classType: mappedClassType,
             trainingType: mappedTrainingType,
-            // Đảm bảo lấy chuẩn xác trường fee từ API gán vào price để hiển thị lên bảng
             price: Number(
               item.fee !== undefined && item.fee !== null ? item.fee : 0
             ),
-            original: item, // Lưu lại object gốc để dùng cho hàm editItem
+            original: item,
           }
         })
       } catch (error) {
         console.error('Lỗi khi tải dữ liệu định mức phí:', error)
         this.rawList = []
+        this.totalRecords = 0
       } finally {
         this.loading = false
         this.applyFilter()
@@ -430,10 +424,9 @@ export default {
         this.formattedPrice = ''
         return
       }
-      // Lọc bỏ mọi ký tự không phải số
       const cleanNumber = String(val).replace(/\D/g, '')
       if (cleanNumber) {
-        this.formModel.fee = Number(cleanNumber) // Gán trực tiếp giá trị số nguyên vào fee
+        this.formModel.fee = Number(cleanNumber)
         this.formattedPrice = this.formModel.fee.toLocaleString('en-US')
       } else {
         this.formModel.fee = null
@@ -460,27 +453,38 @@ export default {
       this.dialogVisible = false
     },
 
+    extractApiMessage(res, fallbackMessage) {
+      return (
+        res?.error?.message ||
+        res?.data?.error?.message ||
+        res?.message ||
+        res?.data?.message ||
+        fallbackMessage
+      )
+    },
+
     async saveData() {
       if (this.$refs.form && !this.$refs.form.validate()) return
 
       this.submitting = true
       try {
         if (this.isEdit) {
-          // Payload cập nhật theo đúng chuẩn dự án
           const updatePayload = {
             id: this.formModel.id,
             classType: this.mapClassTypeToCode(this.formModel.classType),
             trainingMethodId: this.formModel.trainingMethodId,
-            fee: Number(this.formModel.fee), // Đảm bảo ép kiểu số nguyên
+            fee: Number(this.formModel.fee),
             note: this.formModel.note,
             isDelete: 0,
             channel: 'CMS',
           }
 
-          await feeTeacherServices.updateFeeTeacher(this.formModel.id, updatePayload)
-          this.showSnackbar('Cập nhật thành công')
+          const res = await feeTeacherServices.updateFeeTeacher(
+            this.formModel.id,
+            updatePayload
+          )
+          this.showSnackbar(this.extractApiMessage(res, 'Cập nhật thành công'))
         } else {
-          // Payload thêm mới giữ nguyên
           const createPayload = {
             classType: this.mapClassTypeToCode(this.formModel.classType),
             trainingMethodId: this.formModel.trainingMethodId,
@@ -488,25 +492,47 @@ export default {
             channel: 'CMS',
           }
 
-          await feeTeacherServices.createFeeTeacher(createPayload)
-          this.showSnackbar('Thêm mới định mức thành công')
+          const res = await feeTeacherServices.createFeeTeacher(createPayload)
+          this.showSnackbar(this.extractApiMessage(res, 'Thêm mới định mức thành công'))
         }
 
         this.closeDialog()
         this.fetchData()
       } catch (error) {
         console.error('Lỗi khi lưu dữ liệu:', error)
-        this.showSnackbar('Lưu định mức thất bại', true)
+        this.showSnackbar(
+          this.extractApiMessage(error?.response?.data || error, 'Lưu định mức thất bại'),
+          true
+        )
       } finally {
         this.submitting = false
       }
     },
 
-    showSnackbar(message, isError = false) {
-      this.snackbar = {
-        show: true,
+    showSnackbar(message, isError = false, duration = 3000) {
+      const id = `${Date.now()}-${++this.toastSeed}`
+      const toast = {
+        id,
         message,
         isError,
+        duration,
+        timer: null,
+      }
+
+      toast.timer = setTimeout(() => {
+        this.removeToast(id)
+      }, duration)
+
+      this.toastList.unshift(toast)
+    },
+
+    removeToast(id) {
+      const index = this.toastList.findIndex((item) => item.id === id)
+      if (index === -1) return
+
+      const [target] = this.toastList.splice(index, 1)
+      if (target && target.timer) {
+        clearTimeout(target.timer)
       }
     },
 
@@ -523,7 +549,6 @@ export default {
 
     handleSearch() {
       this.page = 1
-      this.pageInput = '1'
       this.fetchData()
     },
 
@@ -532,20 +557,7 @@ export default {
       this.filters.trainingType = null
       this.filters.search = ''
       this.page = 1
-      this.pageInput = '1'
       this.fetchData()
-    },
-
-    handleGo() {
-      const p = parseInt(this.pageInput, 10)
-      if (p >= 1 && p <= this.totalPages) {
-        this.page = p
-        this.fetchData()
-      } else {
-        this.page = 1
-        this.pageInput = '1'
-        this.fetchData()
-      }
     },
 
     formatCurrency(val) {
@@ -556,42 +568,37 @@ export default {
     editItem(item) {
       this.isEdit = true
       const orig = item.original || item
-      
-      // Lấy trực tiếp giá từ thuộc tính price trên hàng hoặc fee trong dữ liệu gốc
       const currentPrice = orig.fee !== undefined ? orig.fee : item.price
 
       this.formModel = {
         id: orig.id || item.id,
         classType: item.classType,
-        trainingMethodId: orig.trainingMethod?.id || orig.trainingMethodId || null,
+        trainingMethodId:
+          orig.trainingMethod?.id || orig.trainingMethodId || null,
         fee: currentPrice,
         note: orig.note || null,
         isDelete: 0,
       }
-      
-      // Đổ giá trị cũ vào ô input để người dùng thấy và sửa
-      this.formattedPrice = currentPrice ? Number(currentPrice).toLocaleString('en-US') : ''
+
+      this.formattedPrice = currentPrice
+        ? Number(currentPrice).toLocaleString('en-US')
+        : ''
       this.dialogVisible = true
-      
+
       this.$nextTick(() => {
         if (this.$refs.form) this.$refs.form.resetValidation()
       })
     },
 
-    prevPage() {
-      if (this.page > 1) {
-        this.page--
-        this.pageInput = String(this.page)
-        this.fetchData()
-      }
+    handlePageChange(val) {
+      this.page = val
+      this.fetchData()
     },
 
-    nextPage() {
-      if (this.page < this.totalPages) {
-        this.page++
-        this.pageInput = String(this.page)
-        this.fetchData()
-      }
+    handlePageSizeChange(val) {
+      this.page = 1
+      this.pageSize = val
+      this.fetchData()
     },
   },
 }
@@ -601,6 +608,15 @@ export default {
 .bg-red-bk {
   background-color: #a62229 !important;
 }
+.bg-white {
+  background-color: #ffffff !important;
+}
+.border-t {
+  border-top: 1px solid #e0e0e0;
+}
+.cursor-pointer {
+  cursor: pointer;
+}
 .gap-1 {
   gap: 4px;
 }
@@ -609,5 +625,110 @@ export default {
 }
 .gap-3 {
   gap: 12px;
+}
+
+.dinh-muc-phi-page {
+  min-height: 100dvh;
+  background-color: #ffffff;
+}
+
+.sticky-pagination-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  background-color: #ffffff;
+  border-bottom-left-radius: inherit;
+  border-bottom-right-radius: inherit;
+}
+
+.toolbar-filter {
+  width: 150px;
+  min-width: 140px;
+  flex: 1 1 150px;
+}
+
+.toolbar-filter-wide {
+  width: 180px;
+  min-width: 160px;
+  flex: 1 1 180px;
+}
+
+.toast-stack-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 2500;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  pointer-events: none;
+}
+
+.custom-toast-card {
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.toast-progress-track {
+  position: relative;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.25);
+  overflow: hidden;
+}
+
+.toast-progress-bar {
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.85);
+  transform-origin: left center;
+  animation-name: toast-countdown;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes toast-countdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.toast-slide-enter-active,
+.toast-slide-leave-active,
+.toast-slide-move {
+  transition: all 0.25s ease;
+}
+
+.toast-slide-enter {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.toast-slide-leave-to {
+  opacity: 0;
+  transform: translateX(24px);
+}
+
+@media (min-width: 960px) {
+  .toolbar-filter {
+    flex: 0 0 150px;
+  }
+
+  .toolbar-filter-wide {
+    flex: 0 0 180px;
+  }
+}
+
+@media (max-width: 599px) {
+  .dinh-muc-phi-page {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
 }
 </style>

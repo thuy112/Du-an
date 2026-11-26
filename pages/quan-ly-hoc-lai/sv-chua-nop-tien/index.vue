@@ -4,7 +4,7 @@
     <div class="top-filter-bar bg-white py-3 px-1">
       <div class="d-flex align-center justify-space-between flex-wrap gap-2 width-100">
         <div class="text-subtitle-1 font-weight-bold mr-2 text-no-wrap">
-          Danh sách sinh viên chưa nộp tiền (<span class="red--text text--darken-2">{{ totalRecord }}</span>) 
+          Danh sách sinh viên chưa nộp tiền (<span class="red--text text--darken-2">{{ totalRecord }}</span>)
           <span class="ml-2 font-weight-regular text-body-2">
             Tổng tiền chưa thu: <strong class="error--text">{{ formatCurrency(totalAmount) }}</strong>
           </span>
@@ -28,13 +28,39 @@
             item-text="text"
             item-value="value"
             placeholder="Đợt học lại"
+            multiple
             outlined
             dense
             hide-details
             clearable
             :menu-props="{ attach: true, offsetY: true, zIndex: 999 }"
-            class="bg-white filter-item select-md custom-outlined-input"
-          ></v-select>
+            class="bg-white filter-item select-md custom-outlined-input exam-multi-select"
+          >
+            <template v-slot:item="{ item, attrs, on }">
+              <v-list-item v-bind="attrs" v-on="on">
+                <v-list-item-action class="mr-3">
+                  <v-icon :color="attrs.inputValue ? '#a2212b' : ''">
+                    {{ attrs.inputValue ? 'mdi-checkbox-marked' : 'mdi-checkbox-blank-outline' }}
+                  </v-icon>
+                </v-list-item-action>
+                <v-list-item-content>
+                  <v-list-item-title>{{ item.text }}</v-list-item-title>
+                </v-list-item-content>
+              </v-list-item>
+            </template>
+
+            <template v-slot:selection="{ item, index }">
+              <span v-if="index === 0" class="text-truncate">
+                {{ item.text }}
+              </span>
+              <span
+                v-if="index === 1"
+                class="grey--text text-caption ml-1 flex-shrink-0"
+              >
+                (+{{ filters.examIds.length - 1 }})
+              </span>
+            </template>
+          </v-select>
 
           <!-- TỪ NGÀY -->
           <v-menu
@@ -48,7 +74,7 @@
           >
             <template v-slot:activator="{ on, attrs }">
               <v-text-field
-                label="Từ ngày đăng ký"
+                label="Từ ngày"
                 :value="formatDisplayDate(filters.fromTime)"
                 outlined
                 dense
@@ -82,7 +108,7 @@
           >
             <template v-slot:activator="{ on, attrs }">
               <v-text-field
-                label="Đến ngày đăng ký"
+                label="Đến ngày"
                 :value="formatDisplayDate(filters.toTime)"
                 outlined
                 dense
@@ -288,13 +314,13 @@ export default {
 
       filters: {
         search: '',
-        examIds: null,
+        examIds: [],
         fromTime: '',
         toTime: '',
       },
       appliedFilters: {
         search: '',
-        examIds: null,
+        examIds: [],
         fromTime: '',
         toTime: '',
       },
@@ -324,7 +350,7 @@ export default {
       const items = Array.isArray(this.examList) ? this.examList : []
       return items.map((item) => ({
         text: item.name || item.code,
-        value: item.id || item.code,
+        value: item.id,
       }))
     },
     totalPages() {
@@ -360,7 +386,6 @@ export default {
 
     async fetchUserInfoAndRole() {
       try {
-        // Tích hợp gọi các API phụ như bạn đã cung cấp
         await Promise.all([
           reportResultNotPaidServices.getUserInfo({ channel: 'CMS' }),
           reportResultNotPaidServices.getPageRole({ channel: 'CMS' }),
@@ -373,11 +398,18 @@ export default {
     async fetchData() {
       try {
         this.isLoading = true
+
+        const examIdsParam =
+          Array.isArray(this.appliedFilters.examIds) &&
+          this.appliedFilters.examIds.length > 0
+            ? this.appliedFilters.examIds.join(',')
+            : (this.appliedFilters.examIds || undefined)
+
         const params = {
           pageIndex: this.page,
           pageSize: this.itemsPerPage,
           search: this.appliedFilters.search || undefined,
-          examIds: this.appliedFilters.examIds || undefined,
+          examIds: examIdsParam,
           fromTime: this.formatDateTimeParam(this.appliedFilters.fromTime, '00:00:00'),
           toTime: this.formatDateTimeParam(this.appliedFilters.toTime, '23:59:59'),
           channel: 'CMS',
@@ -385,7 +417,7 @@ export default {
 
         const res = await reportResultNotPaidServices.getResultNotPaid(params)
         const raw = res?.data !== undefined ? res.data : res
-        
+
         let items = []
         if (Array.isArray(raw)) {
           items = raw
@@ -407,18 +439,17 @@ export default {
           let formattedTerms = '---'
           let formattedSemesters = '---'
           const termsArray = item.registerStudentTerms || []
-          
+
           if (Array.isArray(termsArray) && termsArray.length > 0) {
             formattedTerms = termsArray
               .map((itemTerm) => {
                 const target = itemTerm.term || itemTerm
                 const code = target.code || ''
                 const name = target.name || ''
-                
-                // Lấy chính xác trường totalFee để hiển thị tiền phía sau học phần
+
                 const totalFeeVal = itemTerm.totalFee !== undefined ? Number(itemTerm.totalFee) : (target.totalFee !== undefined ? Number(target.totalFee) : 0)
                 const feeStr = totalFeeVal.toLocaleString('en-US') + 'đ'
-                
+
                 return [code, name, `(${feeStr})`].filter(Boolean).join(' - ')
               })
               .join('\n')
@@ -432,7 +463,6 @@ export default {
             formattedSemesters = item.exam?.semester?.name || item.semester?.name || '---'
           }
 
-          // Lấy trực tiếp totalFee từ bản ghi sinh viên để cộng dồn vào tổng tiền chưa thu của toàn trang
           const rowTotalFee = item.totalFee !== undefined ? Number(item.totalFee) : 0
           calculatedTotalAmount += rowTotalFee
 
@@ -452,17 +482,16 @@ export default {
           }
         })
 
-        this.totalRecord = 
-          raw?.totalRecords || 
-          raw?.data?.totalRecords || 
-          raw?.total || 
+        this.totalRecord =
+          raw?.totalRecords ||
+          raw?.data?.totalRecords ||
+          raw?.total ||
           this.list.length
 
-        // Lấy trực tiếp từ API nếu backend có trả về tổng tiền toàn cục
-        this.totalAmount = 
-          raw?.totalAmount || 
-          raw?.data?.totalAmount || 
-          raw?.result?.totalAmount || 
+        this.totalAmount =
+          raw?.totalAmount ||
+          raw?.data?.totalAmount ||
+          raw?.result?.totalAmount ||
           calculatedTotalAmount
 
         this.totalPage = Math.ceil(this.totalRecord / this.itemsPerPage) || 1
@@ -495,7 +524,12 @@ export default {
         return
       }
 
-      this.appliedFilters = { ...this.filters, fromTime, toTime }
+      this.appliedFilters = {
+        ...this.filters,
+        examIds: Array.isArray(this.filters.examIds) ? [...this.filters.examIds] : [],
+        fromTime,
+        toTime,
+      }
       this.page = 1
       this.pageInput = 1
       this.fetchData()
@@ -504,11 +538,16 @@ export default {
     resetFilters() {
       this.filters = {
         search: '',
-        examIds: null,
+        examIds: [],
         fromTime: '',
         toTime: '',
       }
-      this.appliedFilters = { ...this.filters }
+      this.appliedFilters = {
+        search: '',
+        examIds: [],
+        fromTime: '',
+        toTime: '',
+      }
       this.page = 1
       this.pageInput = 1
       this.fetchData()
@@ -632,31 +671,35 @@ export default {
     async exportExcel() {
       try {
         this.isLoading = true
+
+        const examIdsParam =
+          Array.isArray(this.appliedFilters.examIds) &&
+          this.appliedFilters.examIds.length > 0
+            ? this.appliedFilters.examIds.join(',')
+            : (this.appliedFilters.examIds || undefined)
+
         const params = {
           search: this.appliedFilters.search || undefined,
-          examIds: this.appliedFilters.examIds || undefined,
+          examIds: examIdsParam,
           fromTime: this.formatDateTimeParam(this.appliedFilters.fromTime, '00:00:00'),
           toTime: this.formatDateTimeParam(this.appliedFilters.toTime, '23:59:59'),
           channel: 'CMS',
         }
 
         const response = await reportResultNotPaidServices.exportResultNotPaid(params)
-        
-        // Tạo đường dẫn ẩn để tải file về trình duyệt
-        const blob = new Blob([response.data || response], { 
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+
+        const blob = new Blob([response.data || response], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         })
         const link = document.createElement('a')
         link.href = window.URL.createObjectURL(blob)
-        
-        // Đặt tên file tải về (có thể tùy chỉnh thêm đuôi .xlsx)
+
         link.download = `Danh_Sach_Sinh_Vien_Chua_Nop_Tien_${new Date().toISOString().slice(0, 10)}.xlsx`
         link.click()
-        
+
         window.URL.revokeObjectURL(link.href)
       } catch (err) {
         console.error('Lỗi khi xuất file báo cáo:', err)
-        // Hiển thị thông báo lỗi nếu cần
       } finally {
         this.isLoading = false
       }
@@ -671,11 +714,16 @@ export default {
 .top-filter-bar { flex-shrink: 0; }
 .filter-item { flex-grow: 1; flex-shrink: 1; }
 .search-input { min-width: 180px; max-width: 240px; }
-.select-md { min-width: 150px; max-width: 190px; }
+.select-md { min-width: 165px; max-width: 220px; }
 .date-input { min-width: 140px; max-width: 170px; }
 .action-btn { height: 40px !important; min-height: 40px !important; }
 .custom-outlined-input >>> .v-input__control { min-height: 38px !important; }
 .custom-outlined-input >>> fieldset { border-color: #ccc !important; border-radius: 4px !important; }
+.exam-multi-select >>> .v-select__selections {
+  flex-wrap: nowrap !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .border-top { border-top: 1px solid #e0e0e0; }
 .bottom-bar { flex-shrink: 0; background-color: #ffffff; overflow-x: auto; }
 .pagination-input >>> .v-input__control { min-height: 36px !important; }
