@@ -248,7 +248,7 @@
                 <v-list-item-title>Xuất file DSSV</v-list-item-title>
               </v-list-item>
 
-              <template v-if="item.examSessionStatus !== 'FINALIZED' && item.examStatus !== 'FINALIZED'">
+              <template v-if="item.examSessionStatus !== 'FINALIZED'">
                 <v-list-item @click="handleStudentList(item)">
                   <v-list-item-icon class="mr-2"><v-icon small color="teal">mdi-school</v-icon></v-list-item-icon>
                   <v-list-item-title>Danh sách sinh viên</v-list-item-title>
@@ -260,7 +260,13 @@
               </template>
 
               <template v-else>
-                <v-list-item v-if="!item.isEmailSent" @click="openSendEmailConfirm(item)">
+                <v-list-item
+                  v-if="
+                    item.examSessionScoreStatus === 'SCOREBOARD_AVAILABLE' &&
+                    item.examStatus !== 'ANNOUNCED'
+                  "
+                  @click="openSendEmailConfirm(item)"
+                >
                   <v-list-item-icon class="mr-2"><v-icon small color="green">mdi-email-arrow-right-outline</v-icon></v-list-item-icon>
                   <v-list-item-title>Gửi email bảng điểm</v-list-item-title>
                 </v-list-item>
@@ -865,15 +871,15 @@ export default {
     async confirmSendEmail() {
       if (!this.itemToSendEmail) return
       try {
-        await examSessionService.sendEmailResult(this.itemToSendEmail.id, 'CMS')
-        this.$set(this.itemToSendEmail, 'isEmailSent', true)
-        this.emailConfirmDialog = false
-        this.itemToSendEmail = null
-      } catch (error) {
-        console.error('Lỗi gửi email bảng điểm:', error)
-        if (typeof this.$showError === 'function') {
-          this.$showError('Chưa có template email hoặc template email chưa kích hoạt')
+        const res = await examSessionService.sendEmailResult(this.itemToSendEmail.id)
+        if (res.success) {
+          await this.loadData()
+          this.$showSuccess('Gửi mail thành công')
+          this.emailConfirmDialog = false
+          this.itemToSendEmail = null
         }
+      } catch (error) {
+        console.error(error)
       }
     },
 

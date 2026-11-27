@@ -125,13 +125,13 @@
         <template #[`item.actions`]="{ item }">
           <div class="d-flex align-center justify-end justify-sm-center gap-1">
             <v-btn icon x-small @click="viewItem(item)" title="Xem">
-              <v-icon color="#2196F3" size="18">mdi-eye</v-icon>
+              <v-icon color="#2196F3" size="22">mdi-eye</v-icon>
             </v-btn>
             <v-btn icon x-small @click="editItem(item)" title="Sửa">
-              <v-icon color="#f59e0b" size="18">mdi-pencil</v-icon>
+              <v-icon color="#f59e0b" size="22">mdi-pencil</v-icon>
             </v-btn>
             <v-btn icon x-small @click="deleteItem(item)" title="Xóa">
-              <v-icon color="#f44336" size="18">mdi-delete</v-icon>
+              <v-icon color="#f44336" size="22">mdi-delete</v-icon>
             </v-btn>
           </div>
         </template>

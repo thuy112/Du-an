@@ -22,8 +22,8 @@ export default {
     return Api.post('/api/retakeSession', data)
   },
 
-  update(id, data) {
-    return Api.put(`/api/retakeSession/${id}`, data)
+  update(params) {
+    return Api.put(`/api/retakeSession/${params.id}`, params);
   },
 
   delete(id, params) {

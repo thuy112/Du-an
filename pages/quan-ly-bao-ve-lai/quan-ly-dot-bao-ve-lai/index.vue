@@ -1,5 +1,5 @@
 <template>
-    <div class="training-method-page d-flex flex-column pa-3 pa-md-4 bg-white" :class="{ 'is-mobile-device': isMobileDevice }">
+  <div class="training-method-page d-flex flex-column pa-3 pa-md-4 bg-white" :class="{ 'is-mobile-device': isMobileDevice }">
     <!-- TIÊU ĐỀ TRANG -->
     <div class="text-h6 font-weight-bold black--text mb-3">
       Danh sách đợt bảo vệ lại (<span class="text-red-bold">{{ totalRecords }}</span>)
@@ -158,7 +158,7 @@
             @changeStatus="(selectedItem) => handleStatusChange(item, selectedItem)"
           >
             <template #content="{ data }">
-              Bạn có chắc chắn muốn đổi trạng thái sang 
+              Bạn có chắc chắn muốn đổi trạng thái sang
               <span class="font-weight-bold red--text">{{ data.text }}</span> không?
             </template>
           </ChangeableStatus>
@@ -174,7 +174,7 @@
               <v-icon size="24">mdi-pencil</v-icon>
             </v-btn>
             <v-btn icon small color="error" @click="handleDelete(item)" title="Xóa">
-              <v-icon size="24"> mdi-trash-can</v-icon>
+              <v-icon size="24">mdi-trash-can</v-icon>
             </v-btn>
           </div>
         </template>
@@ -244,6 +244,7 @@
         </v-btn>
       </div>
     </div>
+
     <!-- MODAL XÁC NHẬN XÓA -->
     <v-dialog v-model="isDeleteModalOpen" max-width="450px" persistent>
       <v-card class="rounded-lg">
@@ -274,16 +275,16 @@
       </v-card>
     </v-dialog>
 
-    <!-- MODAL THÊM MỚI -->
+    <!-- MODAL THÊM MỚI, CHI TIẾT, CẬP NHẬT -->
     <AddRedefenseModal v-model="isAddModalOpen" @success="onAddSuccess" @error="onAddError" />
-    
-    <!-- MODAL CẬP NHẬT / XEM CHI TIẾT -->
-    <RedefenseModal 
-      v-model="isModalOpen" 
-      :edit-id="selectedEditId" 
-      :is-view-only="isViewOnlyMode"
-      @success="onModalSuccess" 
-      @error="onAddError"
+
+    <RedefenseDetailModal v-model="detailModalOpen" :detail-id="selectedId" />
+
+    <RedefenseUpdateModal
+      v-model="updateModalOpen"
+      :edit-id="selectedId"
+      @success="onUpdateSuccess"
+      @error="onUpdateError"
     />
 
     <!-- TOAST THÔNG BÁO -->
@@ -307,7 +308,8 @@
 import BaseTable from '~/components/Base/BaseTable.vue'
 import ChangeableStatus from '~/components/Base/ChangeableStatus.vue'
 import AddRedefenseModal from '~/components/AddRedefenseModal.vue'
-import RedefenseModal from '~/components/RedefenseModal.vue'
+import RedefenseDetailModal from '~/components/RedefenseDetailModal.vue'
+import RedefenseUpdateModal from '~/components/RedefenseUpdateModal.vue'
 import redefenseExamService from '~/services/redefenseExamService'
 
 export default {
@@ -316,7 +318,8 @@ export default {
     BaseTable,
     ChangeableStatus,
     AddRedefenseModal,
-    RedefenseModal,
+    RedefenseDetailModal,
+    RedefenseUpdateModal,
   },
   data() {
     return {
@@ -327,9 +330,9 @@ export default {
       isMobileDevice: false,
       loading: false,
       isAddModalOpen: false,
-      isModalOpen: false,
-      isViewOnlyMode: false,
-      selectedEditId: null,
+      detailModalOpen: false,
+      updateModalOpen: false,
+      selectedId: null,
       menuFromDate: false,
       menuToDate: false,
       filters: {
@@ -438,7 +441,7 @@ export default {
           const rootData = res.data !== undefined ? res.data : res
           const allItems = Array.isArray(rootData) ? rootData : (rootData.data || rootData.content || rootData.items || [])
           const rawTotal = rootData.totalElements ?? rootData.totalRecords ?? rootData.total ?? (res.totalElements || res.totalRecords || res.total)
-          
+
           this.totalRecords = rawTotal !== undefined ? Number(rawTotal) : allItems.length
           this.itemList = allItems
           this.totalPages = Math.ceil(this.totalRecords / this.itemsPerPage) || 1
@@ -458,7 +461,7 @@ export default {
       this.loadData()
     },
     goToPage() {
-      const page = parseInt(this.pageInput)
+      const page = parseInt(this.pageInput, 10)
       if (page >= 1 && page <= this.totalPages) this.changePage(page)
       else this.pageInput = this.currentPage
     },
@@ -493,37 +496,18 @@ export default {
     onAddError(message) {
       this.showToast(message, '#d32f2f')
     },
-    async handleView(item) {
-      try {
-        const res = await redefenseExamService.getDetail(item.id);
-        if (res) {
-          this.selectedEditId = item.id;
-          this.isViewOnlyMode = true;
-          this.isModalOpen = true;
-        }
-      } catch (error) {
-        console.error('Lỗi lấy chi tiết:', error);
-      }
+    handleView(item) {
+      this.selectedId = item.id
+      this.detailModalOpen = true
     },
-
-    async handleEdit(item) {
-      try {
-        const res = await redefenseExamService.getDetail(item.id);
-        if (res) {
-          this.selectedEditId = item.id;
-          this.isViewOnlyMode = false;
-          this.isModalOpen = true;
-        }
-      } catch (error) {
-        console.error('Lỗi lấy thông tin sửa:', error);
-      }
+    handleEdit(item) {
+      this.selectedId = item.id
+      this.updateModalOpen = true
     },
-
     handleDelete(item) {
       this.itemToDelete = item
       this.isDeleteModalOpen = true
     },
-
     async confirmDelete() {
       if (!this.itemToDelete) return
       this.deleting = true
@@ -539,11 +523,14 @@ export default {
         this.itemToDelete = null
       }
     },
-    async onModalSuccess(msg) {
+    async onUpdateSuccess(msg) {
       this.showToast(msg)
       await this.loadData()
     },
-  }
+    onUpdateError(message) {
+      this.showToast(message, '#d32f2f')
+    },
+  },
 }
 </script>
 

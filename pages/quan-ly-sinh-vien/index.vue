@@ -14,7 +14,7 @@
             <v-col cols="12" sm="6" md="auto">
               <v-text-field
                 v-model="filters.search"
-                placeholder="Tìm theo tên, MSSV"
+                label="Tìm theo tên, MSSV"
                 outlined
                 dense
                 hide-details
@@ -27,7 +27,7 @@
               <v-select
                 v-model="filters.class"
                 :items="classOptions"
-                placeholder="Lớp sinh viên"
+                label="Lớp sinh viên"
                 outlined
                 dense
                 hide-details
@@ -44,7 +44,7 @@
                 :items="studentStatusList"
                 item-text="text"
                 item-value="value"
-                placeholder="Trạng thái"
+                label="Trạng thái"
                 outlined
                 dense
                 hide-details
@@ -329,7 +329,9 @@
 
             <v-select
               v-model="historyFilter.quyTrinh"
-              :items="['Học lại', 'Thi lại', 'Bảo vệ lại', 'Danh mục hệ thống']"
+              :items="sendTypeList"
+              item-text="text"
+              item-value="value"
               placeholder="Quy trình học tập"
               outlined
               dense
@@ -359,20 +361,38 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-if="filteredHistoryData.length === 0">
+                <tr v-if="paginatedHistoryData.length === 0">
                   <td colspan="5" class="text-center py-4 grey--text">
                     Không có dữ liệu
                   </td>
                 </tr>
-                <tr v-for="(item, idx) in filteredHistoryData" :key="idx">
-                  <td>{{ idx + 1 }}</td>
+                <tr v-for="(item, idx) in paginatedHistoryData" :key="idx">
+                  <td>{{ (historyPage - 1) * historyPageSize + idx + 1 }}</td>
                   <td>{{ item.tenHocPhan }}</td>
                   <td>{{ item.maHocPhan }}</td>
-                  <td>{{ item.quyTrinh }}</td>
+                  <td>
+                    <BaseStatusItem
+                      v-if="item.quyTrinh"
+                      :status-list="sendTypeList"
+                      :status="item.quyTrinh"
+                    />
+                    <span v-else>-</span>
+                  </td>
                   <td>{{ item.thoiGianHoanThanh }}</td>
                 </tr>
               </tbody>
             </v-simple-table>
+          </div>
+
+          <div class="d-flex justify-end mt-2 history-pagination-wrap">
+            <BasePagination
+              off-forward
+              :page="historyPage"
+              :page-count="historyTotalPages"
+              :page-size="historyPageSize"
+              @changePage="changeHistoryPage"
+              @changePageSize="onHistoryPageSizeChange"
+            />
           </div>
         </v-card-text>
 
@@ -766,9 +786,10 @@ import BaseExpansion from '~/components/Base/Expansion.vue'
 import BaseDetailItem from '~/components/Base/DetailItem.vue'
 import BaseStatusItem from '~/components/Base/StatusItem.vue'
 import ChangeableStatus from '~/components/Base/ChangeableStatus.vue'
-import { genderList, studentStatusList, degreeList } from '~/consts/list'
+import { genderList, sendTypeList, studentStatusList, degreeList } from '~/consts/list'
 import studentServices from '~/services/studentServices'
 import StudentUpdate from '~/components/Student/Update.vue'
+import BasePagination from '~/components/Base/Pagination.vue'
 
 const getStatusLabel = (statusVal) => {
   const found = studentStatusList.find((s) => s.value === statusVal)
@@ -780,7 +801,6 @@ const getStatusLabel = (statusVal) => {
 
 const parseStudentData = (apiData) => {
   return apiData.map((item) => {
-    // Chuẩn hóa giá trị status về đúng value của studentStatusList nếu API trả về tên cũ/khác
     let normalizedStatus = item.status || ''
     if (
       normalizedStatus === 'ACTIVE' ||
@@ -827,6 +847,7 @@ export default {
     BaseStatusItem,
     ChangeableStatus,
     StudentUpdate,
+    BasePagination,
   },
   middleware: 'authenticated',
   data() {
@@ -838,6 +859,7 @@ export default {
       genderList,
       studentStatusList,
       degreeList,
+      sendTypeList,
 
       filters: { search: '', class: null, status: null },
       tempDialogFilters: {
@@ -869,6 +891,11 @@ export default {
       historyFilter: { hocPhan: null, quyTrinh: null },
       historyDataList: [],
       filteredHistoryData: [],
+      historyPage: 1,
+      historyPageInput: 1,
+      historyPageSize: 50,
+      historyTotalRecords: 0,
+      historyTotalPagesApi: 1,
 
       headers: [
         { text: 'STT', value: 'stt', sortable: false, width: '50px' },
@@ -959,7 +986,7 @@ export default {
     },
     trainingTypeOptions() {
       const fromApi = (this.trainingMethodList || []).map((t) => t.name)
-      const fromStudents = this.students.map((s) => s.trainingMethodName)
+      const fromStudents = (this.students || []).map((s) => s.trainingMethodName)
       return [
         ...new Set(
           [...fromApi, ...fromStudents].filter((v) => v && v !== '---')
@@ -968,7 +995,7 @@ export default {
     },
     courseOptions() {
       const fromApi = (this.courseList || []).map((c) => c.name || c.code)
-      const fromStudents = this.students.map((s) => s.courseName)
+      const fromStudents = (this.students || []).map((s) => s.courseName)
       return [
         ...new Set(
           [...fromApi, ...fromStudents].filter((v) => v && v !== '---')
@@ -978,16 +1005,16 @@ export default {
     majorOptions() {
       return [
         ...new Set(
-          this.students.map((s) => s.majorName).filter((v) => v !== '---')
+          (this.students || []).map((s) => s.majorName).filter((v) => v && v !== '---')
         ),
       ].sort()
     },
     locationOptions() {
       return [
         ...new Set(
-          this.students
+          (this.students || [])
             .map((s) => s.trainingUnitName)
-            .filter((v) => v !== '---')
+            .filter((v) => v && v !== '---')
         ),
       ].sort()
     },
@@ -998,19 +1025,20 @@ export default {
         ? [this.termList]
         : []
       return list.map((item) => ({
-        text: `${item.code || ''} ${item.name || ''}`.trim(),
-        value: item.id || item.code,
+        text: item.name || `${item.code || ''}`.trim(),
+        value: item.id,
       }))
     },
     filteredStudents() {
-      return this.students.filter((s) => {
+      const safeStudents = Array.isArray(this.students) ? this.students : []
+      return safeStudents.filter((s) => {
         const keyword = this.appliedFilters.search
           ? this.appliedFilters.search.toLowerCase()
           : ''
         const matchSearch =
           !keyword ||
-          s.fullName.toLowerCase().includes(keyword) ||
-          s.code.toLowerCase().includes(keyword)
+          (s.fullName || '').toLowerCase().includes(keyword) ||
+          (s.code || '').toLowerCase().includes(keyword)
 
         const matchClass =
           !this.appliedFilters.class || s.className === this.appliedFilters.class
@@ -1052,6 +1080,14 @@ export default {
       const pages = []
       for (let i = 1; i <= this.totalPages; i++) pages.push(i)
       return pages
+    },
+    historyTotalPages() {
+      return Number(this.historyTotalPagesApi) > 0
+        ? Number(this.historyTotalPagesApi)
+        : 1
+    },
+    paginatedHistoryData() {
+      return Array.isArray(this.filteredHistoryData) ? this.filteredHistoryData : []
     },
   },
   async mounted() {
@@ -1256,7 +1292,7 @@ export default {
       }
     },
     goToPage() {
-      let target = parseInt(this.pageInput)
+      let target = parseInt(this.pageInput, 10)
       if (isNaN(target) || target < 1) target = 1
       if (target > this.totalPages) target = this.totalPages
       this.page = target
@@ -1297,45 +1333,111 @@ export default {
       this.historyFilter = { hocPhan: null, quyTrinh: null }
       this.historyDataList = []
       this.filteredHistoryData = []
+      this.historyPage = 1
+      this.historyPageInput = 1
+      this.historyPageSize = 50
+      this.historyTotalRecords = 0
+      this.historyTotalPagesApi = 1
       this.historyDialog = true
 
+      await this.fetchStudentHistory()
+    },
+
+    async fetchStudentHistory() {
+      const studentId = this.selectedStudent?.id
+      if (!studentId) return
+
       try {
-        const res = await studentServices.getStudentHistory({
-          studentId: item.id,
-          pageIndex: 1,
-          pageSize: 50,
-        })
+        const params = {
+          studentId,
+          pageIndex: this.historyPage,
+          pageSize: this.historyPageSize,
+          channel: 'CMS',
+        }
 
-        const rawHistory = res?.data?.data || res?.data?.items || res?.data || []
+        if (this.historyFilter.hocPhan) {
+          params.termId = this.historyFilter.hocPhan
+        }
+        if (this.historyFilter.quyTrinh) {
+          params.examType = this.historyFilter.quyTrinh
+        }
 
-        this.historyDataList = rawHistory.map((h, idx) => ({
-          tenHocPhan: h.termName || h.hocPhan || `Học phần ${idx + 1}`,
-          maHocPhan: h.termCode || h.maHocPhan || `HP0${idx + 1}`,
-          quyTrinh: h.processType || h.quyTrinh || 'Học lại',
-          thoiGianHoanThanh: h.createdAt || h.thoiGianHoanThanh || '---',
+        const res = await studentServices.getHistoryStudent(params)
+        const rawPayload = res?.data !== undefined ? res.data : res
+        const rawHistory = Array.isArray(rawPayload?.data)
+          ? rawPayload.data
+          : Array.isArray(rawPayload?.items)
+          ? rawPayload.items
+          : Array.isArray(rawPayload)
+          ? rawPayload
+          : []
+
+        const mapped = rawHistory.map((h, idx) => ({
+          termId: h.term?.id || h.termId || null,
+          tenHocPhan: h.term?.name || h.termName || h.hocPhan || `Học phần ${idx + 1}`,
+          maHocPhan: h.term?.code || h.termCode || h.maHocPhan || `HP0${idx + 1}`,
+          quyTrinh: h.examType || h.processType || h.quyTrinh || '',
+          thoiGianHoanThanh: h.completedTime || h.createdAt || h.thoiGianHoanThanh || '---',
         }))
+
+        this.historyDataList = mapped
+        this.filteredHistoryData = mapped
+        this.historyTotalRecords = Number(
+          rawPayload?.totalRecords ?? rawPayload?.totalElements ?? mapped.length
+        )
+        this.historyTotalPagesApi =
+          Number(rawPayload?.totalPages) ||
+          Math.ceil(this.historyTotalRecords / this.historyPageSize) ||
+          1
       } catch (err) {
         console.error('Lỗi khi gọi API lịch sử sinh viên:', err)
         this.historyDataList = []
+        this.filteredHistoryData = []
+        this.historyTotalRecords = 0
+        this.historyTotalPagesApi = 1
         this.showToast('Không thể tải lịch sử học tập!', '#C62828')
       }
     },
+
     searchHistory() {
-      this.filteredHistoryData = this.historyDataList.filter((item) => {
-        const matchHP =
-          !this.historyFilter.hocPhan ||
-          item.maHocPhan === this.historyFilter.hocPhan ||
-          item.tenHocPhan === this.historyFilter.hocPhan
-        const matchQT =
-          !this.historyFilter.quyTrinh ||
-          item.quyTrinh === this.historyFilter.quyTrinh
-        return matchHP && matchQT
-      })
+      this.historyPage = 1
+      this.historyPageInput = 1
+      this.fetchStudentHistory()
     },
+
     resetHistoryFilter() {
       this.historyFilter = { hocPhan: null, quyTrinh: null }
-      this.filteredHistoryData = []
+      this.historyPage = 1
+      this.historyPageInput = 1
+      this.fetchStudentHistory()
     },
+
+    changeHistoryPage(p) {
+      if (p >= 1 && p <= this.historyTotalPages) {
+        this.historyPage = p
+        this.historyPageInput = p
+        this.fetchStudentHistory()
+      }
+    },
+
+    goToHistoryPage() {
+      let target = parseInt(this.historyPageInput, 10)
+      if (isNaN(target) || target < 1) target = 1
+      if (target > this.historyTotalPages) target = this.historyTotalPages
+      this.historyPage = target
+      this.historyPageInput = target
+      this.fetchStudentHistory()
+    },
+
+    onHistoryPageSizeChange(val) {
+      if (typeof val === 'number') {
+        this.historyPageSize = val
+      }
+      this.historyPage = 1
+      this.historyPageInput = 1
+      this.fetchStudentHistory()
+    },
+
     exportToExcel() {
       const dataToExport = this.filteredStudents.map((item, index) => ({
         STT: index + 1,
@@ -1453,5 +1555,11 @@ export default {
   .bottom-bar {
     padding: 6px 12px !important;
   }
+}
+.history-pagination-wrap :deep(.v-select) {
+  min-width: 90px;
+}
+.history-pagination-wrap :deep(.v-select__selection--comma) {
+  overflow: visible;
 }
 </style>

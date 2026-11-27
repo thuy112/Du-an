@@ -20,7 +20,7 @@
       >
         <v-text-field
           v-model="filters.keyword"
-          placeholder="Tìm kiếm"
+          label="Tìm kiếm"
           outlined
           dense
           hide-details
@@ -34,7 +34,7 @@
         <v-select
           v-model="filters.termId"
           :items="termOptions"
-          placeholder="Học kỳ"
+          label="Học kỳ"
           outlined
           dense
           hide-details
@@ -46,7 +46,7 @@
         <v-select
           v-model="filters.sessionId"
           :items="sessionOptions"
-          placeholder="Đợt học lại"
+          label="Đợt học lại"
           outlined
           dense
           hide-details
@@ -58,7 +58,7 @@
         <v-select
           v-model="filters.subjectId"
           :items="subjectOptions"
-          placeholder="Học phần"
+          label="Học phần"
           outlined
           dense
           hide-details
@@ -70,7 +70,7 @@
         <v-select
           v-model="filters.status"
           :items="statusOptions"
-          placeholder="Trạng thái"
+          label="Trạng thái"
           outlined
           dense
           hide-details
@@ -87,7 +87,7 @@
           class="btn-square-action"
           @click="refreshData"
         >
-          <v-icon size="22">mdi-refresh</v-icon>
+          <v-icon size="24">mdi-refresh</v-icon>
         </v-btn>
 
         <v-btn
@@ -97,7 +97,7 @@
           elevation="0"
           @click="handleSearch"
         >
-          <v-icon size="22">mdi-magnify</v-icon>
+          <v-icon size="24">mdi-magnify</v-icon>
         </v-btn>
 
         <v-badge
@@ -136,7 +136,7 @@
           elevation="0"
           @click="openAddModal"
         >
-          <v-icon size="22">mdi-plus</v-icon>
+          <v-icon size="24">mdi-plus</v-icon>
         </v-btn>
       </div>
     </div>
@@ -264,7 +264,7 @@
                 <td class="text-center">
                   <div class="d-flex align-center justify-center gap-1">
                     <v-btn icon small color="blue" @click="viewDetail(item)">
-                      <v-icon size="20">mdi-eye</v-icon>
+                      <v-icon size="24">mdi-eye</v-icon>
                     </v-btn>
                     <v-btn
                       v-if="!item.isRegistered"
@@ -273,7 +273,7 @@
                       color="error"
                       @click="confirmDelete(item)"
                     >
-                      <v-icon size="20">mdi-delete</v-icon>
+                      <v-icon size="24">mdi-delete</v-icon>
                     </v-btn>
                   </div>
                 </td>

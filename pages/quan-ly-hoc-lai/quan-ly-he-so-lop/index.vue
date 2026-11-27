@@ -1,922 +1,314 @@
 <template>
-  <div
-    class="page-layout-wrapper d-flex flex-column pa-2 pa-md-4 system-bg"
-    :class="{ 'is-mobile-device': isMobileDevice }"
-  >
-    <!-- THANH THÔNG BÁO BANNER NỔI (MÀU VÀNG KHI TRÙNG, MÀU XANH KHI THÀNH CÔNG) -->
-    <div
-      v-if="alertMessage"
-      :style="{ backgroundColor: alertColor + ' !important' }"
-      class="custom-alert-banner px-4 py-3 d-flex align-center justify-space-between mb-3 elevation-2"
-    >
-      <div class="d-flex align-center">
-        <v-icon
-          :color="alertColor === '#ffc107' ? 'black' : 'white'"
-          class="mr-2"
+    <div>
+        <v-data-table
+            :headers="headers"
+            :items="list"
+            :items-per-page="pageInfo.pageSize"
+            :loading="isLoading"
+            checkbox-color="primary"
+            fixed-header
+            hide-default-footer
+            item-key="teacher_id"
+            loading-text="Đang tải dữ liệu..."
+            max-height="calc(100vh - 300px)"
+            no-data-text="Không có dữ liệu"
         >
-          {{
-            alertColor === '#ffc107'
-              ? 'mdi-alert-circle-outline'
-              : 'mdi-check-circle-outline'
-          }}
-        </v-icon>
-        <span
-          :class="alertColor === '#ffc107' ? 'black--text' : 'white--text'"
-          class="font-weight-medium text-body-2"
-          >{{ alertMessage }}</span
+            <template #top>
+                <v-row class="mb-3">
+                    <v-col class="fs-17 fw-500" cols="12" md="auto">
+                        Danh sách hệ số lớp
+                        <span class="primary--text">( {{ totalRecord }} )</span>
+                    </v-col>
+
+                    <v-row dense justify="end">
+                        <v-col cols="12" md="auto">
+                            <base-text-field
+                                v-model="search.search"
+                                hide-details
+                                label="Tìm kiếm"
+                            ></base-text-field>
+                        </v-col>
+                        <v-col cols="12" md="auto">
+                            <base-text-field
+                                v-model="search.coefficient"
+                                hide-details
+                                label="Tìm theo hệ số"
+                                type="number"
+                                step="0.1"
+                                min="0"
+                            ></base-text-field>
+                        </v-col>
+                        <v-col class="d-flex align-center gap-8 toolbar-actions" cols="auto">
+                            <v-tooltip bottom>
+                                <template #activator="{ on, attrs }">
+                                    <v-icon
+                                        color="primary"
+                                        v-bind="attrs"
+                                        @click="handleReset"
+                                        v-on="on"
+                                        >mdi-refresh
+                                    </v-icon>
+                                </template>
+                                <span>Reset bộ lọc</span>
+                            </v-tooltip>
+
+                            <v-tooltip bottom>
+                                <template #activator="{ on, attrs }">
+                                    <v-btn
+                                        color="primary"
+                                        elevation="0"
+                                        v-bind="attrs"
+                                        @click="handleSearch"
+                                        v-on="on"
+                                    >
+                                        <v-icon>mdi-magnify</v-icon>
+                                    </v-btn>
+                                </template>
+                                <span>Tìm kiếm</span>
+                            </v-tooltip>
+                            <v-tooltip bottom>
+                                <template #activator="{ on, attrs }">
+                                    <v-btn
+                                        color="primary"
+                                        elevation="0"
+                                        v-bind="attrs"
+                                        @click="openAdd"
+                                        v-on="on"
+                                    >
+                                        <v-icon>mdi-plus</v-icon>
+                                    </v-btn>
+                                </template>
+                                <span>Thêm mới</span>
+                            </v-tooltip>
+                        </v-col>
+                    </v-row>
+                </v-row>
+            </template>
+            <template #[`item.stt`]="{ index }">
+                <span>{{ $getStt(index, pageInfo) }}</span>
+            </template>
+            <template #[`item.classType`]="{ item }">
+                <span>{{
+                    getRetakeClassTypeText(item?.classType, item?.courseType, item?.isCourseNormal)
+                }}</span>
+            </template>
+            <template #[`item.studentCount`]="{ item }">
+                <span>{{ item.minStudent }} - {{ item.maxStudent }}</span>
+            </template>
+            <template #[`item.actions`]="{ item }">
+                <div>
+                    <v-tooltip bottom>
+                        <template #activator="{ on, attrs }">
+                            <v-icon
+                                color="warning"
+                                dark
+                                icon
+                                v-bind="attrs"
+                                @click="handleUpdate(item)"
+                                v-on="on"
+                            >
+                                mdi-pencil
+                            </v-icon>
+                        </template>
+                        <span>Sửa</span>
+                    </v-tooltip>
+
+                    <v-tooltip bottom>
+                        <template #activator="{ on, attrs }">
+                            <v-icon
+                                color="red"
+                                dark
+                                v-bind="attrs"
+                                @click="handleClick(item)"
+                                v-on="on"
+                            >
+                                mdi-trash-can
+                            </v-icon>
+                        </template>
+                        <span>Xóa</span>
+                    </v-tooltip>
+                </div>
+            </template>
+        </v-data-table>
+        <BasePagination
+            :page="pageInfo.pageIndex"
+            :page-count="totalPage"
+            :page-size="pageInfo.pageSize"
+            @changePage="changePage"
+            @changePageSize="changePageSize"
+        />
+        <CoefficientUpdate ref="CoefficientUpdate" @close="getList" />
+        <CoefficientAdd ref="CoefficientAdd" @close="getList" />
+        <base-confirm-modal
+            :open="openDelete"
+            @OK="handleDelete"
+            @toggle="openDelete = !openDelete"
         >
-      </div>
-      <v-btn icon x-small dark @click="alertMessage = ''">
-        <v-icon :color="alertColor === '#ffc107' ? 'black' : 'white'"
-          >mdi-close</v-icon
-        >
-      </v-btn>
+            <template #content>
+                <div>
+                    Xác nhận xóa hệ số
+                    <span class="primary--text font-weight-bold">{{
+                        itemToDelete?.classType
+                    }}</span>
+                </div>
+            </template>
+        </base-confirm-modal>
     </div>
-
-    <!-- 1. HEADER & BỘ LỌC TÌM KIẾM -->
-    <div class="top-section flex-shrink-0 mb-3 bg-white pa-3 rounded-0">
-      <v-row align="center" justify="space-between" no-gutters>
-        <v-col cols="12" md="auto" class="mb-3 mb-md-0 pb-1 pb-md-0">
-          <div class="text-h6 font-weight-bold d-flex align-center">
-            Danh sách hệ số lớp&nbsp;(<span style="color: #a2212b">{{
-              totalItems
-            }}</span
-            >)
-          </div>
-        </v-col>
-
-        <v-col cols="12" md="auto">
-          <div
-            class="d-flex align-center justify-start justify-md-end flex-wrap gap-2"
-          >
-            <v-text-field
-              v-model="filters.search"
-              label="Tìm kiếm"
-              dense
-              outlined
-              hide-details
-              clearable
-              class="filter-input-box flex-grow-1 flex-sm-grow-0 bg-white"
-              @keyup.enter="handleExecuteSearch"
-            ></v-text-field>
-
-            <v-text-field
-              v-model="filters.coefficient"
-              label="Tìm theo hệ số"
-              dense
-              outlined
-              hide-details
-              clearable
-              class="filter-input-box flex-grow-1 flex-sm-grow-0 bg-white"
-              @keyup.enter="handleExecuteSearch"
-            ></v-text-field>
-
-            <div class="d-flex align-center gap-2 flex-nowrap mt-2 mt-sm-0">
-              <v-btn
-                icon
-                color="#a2212b"
-                class="flex-shrink-0 btn-action-icon border-action-btn bg-white"
-                @click="resetFilters"
-              >
-                <v-icon size="20">mdi-refresh</v-icon>
-              </v-btn>
-
-              <v-btn
-                color="#a2212b"
-                dark
-                elevation="0"
-                class="btn-action-square flex-shrink-0"
-                @click="handleExecuteSearch"
-              >
-                <v-icon size="20">mdi-magnify</v-icon>
-              </v-btn>
-
-              <v-btn
-                color="#a2212b"
-                dark
-                elevation="0"
-                class="btn-action-square flex-shrink-0"
-                @click="openCreateModal"
-              >
-                <v-icon size="20">mdi-plus</v-icon>
-              </v-btn>
-            </div>
-          </div>
-        </v-col>
-      </v-row>
-    </div>
-
-    <!-- 2. BẢNG DỮ LIỆU TÍCH HỢP BaseTable -->
-    <div
-      class="main-content-block table-scroll-container flex-grow-1 bg-white pa-3 rounded-0"
-    >
-      <BaseTable
-        :headers="headers"
-        :items="paginatedData"
-        :loading="loading"
-        hide-default-footer
-        disable-pagination
-        class="elevation-0 bg-transparent custom-table"
-      >
-        <template #[`item.stt`]="{ index }">
-          <span class="font-weight-medium">{{
-            (page - 1) * itemsPerPage + index + 1
-          }}</span>
-        </template>
-
-        <template #[`item.loaiLop`]="{ item }">
-          <span>{{ item.loaiLop }}</span>
-        </template>
-
-        <template #[`item.soLuongSv`]="{ item }">
-          {{ item.minSv }} - {{ item.maxSv }}
-        </template>
-
-        <template #[`item.actions`]="{ item }">
-          <div class="d-flex align-center gap-3 justify-center">
-            <v-icon
-              size="22"
-              color="#fa8c16"
-              class="action-icon-btn"
-              @click="openEditModal(item)"
-            >
-              mdi-pencil
-            </v-icon>
-            <v-icon
-              size="22"
-              color="#f5222d"
-              class="action-icon-btn"
-              @click="openDeleteModal(item)"
-            >
-              mdi-trash-can
-            </v-icon>
-          </div>
-        </template>
-      </BaseTable>
-    </div>
-
-    <!-- 3. THANH PHÂN TRANG -->
-    <div
-      class="custom-pagination-bar flex-shrink-0 d-flex align-center justify-end flex-wrap gap-2 py-3 px-3 bg-white mt-2 rounded-0"
-    >
-      <div class="d-flex align-center flex-wrap justify-end gap-2 w-100">
-        <div class="d-flex align-center gap-2">
-          <v-select
-            v-model="itemsPerPage"
-            :items="[10, 20, 50, 100]"
-            label="Bản ghi"
-            outlined
-            dense
-            hide-details
-            class="outlined-pagination-control select-records bg-white"
-            @change="handleExecuteSearch"
-          ></v-select>
-
-          <v-text-field
-            v-model.number="pageInput"
-            label="Trang"
-            outlined
-            dense
-            hide-details
-            class="outlined-pagination-control input-page bg-white"
-            @keyup.enter="handleGoBtnClick"
-          ></v-text-field>
-
-          <v-btn
-            color="#a2212b"
-            dark
-            class="btn-go elevation-0 text-capitalize font-weight-regular px-3"
-            @click="handleGoBtnClick"
-          >
-            Đi
-          </v-btn>
-        </div>
-
-        <div class="d-flex align-center gap-1 mt-2 mt-sm-0">
-          <v-btn
-            outlined
-            class="btn-page-nav mx-1 bg-white"
-            :disabled="page <= 1"
-            @click="changePage(page - 1)"
-          >
-            <v-icon small color="grey darken-1">mdi-chevron-left</v-icon>
-          </v-btn>
-
-          <v-btn
-            v-for="p in visiblePages"
-            :key="p"
-            :color="page === p ? '#a2212b' : ''"
-            :dark="page === p"
-            :outlined="page !== p"
-            class="btn-page-nav font-weight-medium mx-1"
-            @click="changePage(p)"
-          >
-            {{ p }}
-          </v-btn>
-
-          <v-btn
-            outlined
-            class="btn-page-nav mx-1 bg-white"
-            :disabled="page >= totalPages"
-            @click="changePage(page + 1)"
-          >
-            <v-icon small color="grey darken-1">mdi-chevron-right</v-icon>
-          </v-btn>
-        </div>
-      </div>
-    </div>
-
-    <!-- DIALOG THÊM MỚI / CHỈNH SỬA -->
-    <v-dialog v-model="formDialog" max-width="600px" persistent>
-      <v-card class="rounded-0 overflow-hidden elevation-0">
-        <div
-          class="px-5 py-3 d-flex align-center justify-space-between"
-          style="background-color: #a2212b"
-        >
-          <span class="white--text font-weight-bold text-h6">
-            {{ isEdit ? 'Cập nhật hệ số lớp' : 'Thêm mới hệ số lớp' }}
-          </span>
-          <v-btn icon dark x-small @click="formDialog = false"
-            ><v-icon>mdi-close</v-icon></v-btn
-          >
-        </div>
-
-        <v-card-text class="pa-6">
-          <v-form ref="classCoeffForm" v-model="isFormValid">
-            <v-row dense>
-              <!-- Loại lớp: Chỉ có Lớp mở, Lớp ghép, Đồ án môn học -->
-              <v-col cols="12">
-                <v-select
-                  v-model="formData.baseLoaiLop"
-                  :items="['Lớp mở', 'Lớp ghép', 'Đồ án môn học']"
-                  label="Loại lớp (*)"
-                  dense
-                  outlined
-                  hide-details="auto"
-                  :rules="[(v) => !!v || 'Vui lòng chọn loại lớp']"
-                ></v-select>
-              </v-col>
-
-              <!-- Nếu chọn Lớp ghép: Hiện thêm Loại học phần (Đại cương / Chuyên ngành) -->
-              <v-col
-                v-if="formData.baseLoaiLop === 'Lớp ghép'"
-                cols="12"
-                class="mt-3"
-              >
-                <v-select
-                  v-model="formData.loaiHocPhan"
-                  :items="['Đại cương', 'Chuyên ngành']"
-                  label="Loại học phần (*)"
-                  dense
-                  outlined
-                  hide-details="auto"
-                ></v-select>
-              </v-col>
-
-              <v-col cols="12" class="mt-3">
-                <v-text-field
-                  v-model.number="formData.thuHocPhiSv"
-                  label="Thu học phí SV (*)"
-                  type="number"
-                  dense
-                  outlined
-                  hide-details="auto"
-                  :rules="[
-                    (v) => (v !== null && v !== '') || 'Vui lòng nhập giá trị',
-                  ]"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" class="mt-3">
-                <v-text-field
-                  v-model.number="formData.thanhToanGiangDay"
-                  label="Thanh toán giảng dạy (*)"
-                  type="number"
-                  dense
-                  outlined
-                  hide-details="auto"
-                  :rules="[
-                    (v) => (v !== null && v !== '') || 'Vui lòng nhập giá trị',
-                  ]"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" class="mt-3">
-                <v-text-field
-                  v-model="formData.description"
-                  label="Mô tả"
-                  dense
-                  outlined
-                  hide-details="auto"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" class="mt-3">
-                <v-text-field
-                  v-model.number="formData.minSv"
-                  label="Số lượng tối thiểu (*)"
-                  type="number"
-                  dense
-                  outlined
-                  hide-details="auto"
-                  :rules="[
-                    (v) =>
-                      (v !== null && v !== '') ||
-                      'Vui lòng nhập số lượng tối thiểu',
-                  ]"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" class="mt-3">
-                <v-text-field
-                  v-model.number="formData.maxSv"
-                  label="Số lượng tối đa (*)"
-                  type="number"
-                  dense
-                  outlined
-                  hide-details="auto"
-                  :rules="[
-                    (v) =>
-                      (v !== null && v !== '') ||
-                      'Vui lòng nhập số lượng tối đa',
-                  ]"
-                ></v-text-field>
-              </v-col>
-
-              <!-- Nếu chọn Đồ án môn học: Hiện nút gạt Học phần thường (HPTT) để phân biệt với HP.DAMH -->
-              <v-col
-                v-if="formData.baseLoaiLop === 'Đồ án môn học'"
-                cols="12"
-                class="mt-4"
-              >
-                <v-switch
-                  v-model="formData.isCourseNormal"
-                  label="Học phần thường"
-                  color="#a2212b"
-                  hide-details
-                ></v-switch>
-              </v-col>
-            </v-row>
-          </v-form>
-        </v-card-text>
-
-        <v-card-actions class="pa-5 pt-0 d-flex justify-end gap-2">
-          <v-btn
-            outlined
-            class="text-capitalize px-4 rounded-0"
-            @click="formDialog = false"
-            >Đóng</v-btn
-          >
-          <v-btn
-            color="#a2212b"
-            dark
-            elevation="0"
-            class="text-capitalize px-4 rounded-0"
-            @click="saveData"
-            >Lưu</v-btn
-          >
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- DIALOG XÓA -->
-    <v-dialog v-model="deleteDialog" max-width="450px" persistent>
-      <v-card class="rounded-0 overflow-hidden elevation-0">
-        <div
-          class="px-4 py-3 d-flex align-center justify-space-between"
-          style="background-color: #a2212b"
-        >
-          <span class="white--text font-weight-bold text-subtitle-1"
-            >Xác nhận</span
-          >
-          <v-btn icon dark x-small @click="deleteDialog = false"
-            ><v-icon>mdi-close</v-icon></v-btn
-          >
-        </div>
-        <v-card-text class="pa-5 text-body-2 text--primary">
-          Xác nhận xóa hệ số lớp này?
-        </v-card-text>
-        <v-card-actions class="pa-4 pt-0 d-flex justify-end gap-2">
-          <v-btn
-            outlined
-            class="text-capitalize px-4 rounded-0"
-            @click="deleteDialog = false"
-            >Đóng</v-btn
-          >
-          <v-btn
-            color="#a2212b"
-            dark
-            elevation="0"
-            class="text-capitalize px-4 rounded-0"
-            @click="confirmDelete"
-            >Xác Nhận</v-btn
-          >
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-  </div>
 </template>
 
 <script>
-import BaseTable from '@/components/Base/BaseTable.vue'
-import coefficientServices from '~/services/coefficientServices.js'
+import coefficientServices from "~/services/coefficientServices";
+import CoefficientAdd from "~/components/Coefficient/Add.vue";
+import CoefficientUpdate from "~/components/Coefficient/Update.vue";
+import { retakeCourseStatus } from "~/consts/list";
+import { getRetakeClassTypeText } from "~/utils/heppers";
+const INIT_PAGE_INFO = {
+    pageIndex: 1,
+    pageSize: 50,
+};
 
-const parseCoefficientData = (apiData) => {
-  return (apiData || []).map((item) => {
-    if (!item) return {}
-
-    let loaiLopVN = 'Lớp mở'
-    if (item.classType === 'COMBINE_CLASS') {
-      if (item.courseType === 'SPECIALIZED') {
-        loaiLopVN = 'Lớp ghép (Chuyên ngành)'
-      } else {
-        loaiLopVN = 'Lớp ghép (Đại cương)'
-      }
-    } else if (item.classType === 'PROJECT_BASED_CLASS') {
-      loaiLopVN = item.isCourseNormal
-        ? 'Đồ án môn học (HPTT)'
-        : 'Đồ án môn học (HP.DAMH)'
-    } else {
-      loaiLopVN = 'Lớp mở'
-    }
-
-    const min = item.minStudent !== undefined ? item.minStudent : (item.minSv || 0)
-    const max = item.maxStudent !== undefined ? item.maxStudent : (item.maxSv || 0)
-
-    return {
-      id: item.id || Date.now(),
-      loaiLop: loaiLopVN,
-      thuHocPhiSv: item.coefficient ?? item.thuHocPhiSv ?? 1.0,
-      thanhToanGiangDay: item.coefficientTeacher ?? item.thanhToanGiangDay ?? '',
-      description: item.description || '',
-      minSv: min,
-      maxSv: max,
-      classType: item.classType,
-      courseType: item.courseType,
-      isCourseNormal: item.isCourseNormal,
-    }
-  })
-}
-
+const INIT_SEARCH = {
+    search: "",
+    coefficient: undefined,
+};
 export default {
-  name: 'QuanLyHeSoLop',
-  components: { BaseTable },
-  middleware: 'authenticated',
-  data() {
-    return {
-      isMobileDevice: false,
-      loading: false,
-      formDialog: false,
-      deleteDialog: false,
-      isEdit: false,
-      isFormValid: true,
-      alertMessage: '',
-      alertColor: '#ffc107',
-
-      page: 1,
-      pageInput: 1,
-      itemsPerPage: 50,
-
-      filters: { search: '', coefficient: '' },
-      selectedItem: {},
-      formData: {
-        id: null,
-        baseLoaiLop: 'Lớp mở',
-        loaiHocPhan: 'Đại cương',
-        thuHocPhiSv: 1.0,
-        thanhToanGiangDay: '',
-        description: '',
-        minSv: 1,
-        maxSv: 10,
-        isCourseNormal: false,
-      },
-
-      headers: [
-        {
-          text: 'STT',
-          value: 'stt',
-          sortable: false,
-          width: '70px',
-          align: 'left',
+    components: {
+        CoefficientAdd,
+        CoefficientUpdate,
+    },
+    data: () => ({
+        retakeCourseStatus,
+        headers: [
+            {
+                value: "stt",
+                text: "STT",
+                width: 50,
+                sortable: false,
+                align: "center",
+                class: "text-center",
+            },
+            {
+                value: "classType",
+                text: "Loại lớp",
+                width: 200,
+                align: "center",
+                class: "text-center",
+            },
+            {
+                value: "coefficient",
+                text: "Thu học phí SV",
+                width: 200,
+                align: "center",
+                class: "text-center",
+            },
+            {
+                value: "coefficientTeacher",
+                text: "Thanh toán giảng dạy",
+                width: 200,
+                align: "center",
+                class: "text-center",
+            },
+            {
+                value: "studentCount",
+                text: "Số lượng sinh viên",
+                width: 200,
+                align: "center",
+                class: "text-center",
+            },
+            {
+                value: "actions",
+                text: "Chức năng",
+                align: "center",
+                sortable: false,
+                width: 100,
+                class: "text-center",
+            },
+        ],
+        list: [],
+        pageInfo: {
+            ...INIT_PAGE_INFO,
         },
-        { text: 'Loại lớp', value: 'loaiLop', sortable: false, align: 'left' },
-        {
-          text: 'Thu học phí SV',
-          value: 'thuHocPhiSv',
-          sortable: false,
-          align: 'center',
+        totalPage: 0,
+        totalRecord: 0,
+        isLoading: false,
+        openDelete: false,
+        search: { ...INIT_SEARCH },
+        isOpenAdd: false,
+        itemToDelete: null,
+    }),
+    computed: {},
+    created() {
+        this.getList();
+    },
+    methods: {
+        getRetakeClassTypeText,
+        handleClick(item) {
+            this.itemToDelete = item;
+            this.openDelete = true;
         },
-        {
-          text: 'Thanh toán giảng dạy',
-          value: 'thanhToanGiangDay',
-          sortable: false,
-          align: 'center',
+        async handleDelete() {
+            try {
+                const res = await coefficientServices.delete(this.itemToDelete.id);
+                if (res.success) {
+                    this.$showSuccess("Xóa hệ số thành công");
+                    await this.getList();
+                }
+            } catch (er) {
+                console.log(er);
+            }
+            this.openDelete = false;
         },
-        {
-          text: 'Số lượng sinh viên',
-          value: 'soLuongSv',
-          sortable: false,
-          align: 'center',
+
+        handleUpdate(item) {
+            this.$refs.CoefficientUpdate.getUpdate({ ...item });
         },
-        {
-          text: 'Chức năng',
-          value: 'actions',
-          sortable: false,
-          align: 'center',
-          width: '130px',
+        async getList() {
+            try {
+                this.isLoading = true;
+                const res = await coefficientServices.getList({
+                    ...this.pageInfo,
+                    ...this.search,
+                });
+                if (res.success) {
+                    this.list = res.data.data;
+                    this.totalPage = res.data.totalPages;
+                    this.totalRecord = res.data.totalRecords;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+            this.isLoading = false;
         },
-      ],
-
-      dataList: [],
-      appliedData: [],
-      userInfo: null,
-    }
-  },
-  computed: {
-    totalItems() {
-      return this.appliedData.length
+        changePageSize(val) {
+            this.pageInfo.pageIndex = 1;
+            this.pageInfo.pageSize = val;
+            this.getList();
+        },
+        changePage(val) {
+            this.pageInfo.pageIndex = val;
+            this.getList();
+        },
+        handleReset() {
+            this.search = { ...INIT_SEARCH };
+            this.pageInfo = { ...INIT_PAGE_INFO };
+            this.getList();
+        },
+        handleSearch() {
+            this.pageInfo.pageIndex = 1;
+            this.getList();
+        },
+        openAdd() {
+            this.$refs.CoefficientAdd.open = true;
+        },
     },
-    totalPages() {
-      return Math.ceil(this.totalItems / this.itemsPerPage) || 1
-    },
-    paginatedData() {
-      const start = (this.page - 1) * this.itemsPerPage
-      return this.appliedData.slice(start, start + this.itemsPerPage)
-    },
-    visiblePages() {
-      const pages = []
-      const maxVisible = 5
-      let start = Math.max(1, this.page - Math.floor(maxVisible / 2))
-      const end = Math.min(this.totalPages, start + maxVisible - 1)
-      if (end - start + 1 < maxVisible)
-        start = Math.max(1, end - maxVisible + 1)
-      for (let i = start; i <= end; i++) pages.push(i)
-      return pages
-    },
-  },
-  async mounted() {
-    if (typeof navigator !== 'undefined') {
-      this.isMobileDevice =
-        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-          navigator.userAgent
-        )
-    }
-    if (this.$store) {
-      this.$store.commit('SET_PAGE_TITLE', 'Quản lý hệ số lớp')
-    }
-    await Promise.all([
-      this.fetchUserInfo(),
-      this.fetchPageRole(),
-      this.fetchData(),
-    ])
-  },
-  methods: {
-    async fetchUserInfo() {
-      try {
-        const res = await coefficientServices.getUserInfo({ channel: 'CMS' })
-        this.userInfo = res?.data || res
-      } catch (err) {
-        console.error('Lỗi tải thông tin user:', err)
-      }
-    },
-
-    async fetchPageRole() {
-      try {
-        await coefficientServices.getPageRole({ channel: 'CMS' })
-      } catch (err) {
-        console.error('Lỗi kiểm tra quyền trang:', err)
-      }
-    },
-
-    async fetchData() {
-      this.loading = true
-      let serverList = []
-
-      try {
-        const res = await this.$axios.$get('/api/coefficient', {
-          params: {
-            pageIndex: this.page || 1,
-            pageSize: this.itemsPerPage || 50,
-            search: '', // Để rỗng để lấy toàn bộ dữ liệu về lọc ở client
-            channel: 'CMS',
-            transid: '8d00cd51-a742-4f85-a582-4b6b46461116'
-          },
-        })
-        const rawData = res?.data?.data || res?.data?.items || res?.data || []
-        serverList = parseCoefficientData(rawData)
-      } catch (err) {
-        console.error('Lỗi tải dữ liệu hệ số lớp từ API:', err)
-        serverList = []
-      }
-
-      this.dataList = serverList
-      
-      // Thực hiện lọc trực tiếp theo từ khóa tìm kiếm và hệ số ngay trên client
-      let result = [...this.dataList]
-      
-      if (this.filters.search && this.filters.search.trim() !== '') {
-        const keyword = this.filters.search.toLowerCase().trim()
-        result = result.filter(item => 
-          (item.loaiLop && item.loaiLop.toLowerCase().includes(keyword)) ||
-          (item.description && item.description.toLowerCase().includes(keyword))
-        )
-      }
-
-      if (this.filters.coefficient !== '' && this.filters.coefficient !== null && this.filters.coefficient !== undefined) {
-        const coeffKeyword = String(this.filters.coefficient).trim()
-        result = result.filter(item => 
-          String(item.thuHocPhiSv).includes(coeffKeyword)
-        )
-      }
-
-      this.appliedData = result
-      this.loading = false
-    },
-
-    async handleExecuteSearch(resetPage = true) {
-      if (resetPage) {
-        this.page = 1
-        this.pageInput = 1
-      }
-      await this.fetchData()
-    },
-
-    async handleGoBtnClick() {
-      const targetPage = parseInt(this.pageInput, 10)
-      if (targetPage && targetPage >= 1 && targetPage <= this.totalPages) {
-        this.page = targetPage
-      } else {
-        this.page = 1
-        this.pageInput = 1
-      }
-      await this.fetchData()
-    },
-
-    async resetFilters() {
-      this.filters = { search: '', coefficient: '' }
-      this.page = 1
-      this.pageInput = 1
-      await this.fetchData()
-    },
-
-    async changePage(p) {
-      if (p >= 1 && p <= this.totalPages) {
-        this.page = p
-        this.pageInput = p
-        await this.fetchData()
-      }
-    },
-
-    openCreateModal() {
-      this.isEdit = false
-      this.alertMessage = ''
-      this.formData = {
-        id: null,
-        baseLoaiLop: 'Lớp mở',
-        loaiHocPhan: 'Đại cương',
-        thuHocPhiSv: 1.0,
-        thanhToanGiangDay: '',
-        description: '',
-        minSv: 1,
-        maxSv: 10,
-        isCourseNormal: false,
-      }
-      if (this.$refs.classCoeffForm) this.$refs.classCoeffForm.resetValidation()
-      this.formDialog = true
-    },
-
-    openEditModal(item) {
-      this.isEdit = true
-      this.alertMessage = ''
-      this.selectedItem = item
-
-      let baseLop = 'Lớp mở'
-      let hocPhan = 'Đại cương'
-      if (item.loaiLop.includes('Lớp ghép')) {
-        baseLop = 'Lớp ghép'
-        hocPhan = item.loaiLop.includes('Chuyên ngành')
-          ? 'Chuyên ngành'
-          : 'Đại cương'
-      } else if (item.loaiLop.includes('Đồ án')) {
-        baseLop = 'Đồ án môn học'
-      }
-
-      this.formData = {
-        id: item.id,
-        baseLoaiLop: baseLop,
-        loaiHocPhan: hocPhan,
-        thuHocPhiSv: item.thuHocPhiSv,
-        thanhToanGiangDay: item.thanhToanGiangDay,
-        description: item.description,
-        minSv: item.minSv,
-        maxSv: item.maxSv,
-        isCourseNormal: item.isCourseNormal || false,
-      }
-      if (this.$refs.classCoeffForm) this.$refs.classCoeffForm.resetValidation()
-      this.formDialog = true
-    },
-
-    async saveData() {
-      if (this.$refs.classCoeffForm && !this.$refs.classCoeffForm.validate())
-        return
-
-      const newMin = Number(this.formData.minSv)
-      const newMax = Number(this.formData.maxSv)
-      const newThuHocPhi = Number(this.formData.thuHocPhiSv)
-      const newThanhToan = Number(this.formData.thanhToanGiangDay)
-
-      if (newMin > newMax) {
-        this.alertColor = '#ffc107'
-        this.alertMessage = 'Số lượng tối thiểu không được lớn hơn số lượng tối đa!'
-        return
-      }
-
-      let classType = 'NEW_CLASS'
-      let courseType = null
-
-      if (this.formData.baseLoaiLop === 'Lớp ghép') {
-        classType = 'COMBINE_CLASS'
-        courseType = this.formData.loaiHocPhan === 'Chuyên ngành' ? 'SPECIALIZED' : 'GENERAL'
-      } else if (this.formData.baseLoaiLop === 'Đồ án môn học') {
-        classType = 'PROJECT_BASED_CLASS'
-      } else {
-        classType = 'NEW_CLASS'
-      }
-
-      const payload = {
-        classType,
-        courseType,
-        coefficient: newThuHocPhi,
-        coefficientTeacher: newThanhToan,
-        description: this.formData.description || '',
-        minStudent: newMin,
-        maxStudent: newMax,
-        isCourseNormal: this.formData.isCourseNormal,
-        channel: 'CMS'
-      }
-
-      try {
-        if (this.isEdit) {
-          await coefficientServices.update(this.selectedItem.id, payload)
-          this.alertColor = '#4caf50'
-          this.alertMessage = 'Cập nhật hệ số lớp thành công!'
-        } else {
-          await coefficientServices.create(payload)
-          this.alertColor = '#4caf50'
-          this.alertMessage = 'Thêm mới hệ số lớp thành công!'
-        }
-
-        this.formDialog = false
-        await this.fetchData()
-      } catch (err) {
-        console.error('Lỗi khi lưu dữ liệu:', err)
-        this.alertMessage = ''
-      }
-    },
-
-    openDeleteModal(item) {
-      this.selectedItem = item
-      this.deleteDialog = true
-    },
-
-    async confirmDelete() {
-      if (!this.selectedItem) return
-
-      try {
-        await coefficientServices.delete(this.selectedItem.id, {
-          channel: 'CMS'
-        })
-
-        this.deleteDialog = false
-        await this.fetchData()
-        this.alertColor = '#4caf50'
-        this.alertMessage = 'Xóa hệ số lớp thành công!'
-      } catch (err) {
-        console.error('Lỗi khi xóa hệ số lớp:', err)
-        this.alertMessage = ''
-      }
-    },
-  },
-}
+};
 </script>
 
 <style scoped>
-.system-bg {
-  background-color: #f4f6f8 !important;
-  min-height: calc(100vh - 64px);
+.row--dense {
+    margin: 15px;
 }
-
-.rounded-0 {
-  border-radius: 0px !important;
-}
-.gap-2 {
-  gap: 8px;
-}
-.gap-3 {
-  gap: 12px;
-}
-
-/* Banner thông báo động (Màu vàng cảnh báo / Màu xanh thành công) */
-.custom-alert-banner {
-  border-radius: 4px;
-  transition: background-color 0.3s ease;
-}
-
-.filter-input-box {
-  min-width: 180px;
-  flex: 1 1 140px;
-}
-@media (min-width: 960px) {
-  .filter-input-box {
-    max-width: 160px;
-  }
-}
-
-::v-deep .filter-input-box.v-text-field--outlined .v-input__control,
-::v-deep .filter-input-box.v-text-field--outlined .v-input__slot {
-  min-height: 40px !important;
-  height: 40px !important;
-  padding: 0 10px !important;
-}
-
-.btn-action-icon {
-  width: 40px !important;
-  height: 40px !important;
-}
-.btn-action-square {
-  width: 48px !important;
-  min-width: 48px !important;
-  height: 40px !important;
-  border-radius: 4px !important;
-  padding: 0 !important;
-}
-
-.select-records.v-text-field--outlined,
-.select-records.v-text-field--outlined .v-input__control,
-.select-records.v-text-field--outlined .v-input__slot {
-  width: 92px !important;
-  min-width: 92px !important;
-  max-width: 92px !important;
-  height: 32px !important;
-  min-height: 32px !important;
-}
-
-.input-page.v-text-field--outlined,
-.input-page.v-text-field--outlined .v-input__control,
-.input-page.v-text-field--outlined .v-input__slot {
-  width: 64px !important;
-  min-width: 64px !important;
-  max-width: 64px !important;
-  height: 32px !important;
-  min-height: 32px !important;
-}
-
-::v-deep .outlined-pagination-control .v-input__slot {
-  padding: 0 6px !important;
-}
-
-::v-deep .outlined-pagination-control input,
-::v-deep .outlined-pagination-control .v-select__selection {
-  font-size: 13px !important;
-  padding: 0 !important;
-}
-
-.btn-go {
-  height: 32px !important;
-  min-height: 32px !important;
-  border-radius: 4px !important;
-}
-
-.btn-page-nav {
-  height: 32px !important;
-  min-height: 32px !important;
-  min-width: 32px !important;
-  padding: 0 8px !important;
-  border-radius: 4px !important;
-}
-
-.action-icon-btn {
-  cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease;
-}
-.action-icon-btn:hover {
-  opacity: 0.8;
-  transform: scale(1.15);
-}
-
-.page-layout-wrapper:not(.is-mobile-device) {
-  height: calc(100vh - 64px);
-}
-.page-layout-wrapper:not(.is-mobile-device) .main-content-block {
-  display: flex;
-  flex-direction: column;
-  overflow: auto;
-}
-/* Banner thông báo thu gọn ở góc trên bên phải, kéo dài ra đến chỗ Admin */
-.custom-alert-banner {
-  position: fixed;
-  top: 16px;
-  right: 24px;
-  z-index: 99999;
-  width: 380px;
-  max-width: calc(100vw - 32px);
-  border-radius: 4px;
-  transition: all 0.3s ease;
+.toolbar-actions {
+    gap: 8px;
 }
 </style>

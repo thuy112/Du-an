@@ -39,8 +39,8 @@ export default {
   exportExcel(id, channel) {
     return Api.get(`/api/redefense/examSession/exportExcel/${id}`, { params: { channel }, responseType: 'blob' })
   },
-  sendEmailResult(id, channel) {
-    return Api.post(`/api/redefense/examSession/mail/result/${id}`, null, { params: { channel } })
+  sendEmailResult(id) {
+    return Api.put(`/api/redefense/examSession/mail/result/${id}`)
   },
   // Lấy chi tiết 1 hội đồng theo ID
   getExamSessionDetail(id, channel) {
